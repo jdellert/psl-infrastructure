@@ -1,0 +1,75 @@
+package de.tuebingen.sfs.psl.talk;
+
+public class BeliefScale {
+
+	private enum VerbalizationType {
+		ADJECTIVE, PREDICATE, ADVERB, ADJECTIVE_HIGH, SIMILARITY
+	}
+
+	private static Belief[] scale = new Belief[] {
+			new Belief(0.01, "almost certainly false", "is almost certainly false", "almost certainly not",
+					"extremely low", "extremely dissimilar"),
+			new Belief(0.05, "very unlikely", "is very unlikely", "very probably not", "very low", "very dissimilar"),
+			new Belief(0.15, "unlikely", "is unlikely", "probably not", "low", "dissimilar"),
+			new Belief(0.33, "doubtful", "is doubtful", "doubtfully", "moderately low", "moderately dissimilar"),
+			new Belief(0.50, "slightly doubtful", "is slightly doubtful", "perhaps", "slightly low",
+					"somewhat dissimilar"),
+			new Belief(0.66, "fairly plausible", "is fairly plausible", "fairly plausibly", "slightly high",
+					"somewhat similar"),
+			new Belief(0.85, "plausible", "is plausible", "plausibly", "moderately high", "moderately similar"),
+			new Belief(0.95, "likely", "is likely", "probably", "high", "similar"),
+			new Belief(0.99, "very likely", "is very likely", "very probably", "very high", "very similar"),
+			// This threshold value needs to be above any possible belief value:
+			new Belief(100.00, "almost certainly true", "is almost certain", "almost certainly", "extremely high",
+					"extremely similar") };
+
+	// TODO: default behavior for closed / fixed predicates
+	// (was excluded, was fixed as, was observed as ...)
+
+	private static String verbalizeBelief(VerbalizationType type, double belief) {
+		int i;
+		for (i = 0; i < scale.length; i++) {
+			if (belief <= scale[i].getThreshold()) {
+				break;
+			}
+		}
+		if (i >= scale.length) {
+			System.err.println("Encountered weird belief value during verbalization: " + belief);
+			return "<weird belief value>";
+		}
+		switch (type) {
+		case ADVERB:
+			return scale[i].getAdverb();
+		case PREDICATE:
+			return scale[i].getPredicate();
+		case ADJECTIVE_HIGH:
+			return scale[i].getAdjectiveHigh();
+		case SIMILARITY:
+			return scale[i].getSimilarity();
+		case ADJECTIVE:
+		default:
+			return scale[i].getAdjective();
+		}
+	}
+
+	public static String verbalizeBeliefAsAdjective(double belief) {
+		return verbalizeBelief(VerbalizationType.ADJECTIVE, belief);
+	}
+
+	public static String verbalizeBeliefAsPredicate(double belief) {
+		return verbalizeBelief(VerbalizationType.PREDICATE, belief);
+	}
+
+	public static String verbalizeBeliefAsAdverb(double belief) {
+		return verbalizeBelief(VerbalizationType.ADVERB, belief);
+	}
+
+	public static String verbalizeBeliefAsAdjectiveHigh(double belief) {
+		return verbalizeBelief(VerbalizationType.ADJECTIVE_HIGH, belief);
+	}
+
+	public static String verbalizeBeliefAsSimilarity(double belief) {
+		return verbalizeBelief(VerbalizationType.SIMILARITY, belief);
+	}
+
+}
