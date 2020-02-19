@@ -15,8 +15,8 @@ import org.linqs.psl.parser.ModelLoader;
 import org.linqs.psl.parser.RulePartial;
 
 import de.tuebingen.sfs.psl.talk.TalkingRule;
-import de.tuebingen.sfs.util.BufferedByteReader;
-import de.tuebingen.sfs.util.IOUtils;
+import de.tuebingen.sfs.util.bin.BufferedByteReader;
+import de.tuebingen.sfs.util.bin.IOUtils;
 
 public class RuleStore {
 
