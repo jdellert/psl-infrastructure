@@ -12,7 +12,6 @@ import org.linqs.psl.database.rdbms.RDBMSDataStore;
 import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver;
 import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver.Type;
 
-import de.tuebingen.sfs.eie.core.EtymologicalTheory;
 import de.tuebingen.sfs.psl.engine.PartitionManager.PartitionException;
 import de.tuebingen.sfs.psl.engine.PartitionManager.ProblemWithPartitions;
 
@@ -38,7 +37,7 @@ public class ProblemManager {
 	public static ProblemManager defaultProblemManager(){
 		String suffix = System.getProperty("user.name") + "@" + PslProblem.getHostname();
 		String baseDBPath = Config.getString("dbpath", System.getProperty("java.io.tmpdir"));
-		String dbPath = Paths.get(baseDBPath, EtymologicalTheory.class.getName() + "_" + suffix).toString();
+		String dbPath = Paths.get(baseDBPath, ProblemManager.class.getName() + "_" + suffix).toString();
 		RDBMSDataStore dataStore = new RDBMSDataStore(new H2DatabaseDriver(Type.Disk, dbPath, true));
 		DatabaseManager dbManager = new DatabaseManager(dataStore);
 		PartitionManager partitionManager = new PartitionManager(dbManager);
