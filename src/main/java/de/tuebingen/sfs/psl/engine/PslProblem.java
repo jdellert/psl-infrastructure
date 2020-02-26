@@ -280,7 +280,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	}
 
 	protected void declarePredicate(String name, int arity) {
-		dbManager.declarePredicate(name, arity);
+		declarePredicate(new TalkingPredicate(name, arity));
 		
 		// TODO circular. how can declareUserPrior be applied to an entire PslProblem instead of just a set of predicates anyway? (vbl)
 //		if (declareUserPrior) {

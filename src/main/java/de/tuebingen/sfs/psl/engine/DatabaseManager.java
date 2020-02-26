@@ -1071,9 +1071,10 @@ public class DatabaseManager {
                         where.append(cols.get(i)).append(" = ? AND ");
                     }
                 }
+
             }
             if (!atomEmpty){            	
-            	where.delete(where.length() - 5, where.length()).append(") OR (");
+            	where.delete(where.length() - 5, where.length()).append(") OR ");
             }
         }
 	    if (!whereEmpty){	    	
@@ -1084,12 +1085,11 @@ public class DatabaseManager {
 	
 	private String orderByStatement(PredicateInfo pred, int[] orderBy, boolean castToInt){
 		List<String> argCols = pred.argumentColumns();
-		String orderByStmt = " ORDER BY ";
-		orderByStmt += Arrays.stream(orderBy).mapToObj(argCols::get)
+		String orderByStmt = Arrays.stream(orderBy).mapToObj(argCols::get)
 				.collect(Collectors.joining((castToInt) ? " as INT), cast(" : ", "));
 		if (castToInt)
 			orderByStmt = "cast(" + orderByStmt + " as INT)";
-		return orderByStmt;
+		return " ORDER BY " + orderByStmt;
 	}
 
 	private String prepareDeleteStatement(PredicateInfo predicate, int writeID, Set<Integer> readIDs, int nOfOrs,

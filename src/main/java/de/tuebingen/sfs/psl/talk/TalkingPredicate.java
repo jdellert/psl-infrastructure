@@ -30,7 +30,7 @@ public class TalkingPredicate {
 	}
 
 	public String verbalizeIdea(String... args) {
-		return predSymbol + "(" + StringUtils.join(args, ',') + ")";
+		return predSymbol + "(" + StringUtils.join(args, ", ") + ")";
 	}
 
 	public String verbalizeIdeaWithBelief(double belief, String... args) {
