@@ -15,6 +15,8 @@ import org.linqs.psl.database.rdbms.PredicateInfo;
 
 import de.tuebingen.sfs.psl.util.data.Multimap;
 import de.tuebingen.sfs.psl.util.data.Multimap.CollectionType;
+import org.linqs.psl.model.predicate.Predicate;
+import org.linqs.psl.model.predicate.StandardPredicate;
 
 public class PartitionManager {
 	

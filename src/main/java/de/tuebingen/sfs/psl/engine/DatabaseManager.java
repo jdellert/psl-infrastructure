@@ -6,16 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.linqs.psl.database.Database;
@@ -82,7 +73,7 @@ public class DatabaseManager {
 			// this is a temporary fix that only works when running a single inference task at a time (vbl)
 //			db = dataStore.getDatabase(write, read);
 			System.err.println("(Actually write=" + read[0] + ", read=" + write + ") (temporary fix)");
-			db = dataStore.getDatabase(read[0], write);
+			db = dataStore.getDatabase(read[0], /*Collections.singleton(predicates.get("Pcls")),*/ write);
 			problemsToDatabases.put(problemId, db);
 		}
 	}
@@ -1221,7 +1212,7 @@ public class DatabaseManager {
                 }
             }
 
-			stmtBuilder.append(") OR ");
+			stmtBuilder.append(")) OR ");
 		}
 		stmtBuilder.delete(stmtBuilder.length() - 4, stmtBuilder.length());
 		stmtBuilder.append(";");
