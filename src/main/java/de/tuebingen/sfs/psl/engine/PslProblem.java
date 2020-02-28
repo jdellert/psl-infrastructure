@@ -5,14 +5,7 @@ import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 import org.linqs.psl.application.groundrulestore.GroundRuleStore;
@@ -53,6 +46,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
     Map<String,Rule> nameToRule;
     Map<String, TalkingRule> nameToTalkingRule;
     Map<String, TalkingPredicate> talkingPredicates;
+    Set<String> closedPredicates;
 
 	Set<AtomTemplate> observations;
 	Set<AtomTemplate> targets;
@@ -88,6 +82,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 
 		System.err.println("Declaring predicates...");
 		talkingPredicates = new TreeMap<>();
+		closedPredicates = new HashSet<>();
 		declarePredicates();
 
 		System.err.println("Pregenerating atoms...");
@@ -194,6 +189,10 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	public DatabaseManager getDbManager(){
 		return dbManager;
 	}
+
+	public Set<String> getClosedPredicates() {
+		return new HashSet<>(closedPredicates);
+	}
 	
 	public Set<AtomTemplate> getAllAtoms() {
 		Set<AtomTemplate> atomSet = reserveAtomsForWriting();
@@ -269,19 +268,29 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 		return groundRules;
 	}
 
-	protected void declarePredicate(TalkingPredicate pred) {
-		dbManager.declarePredicate(pred);
-		talkingPredicates.put(pred.getSymbol(), pred);
-		
-		// TODO circular. how can declareUserPrior be applied to an entire PslProblem instead of just a set of predicates anyway? (vbl)
-//		if (declareUserPrior) {
-//			declareUserPrior(pred.getSymbol(), pred.getArity());
-//		}
+	protected void declareOpenPredicate(String name, int arity) {
+		declareOpenPredicate(new TalkingPredicate(name, arity));
 	}
 
-	protected void declarePredicate(String name, int arity) {
-		declarePredicate(new TalkingPredicate(name, arity));
-		
+	protected void declareOpenPredicate(TalkingPredicate pred) {
+		declarePredicate(pred, false);
+	}
+
+	protected void declareClosedPredicate(String name, int arity) {
+		declareClosedPredicate(new TalkingPredicate(name, arity));
+	}
+
+	protected void declareClosedPredicate(TalkingPredicate pred) {
+		declarePredicate(pred, true);
+	}
+
+	private void declarePredicate(TalkingPredicate pred, boolean closed) {
+		dbManager.declarePredicate(pred);
+		talkingPredicates.put(pred.getSymbol(), pred);
+
+		if (closed)
+			closedPredicates.add(pred.getSymbol());
+
 		// TODO circular. how can declareUserPrior be applied to an entire PslProblem instead of just a set of predicates anyway? (vbl)
 //		if (declareUserPrior) {
 //			declareUserPrior(name, arity);
@@ -302,7 +311,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 
 	private void declareUserPrior(String name, int arity) {
 		String priorName = userPriorName(name);
-		declarePredicate(priorName, arity);
+		declareOpenPredicate(priorName, arity);
 		StringBuilder priArgsB = new StringBuilder();
 		for (int i = 0; i < arity; i++)
 			priArgsB.append('V').append(i).append(',');

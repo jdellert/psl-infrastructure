@@ -6,13 +6,6 @@ import java.util.Set;
 
 import org.linqs.psl.model.rule.GroundRule;
 
-import de.tuebingen.sfs.psl.engine.AtomTemplate;
-import de.tuebingen.sfs.psl.engine.DatabaseManager;
-import de.tuebingen.sfs.psl.engine.InferenceResult;
-import de.tuebingen.sfs.psl.engine.PslProblem;
-import de.tuebingen.sfs.psl.engine.RagFilter;
-import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
-
 public class MinimalPslProblem extends PslProblem{
 
 	public MinimalPslProblem(DatabaseManager dbManager, String name) {
@@ -21,9 +14,9 @@ public class MinimalPslProblem extends PslProblem{
 
 	@Override
 	public void declarePredicates() {
-		declarePredicate("antecedent", 1);
-		declarePredicate("consequent", 1);
-		declarePredicate("small", 1);
+		declareOpenPredicate("antecedent", 1);
+		declareOpenPredicate("consequent", 1);
+		declareOpenPredicate("small", 1);
 	}
 
 	@Override

@@ -6,13 +6,6 @@ import java.util.Set;
 
 import org.linqs.psl.model.rule.GroundRule;
 
-import de.tuebingen.sfs.psl.engine.AtomTemplate;
-import de.tuebingen.sfs.psl.engine.DatabaseManager;
-import de.tuebingen.sfs.psl.engine.InferenceResult;
-import de.tuebingen.sfs.psl.engine.PslProblem;
-import de.tuebingen.sfs.psl.engine.RagFilter;
-import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
-
 public class DemoPslProblem extends PslProblem {
 	String openPredName;
 	String closedPredName;
@@ -31,8 +24,8 @@ public class DemoPslProblem extends PslProblem {
 	}
 
 	public void declareNamedDemoPredicates() {
-		declarePredicate(openPredName, 2);
-		declarePredicate(closedPredName, 2);
+		declareOpenPredicate(openPredName, 2);
+		declareOpenPredicate(closedPredName, 2);
 	}
 
 	@Override

@@ -65,25 +65,16 @@ public class DatabaseManager {
 	/**
 	 * Should only be used BEFORE inferences are run.
 	 */
-	public void openDatabase(String problemId, Partition write, Partition... read) {
+	public void openDatabase(String problemId, Partition write, Set<String> closedPredicates,
+							 Partition... read) {
 		System.err.println("Opening the database for " + problemId + " (write=" + write + "; read=" + Arrays.toString(read) + ")");
 		Database db = problemsToDatabases.get(problemId);
 		if (db == null) {
-			db = dataStore.getDatabase(write, new HashSet<>(Arrays.asList(
-					predicates.get("Pcls")/*, predicates.get("Prec")*/)), read);
+			Set<StandardPredicate> toClose = closedPredicates.stream()
+					.map(pName -> predicates.get(pName)).collect(Collectors.toSet());
+			db = dataStore.getDatabase(write, toClose, read);
 			problemsToDatabases.put(problemId, db);
 		}
-	}
-
-	/**
-	 * Should only be used BEFORE inferences are run.
-	 */
-	public void openDatabase(String problemId, int write, Integer... read) {
-		Partition[] readPartitions = new Partition[read.length];
-		for (int i = 0; i < read.length; i++){
-			readPartitions[i] = dataStore.getPartition(read[i] + "");
-		}
-		openDatabase(problemId, dataStore.getPartition(write + ""), readPartitions);
 	}
 
 	public void closeDatabase(String problemId) {

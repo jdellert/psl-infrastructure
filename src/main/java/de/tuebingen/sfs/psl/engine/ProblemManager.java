@@ -91,7 +91,7 @@ public class ProblemManager {
 		ProblemWithPartitions problemWithPartitions = partitionManager.preparePartitions(problem);
 		System.err.println("Partitions prepared.");
 		dbManager.openDatabase(problemWithPartitions.problem.getName(), problemWithPartitions.writePartition,
-				problemWithPartitions.readPartitions);
+				problemWithPartitions.problem.getClosedPredicates(), problemWithPartitions.readPartitions);
 		InferenceResult result = null;
 		try {
 			System.err.println("Starting inference.");
@@ -122,7 +122,7 @@ public class ProblemManager {
 		for (int i = 0; i < tasks.length; i++) {
 			ProblemWithPartitions problemWithPartitions = problemsWithPartitions.get(i);
 			dbManager.openDatabase(problemWithPartitions.problem.getName(), problemWithPartitions.writePartition,
-					problemWithPartitions.readPartitions);
+					problemWithPartitions.problem.getClosedPredicates(), problemWithPartitions.readPartitions);
 			tasks[i] = new FutureTask<>(problemWithPartitions.problem);
 			Thread t = new Thread(tasks[i]);
 			t.start();
