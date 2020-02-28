@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.linqs.psl.database.Partition;
 import org.linqs.psl.database.rdbms.PredicateInfo;
 
 import de.tuebingen.sfs.psl.util.data.Multimap;
@@ -23,16 +24,19 @@ public class PartitionManager {
 	// ONLY set this to true if you're working with a VERY small set of atoms.
 	public boolean verbose = false;
 
-	// TODO more informative names for partitions (vbl)
-	public static final int STD_PARTITION = 1;
+	public static final String STD_PARTITION_ID = "stdPartition";
+	private Partition stdPartition;
+	private int nextPartition = 0;
+
 	private DatabaseManager dbManager;
 	private Multimap<AtomTemplate, String> atomsToProblemIds; // TODO is this actually used anywhere? (vbl)
-	private Multimap<PslProblem, Integer> problemsToReadPartitions;
-	private Map<PslProblem, Integer> problemsToWritePartitions;
-	private Multimap<Integer, PslProblem> partitionsToProblems;
+	private Multimap<PslProblem, Partition> problemsToReadPartitions;
+	private Map<PslProblem, Partition> problemsToWritePartitions;
+	private Multimap<Partition, PslProblem> partitionsToProblems;
 
 	public PartitionManager(DatabaseManager dbManager) {
 		this.dbManager = dbManager;
+		stdPartition = dbManager.getDataStore().getPartition(STD_PARTITION_ID);
 		atomsToProblemIds = new Multimap<>(CollectionType.LIST);
 		problemsToReadPartitions = new Multimap<>(CollectionType.SET);
 		problemsToWritePartitions = new HashMap<>();
@@ -44,20 +48,13 @@ public class PartitionManager {
 	}
 
 	protected void registerProblem(PslProblem problem) {
-		problemsToReadPartitions.put(problem, STD_PARTITION);
-		problemsToWritePartitions.put(problem, STD_PARTITION);
-		partitionsToProblems.put(STD_PARTITION, problem);
+		problemsToReadPartitions.put(problem, stdPartition);
+		problemsToWritePartitions.put(problem, stdPartition);
+		partitionsToProblems.put(stdPartition, problem);
 	}
 
-	private Integer nextFreePartition() {
-		int i = 1;
-		Set<Integer> existingPartitions = partitionsToProblems.keySet();
-		while (i++ > 0) {
-			if (!existingPartitions.contains(i)) {
-				return i;
-			}
-		}
-		return null;
+	private Partition nextFreePartition() {
+		return dbManager.getDataStore().getPartition("partition-" + nextPartition++);
 	}
 
 	public ProblemWithPartitions preparePartitions(PslProblem problem) {
@@ -108,7 +105,7 @@ public class PartitionManager {
 
 		System.err.println("Checking for overlapping read atoms");
 		problemsToAtoms = getAtomsPerProblem(problems, false);
-		Set<Integer> originalSources = new HashSet<>();
+		Set<Partition> originalSources = new HashSet<>();
 		for (PslProblem problem : problems) {
 			originalSources.addAll(problemsToReadPartitions.get(problem));
 		}
@@ -118,7 +115,7 @@ public class PartitionManager {
 		
 		// Update the partition overview.
 		for (PslProblem problem : problems) {
-			for (Integer originalSrc : originalSources) {
+			for (Partition originalSrc : originalSources) {
 				// This can cause an error message if the original source is 1, 
 				// because it was already removed when updating the write partition. 
 				partitionsToProblems.removeFromOrDeleteCollection(originalSrc, problem);
@@ -162,25 +159,27 @@ public class PartitionManager {
 		return problemsToAtoms;
 	}
 
-	private void changeWritePartition(PslProblem problem, int targetID) {
+	private void changeWritePartition(PslProblem problem, Partition targetPartition) {
 		System.err.println("Reserving write atoms for " + problem.getName());
 		Collection<AtomTemplate> writeAtoms = problem.reserveAtomsForWriting();
-		int sourceID = problemsToWritePartitions.get(problem);
-		System.err.println("Moving target atoms for " + problem.getName() + " from " + sourceID + " to " + targetID);
+		Partition sourcePartition = problemsToWritePartitions.get(problem);
+		System.err.println("Moving target atoms for " + problem.getName() + " from " + sourcePartition
+				+ " (id: " + sourcePartition.getID() + ") to " + targetPartition + " (id: " + targetPartition.getID() + ")");
 		for (AtomTemplate writeAtom : writeAtoms) {
-			int rowsMoved = moveToPartition(problem, sourceID, targetID, writeAtom);
+			int rowsMoved = moveToPartition(problem, sourcePartition.getID(), targetPartition.getID(), writeAtom);
 			if (verbose){
 				System.err
-				.println("Tried to move " + writeAtom + " from " + sourceID + " to " + targetID + ": " + rowsMoved);				
+				.println("Tried to move " + writeAtom + " from " + sourcePartition + " to " + targetPartition + ": " + rowsMoved);
 			}
 			atomsToProblemIds.put(writeAtom, problem.getName());
 		}
 		partitionsToProblems.removeFromOrDeleteCollection(problemsToWritePartitions.get(problem), problem);
-		problemsToWritePartitions.put(problem, targetID);
-		partitionsToProblems.put(targetID, problem);
+		problemsToWritePartitions.put(problem, targetPartition);
+		partitionsToProblems.put(targetPartition, problem);
 	}
 
-	private void changeReadPartition(List<PslProblem> problems, Collection<AtomTemplate> readAtoms, int targetID) {
+	private void changeReadPartition(List<PslProblem> problems, Collection<AtomTemplate> readAtoms,
+									 Partition targetPartition) {
 		System.err.println("Reserving read atoms for "
 				+ problems.stream().map(x -> x.getName()).collect(Collectors.toList()));
 		if (readAtoms.isEmpty()) {
@@ -191,18 +190,19 @@ public class PartitionManager {
 			System.err.println(readAtoms);
 		}
 
-		Set<Integer> potentialSources = new HashSet<>();
+		Set<Partition> potentialSources = new HashSet<>();
 		for (PslProblem problem : problems) {
 			potentialSources.addAll(problemsToReadPartitions.get(problem));
 		}
 
 		// TODO more efficient query (vbl)
 		for (AtomTemplate readAtom : readAtoms) {
-			for (Integer sourceID : potentialSources) {
-				int rowsMoved = moveToPartition(problems.get(0), sourceID, targetID, readAtom);
-				if (verbose){					
+			for (Partition sourcePartition : potentialSources) {
+				int rowsMoved = moveToPartition(problems.get(0), sourcePartition.getID(),
+						targetPartition.getID(), readAtom);
+				if (verbose){
 					System.err.println(
-							"Tried to move " + readAtom + " from " + sourceID + " to " + targetID + ": " + rowsMoved);
+							"Tried to move " + readAtom + " from " + sourcePartition + " to " + targetPartition + ": " + rowsMoved);
 				}
 				if (rowsMoved > 0) {
 					// The atom templates here don't contain wildcards -- each template can only move up to one row.
@@ -212,8 +212,8 @@ public class PartitionManager {
 		}
 
 		for (PslProblem problem : problems) {
-			problemsToReadPartitions.get(problem).add(targetID);
-			partitionsToProblems.put(targetID, problem);
+			problemsToReadPartitions.get(problem).add(targetPartition);
+			partitionsToProblems.put(targetPartition, problem);
 		}
 	}
 
@@ -222,12 +222,12 @@ public class PartitionManager {
 		// when possible.
 		// TODO for the write partition (which isn't shared!), this could be more efficient 
 		// atom args) (vbl)
-		changeWritePartition(problem, STD_PARTITION);
+		changeWritePartition(problem, stdPartition);
 		List<PslProblem> problems = new ArrayList<>();
 		problems.add(problem);
-		Set<Integer> originalSources = new HashSet<>(problemsToReadPartitions.get(problem));
-		changeReadPartition(problems, problem.declareAtomsForReading(), STD_PARTITION);
-		for (Integer originalSrc : originalSources) {
+		Set<Partition> originalSources = new HashSet<>(problemsToReadPartitions.get(problem));
+		changeReadPartition(problems, problem.declareAtomsForReading(), stdPartition);
+		for (Partition originalSrc : originalSources) {
 			partitionsToProblems.removeFromOrDeleteCollection(originalSrc, problem);
 			problemsToReadPartitions.removeFromOrDeleteCollection(problem, originalSrc);
 		}
@@ -244,13 +244,19 @@ public class PartitionManager {
 		return rowsMoved;
 	}
 
-	public Integer getWritePartition(PslProblem problem){
+	public Partition getWritePartition(PslProblem problem){
 		return problemsToWritePartitions.get(problem);
 	}
 
+	public int getWritePartitionID(PslProblem problem){
+		return getWritePartition(problem).getID();
+	}
 
-	public Set<Integer> getReadPartitions(PslProblem problem){
+	public Set<Partition> getReadPartitions(PslProblem problem){
 		return problemsToReadPartitions.getSet(problem);
+	}
+	public Set<Integer> getReadPartitionIDs(PslProblem problem){
+		return getReadPartitions(problem).stream().map(Partition::getID).collect(Collectors.toSet());
 	}
 	
 	// For testing:
@@ -263,7 +269,7 @@ public class PartitionManager {
 
 	public List<String> getReadPartitionsPerProblem() {
 		List<String> readPartitionsPerProblem = new ArrayList<>();
-		for (Entry<PslProblem, Collection<Integer>> entry : problemsToReadPartitions.entrySet()) {
+		for (Entry<PslProblem, Collection<Partition>> entry : problemsToReadPartitions.entrySet()) {
 			String name = entry.getKey().getName();
 			if (name.isEmpty()) {
 				name = entry.getKey().getClass().getSimpleName();
@@ -281,7 +287,7 @@ public class PartitionManager {
 
 	public List<String> getWritePartitionsPerProblem() {
 		List<String> writePartitionsPerProblem = new ArrayList<>();
-		for (Entry<PslProblem, Integer> entry : problemsToWritePartitions.entrySet()) {
+		for (Entry<PslProblem, Partition> entry : problemsToWritePartitions.entrySet()) {
 			String name = entry.getKey().getName();
 			if (name.isEmpty()) {
 				name = entry.getKey().getClass().getSimpleName();
@@ -299,7 +305,7 @@ public class PartitionManager {
 
 	public List<String> getProblemsPerPartition() {
 		List<String> problemsPerPartition = new ArrayList<>();
-		for (Entry<Integer, Collection<PslProblem>> entry : partitionsToProblems.entrySet()) {
+		for (Entry<Partition, Collection<PslProblem>> entry : partitionsToProblems.entrySet()) {
 			problemsPerPartition.add(entry.getKey() + ": "
 					+ entry.getValue().stream()
 							.map(x -> x.getName().isEmpty() ? x.getClass().getSimpleName() : x.getName())
@@ -323,22 +329,22 @@ public class PartitionManager {
 	public class ProblemWithPartitions {
 
 		PslProblem problem;
-		int writePartition;
-		Integer[] readPartitions;
+		Partition writePartition;
+		Partition[] readPartitions;
 
 		public ProblemWithPartitions(PslProblem problem) {
 			this.problem = problem;
 			this.writePartition = problemsToWritePartitions.get(problem);
-			this.readPartitions = problemsToReadPartitions.get(problem).toArray(new Integer[0]);
+			this.readPartitions = problemsToReadPartitions.get(problem).toArray(new Partition[0]);
 		}
 
 	}
 
-	public class PartitionException extends Exception{
+	public class PartitionException extends Exception {
 
 		private static final long serialVersionUID = -1077110774830553521L;
 
-		public PartitionException(String message){
+		public PartitionException(String message) {
 			super(message);
 		}
 

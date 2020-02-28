@@ -50,7 +50,7 @@ public class DatabaseManager {
 		talkingPredicates = new TreeMap<String, TalkingPredicate>();
 		problemsToAtoms = new Multimap<>(CollectionType.SET);
 		problemsToDatabases = new HashMap<>();
-		stdPartition = dataStore.getPartition(PartitionManager.STD_PARTITION + "");
+		stdPartition = dataStore.getPartition(PartitionManager.STD_PARTITION_ID);
 		atomsTotal = 0;
 		Runtime runtime = Runtime.getRuntime();
 		runtime.gc();
@@ -69,11 +69,8 @@ public class DatabaseManager {
 		System.err.println("Opening the database for " + problemId + " (write=" + write + "; read=" + Arrays.toString(read) + ")");
 		Database db = problemsToDatabases.get(problemId);
 		if (db == null) {
-			// TODO investigate why the databases are switched. 
-			// this is a temporary fix that only works when running a single inference task at a time (vbl)
-//			db = dataStore.getDatabase(write, read);
-			System.err.println("(Actually write=" + read[0] + ", read=" + write + ") (temporary fix)");
-			db = dataStore.getDatabase(read[0], /*Collections.singleton(predicates.get("Pcls")),*/ write);
+			db = dataStore.getDatabase(write, new HashSet<>(Arrays.asList(
+					predicates.get("Pcls")/*, predicates.get("Prec")*/)), read);
 			problemsToDatabases.put(problemId, db);
 		}
 	}
@@ -583,8 +580,8 @@ public class DatabaseManager {
 		StringBuilder stmt = new StringBuilder();
 		stmt.append("SELECT 1 FROM ").append(predInfo.tableName());
 		Set<Integer> readIDs = new HashSet<>();
-		readIDs.add(PartitionManager.STD_PARTITION);
-		attachWhereClauseWithPartitions(stmt, predInfo, PartitionManager.STD_PARTITION, readIDs, args);
+		readIDs.add(stdPartition.getID());
+		attachWhereClauseWithPartitions(stmt, predInfo, stdPartition.getID(), readIDs, args);
 
 		try (Connection conn = dataStore.getConnection();
 				PreparedStatement prepStmt = conn.prepareStatement(stmt.toString());) {
