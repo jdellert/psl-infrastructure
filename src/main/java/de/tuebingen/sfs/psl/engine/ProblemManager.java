@@ -113,6 +113,10 @@ public class ProblemManager {
 			System.err.println(e.getMessage());
 			return false;
 		}
+		finally {
+			for (PslProblem problem : problems)
+				partitionManager.cleanUp(problem);
+		}
 		return true;
 	}
 

@@ -1173,9 +1173,9 @@ public class DatabaseManager {
 		
 		// DELETE FROM auxTable WHERE
 		// (arg1 = ? AND arg2 = ?
-		//  AND EXISTS (SELECT 1 FROM predTable WHERE 
-		//   predTable.value < threshold
-		//   AND predTable.arg1 = ? AND predTable.arg2 = ?)
+		//  AND EXISTS (SELECT 1 FROM predTable p WHERE
+		//   p.value < threshold
+		//   AND p.arg1 = ? AND p.arg2 = ?)
 		// ) OR (arg1 = ? AND ......);
 		//
 		stmtBuilder.append("DELETE FROM ").append(auxTable).append(" WHERE ");
@@ -1191,11 +1191,11 @@ public class DatabaseManager {
                     stmtBuilder.append(cols.get(i)).append(" = ? AND ");
                 }
             }
-            stmtBuilder.append("EXISTS (SELECT 1 FROM ").append(predTable).append(" WHERE ");
-            stmtBuilder.append(predTable).append(".value < ").append(threshold);
+            stmtBuilder.append("EXISTS (SELECT 1 FROM ").append(predTable)
+					.append(" p WHERE p.value < ").append(threshold);
             for (int i = 0; i < args.length; i++) {
                 if (!args[i].equals("?")) {
-                	stmtBuilder.append(" AND ").append(predTable).append(".");
+                	stmtBuilder.append(" AND p.");
                     stmtBuilder.append(cols.get(i)).append(" = ?");
                 }
             }

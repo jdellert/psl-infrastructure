@@ -9,6 +9,8 @@ import de.tuebingen.sfs.psl.engine.ProblemManager;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import junit.framework.TestCase;
 
+import static de.tuebingen.sfs.psl.engine.PartitionManager.STD_PARTITION_ID;
+
 public class PartitionManagerTest extends TestCase {
 
 	private PartitionManager partitionManager;
@@ -44,7 +46,7 @@ public class PartitionManagerTest extends TestCase {
 		List<String> problemsPerPartition = partitionManager.getProblemsPerPartition();
 		assertEquals(1, problemsPerPartition.size());
 		String firstPartition = problemsPerPartition.get(0);
-		assertEquals('1', firstPartition.charAt(0));
+		assertEquals(STD_PARTITION_ID, firstPartition.substring(0, firstPartition.indexOf(':')));
 		assertEquals(3, firstPartition.split("\\s+").length);
 		assertTrue(firstPartition.contains("ProblemA"));
 		assertTrue(firstPartition.contains("ProblemB"));
@@ -57,8 +59,8 @@ public class PartitionManagerTest extends TestCase {
 			problemA = readPartitionsPerProblem.get(1);
 			problemB = readPartitionsPerProblem.get(0);
 		}
-		assertEquals("[1]", problemA.substring(problemA.length() - 3));
-		assertEquals("[1]", problemB.substring(problemB.length() - 3));
+		assertEquals("[Partition[" + STD_PARTITION_ID + "]]", problemA.substring(problemA.indexOf(':') + 2));
+		assertEquals("[Partition[" + STD_PARTITION_ID + "]]", problemB.substring(problemB.indexOf(':') + 2));
 
 		List<String> writePartitionsPerProblem = partitionManager.getWritePartitionsPerProblem();
 		assertEquals(2, writePartitionsPerProblem.size());
@@ -68,8 +70,8 @@ public class PartitionManagerTest extends TestCase {
 			problemA = writePartitionsPerProblem.get(1);
 			problemB = writePartitionsPerProblem.get(0);
 		}
-		assertEquals(": 1", problemA.substring(problemA.length() - 3));
-		assertEquals(": 1", problemB.substring(problemB.length() - 3));
+		assertEquals(": Partition[" + STD_PARTITION_ID + "]", problemA.substring(problemA.indexOf(':')));
+		assertEquals(": Partition[" + STD_PARTITION_ID + "]", problemB.substring(problemB.indexOf(':')));
 	}
 
 	public void testInitialPartitioning() {

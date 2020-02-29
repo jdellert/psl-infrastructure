@@ -223,6 +223,10 @@ public class PartitionManager {
 		// TODO for the write partition (which isn't shared!), this could be more efficient 
 		// atom args) (vbl)
 		changeWritePartition(problem, stdPartition);
+		Partition origWrite = problemsToWritePartitions.get(problem);
+		partitionsToProblems.removeFromOrDeleteCollection(origWrite, problem);
+		problemsToReadPartitions.removeFromOrDeleteCollection(problem, origWrite);
+
 		List<PslProblem> problems = new ArrayList<>();
 		problems.add(problem);
 		Set<Partition> originalSources = new HashSet<>(problemsToReadPartitions.get(problem));
@@ -306,7 +310,7 @@ public class PartitionManager {
 	public List<String> getProblemsPerPartition() {
 		List<String> problemsPerPartition = new ArrayList<>();
 		for (Entry<Partition, Collection<PslProblem>> entry : partitionsToProblems.entrySet()) {
-			problemsPerPartition.add(entry.getKey() + ": "
+			problemsPerPartition.add(entry.getKey().getName() + ": "
 					+ entry.getValue().stream()
 							.map(x -> x.getName().isEmpty() ? x.getClass().getSimpleName() : x.getName())
 							.collect(Collectors.toList()));
