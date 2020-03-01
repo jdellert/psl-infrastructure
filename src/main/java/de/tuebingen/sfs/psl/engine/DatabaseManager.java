@@ -259,7 +259,7 @@ public class DatabaseManager {
 			int count = prepStmt.executeUpdate();
 			atomsTotal -= count;
 			for (String[] template : getTemplatesMatchingProduct(0, args))
-			    deleteFromProblemsToAtomsMap(new AtomTemplate(predicate.predicate().getName(), template));
+				deleteFromProblemsToAtomsMap(new AtomTemplate(predicate.predicate().getName(), template));
 			return count;
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -409,9 +409,10 @@ public class DatabaseManager {
 			}
 			count = prepStmt.executeUpdate();
 			atomsTotal -= count;
-			for (AtomTemplate atom : toDeleteAux){				
-				deleteFromProblemsToAtomsMap(atom);
-			}
+			// TODO: This deletes ALL auxiliary atoms, not only those below threshold!!
+//			for (AtomTemplate atom : toDeleteAux){
+//				deleteFromProblemsToAtomsMap(atom);
+//			}
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -451,9 +452,11 @@ public class DatabaseManager {
 			}
 			int count = prepStmt.executeUpdate();
 			atomsTotal -= count;
-			for (AtomTemplate atom : atoms){				
-				deleteFromProblemsToAtomsMap(atom);
-			}
+
+			// TODO: This deletes ALL atoms, not only those below threshold!!
+//			for (AtomTemplate atom : atoms){
+//				deleteFromProblemsToAtomsMap(atom);
+//			}
 			return count;
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -1227,6 +1230,8 @@ public class DatabaseManager {
 	}
 
 	private void deleteFromProblemsToAtomsMap(AtomTemplate atomToDelete) {
+		System.err.println("DELETING " + atomToDelete);
+
 		for (Collection<AtomTemplate> values : problemsToAtoms.values()) {
 			Set<AtomTemplate> toBeDeleted = new HashSet<>();
 			for (AtomTemplate atom : values){
