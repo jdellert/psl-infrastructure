@@ -1135,7 +1135,7 @@ public class DatabaseManager {
 		StringBuilder stmt = new StringBuilder();
 		stmt.append("DELETE FROM ").append(predicate.tableName());
 		attachWhereClause(stmt, atoms);
-		if (threshold < 0.0){
+		if (threshold >= 0.0){
 			stmt.append("AND value < ").append(threshold);
 		}
 		stmt.append(";");

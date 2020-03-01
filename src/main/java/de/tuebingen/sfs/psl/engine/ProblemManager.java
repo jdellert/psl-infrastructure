@@ -101,23 +101,27 @@ public class ProblemManager {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		finally {
+			partitionManager.cleanUp(problem);
+		}
 		dbManager.closeDatabase(problem.getName());
 		return result;
 	}
 
 	public boolean preparePartitionsAndRun(List<PslProblem> problems) {
+		boolean success = true;
 		try {
 			List<ProblemWithPartitions> problemsWithPartitions = partitionManager.preparePartitions(problems);
 			runParallelProblems(problemsWithPartitions);
 		} catch (PartitionException e) {
 			System.err.println(e.getMessage());
-			return false;
+			success = false;
 		}
 		finally {
 			for (PslProblem problem : problems)
 				partitionManager.cleanUp(problem);
 		}
-		return true;
+		return success;
 	}
 
 	private void runParallelProblems(List<ProblemWithPartitions> problemsWithPartitions) {
