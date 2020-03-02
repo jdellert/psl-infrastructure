@@ -368,6 +368,11 @@ public class DatabaseManager {
 				toDelete.add(atom);
 			}
 		}
+
+		// TODO: Remove this if problem in deleteAtomsForPredicateIfBelowThreshold is solved
+		for (Tuple tuple : getTuplesForPredicateBelowThreshold(problemId, predicate, threshold))
+			deleteFromProblemsToAtomsMap(new AtomTemplate(predicate, tuple.toList()));
+
 		return deleteAtomsForPredicateIfBelowThreshold(threshold, toDelete.toArray(new AtomTemplate[0]));		
 	}
 	
@@ -388,6 +393,11 @@ public class DatabaseManager {
 				toDeleteAux.add(atom);
 			}
 		}
+
+		// TODO: Remove this if problem below is solved
+		for (Tuple tuple : getTuplesForPredicateBelowThreshold(problemId, predicate, threshold))
+			deleteFromProblemsToAtomsMap(new AtomTemplate(auxiliary, tuple.toList()));
+
 		String stmt = prepareDeleteStatementForAuxiliary(new PredicateInfo(predicates.get(predicate)), threshold,
 				toDeleteAux.toArray(new AtomTemplate[0]));
 		int count;
@@ -438,7 +448,7 @@ public class DatabaseManager {
 	}
 	
 	// Assumes that all atoms belong to the same predicate.
-	private int deleteAtomsForPredicateIfBelowThreshold(double threshold, AtomTemplate... atoms){
+	private int deleteAtomsForPredicateIfBelowThreshold(double threshold, AtomTemplate... atoms) {
 		String stmt = prepareDeleteStatementBelowThreshold(threshold, atoms);
 		try (Connection conn = dataStore.getConnection(); 
 				PreparedStatement prepStmt = conn.prepareStatement(stmt);) {
@@ -454,9 +464,11 @@ public class DatabaseManager {
 			atomsTotal -= count;
 
 			// TODO: This deletes ALL atoms, not only those below threshold!!
-//			for (AtomTemplate atom : atoms){
-//				deleteFromProblemsToAtomsMap(atom);
-//			}
+			if (threshold < 0) {
+				for (AtomTemplate atom : atoms) {
+					deleteFromProblemsToAtomsMap(atom);
+				}
+			}
 			return count;
 		} catch (SQLException e) {
 			e.printStackTrace();
