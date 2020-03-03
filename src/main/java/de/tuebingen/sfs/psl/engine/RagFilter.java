@@ -11,6 +11,7 @@ import org.linqs.psl.model.term.Constant;
 
 import de.tuebingen.sfs.psl.util.data.Multimap;
 import de.tuebingen.sfs.psl.util.data.Tuple;
+import de.tuebingen.sfs.psl.util.data.StringUtils;
 
 public class RagFilter {
 	protected Set<String> ignoreList;
@@ -30,8 +31,9 @@ public class RagFilter {
 	}
 
 	public double getTransparencyForAtom(String atomRepresentation) {
-		if (transparencyMap == null)
+		if (transparencyMap == null) {
 			return 1.0;
+		}
 		else
 			return transparencyMap.getOrDefault(atomRepresentation, 1.0);
 	}
@@ -78,7 +80,7 @@ public class RagFilter {
 			cStr = cStr.substring(1, cStr.length() - 1);
 			argTuple.addElement(cStr);
 		}
-		return predName + "(" + argTuple.toString() + ")";
+		return predName + "(" + StringUtils.join(argTuple.toList(),", ") + ")";
 	}
 
 	public void printHeader(PrintStream out) {

@@ -134,6 +134,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 		List<List<GroundRule>> groundRules = runInference(true);
 		RuleAtomGraph.GROUNDING_OUTPUT = true;
 		RuleAtomGraph.ATOM_VALUE_OUTPUT = true;
+		RuleAtomGraph.GROUNDING_SCORE_OUTPUT = true;
 		Map<String, Double> valueMap = extractResult();
 		RuleAtomGraph rag = new RuleAtomGraph(this, new RagFilter(valueMap), groundRules);
 		return new InferenceResult(rag, valueMap);
