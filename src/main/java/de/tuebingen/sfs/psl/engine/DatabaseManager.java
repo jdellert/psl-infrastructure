@@ -9,9 +9,9 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.h2.api.Trigger;
 import org.linqs.psl.database.Database;
 import org.linqs.psl.database.Partition;
-import org.linqs.psl.database.loading.Inserter;
 import org.linqs.psl.database.rdbms.PredicateInfo;
 import org.linqs.psl.database.rdbms.RDBMSDataStore;
 import org.linqs.psl.model.predicate.Predicate;
@@ -27,6 +27,15 @@ import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.psl.util.data.Multimap.CollectionType;
 
 public class DatabaseManager {
+
+	public static final String PROBLEMS2ATOMS_TABLE = "problems_to_atoms";
+	public static final String PROBLEM_ID_COLUMN_NAME = "problem_id";
+	public static final String PREDICATE_NAME_COLUMN_NAME = "predicate";
+	public static final String ATOM_ID_COLUMN_NAME = "atom_id";
+
+	private static final String P2A_SHORT = "prob";
+	private static final String PRED_SHORT = "pred";
+
 	// TODO from ModelStorePSL: replace with UniqueIntID
 	private static final ConstantType ARG_TYPE = ConstantType.UniqueStringID;
 
@@ -36,6 +45,7 @@ public class DatabaseManager {
 	Multimap<String, AtomTemplate> problemsToAtoms;
 
 	Map<String, Database> problemsToDatabases;
+	private int nextId = 0;
 
 	Partition stdPartition;
 
@@ -56,6 +66,18 @@ public class DatabaseManager {
 		runtime.gc();
 		startMemory = runtime.totalMemory() - runtime.freeMemory();
 		blacklist = new Trie<>();
+
+		try (Connection conn = dataStore.getConnection()) {
+			String stmt = "CREATE TABLE " + PROBLEMS2ATOMS_TABLE + " ("
+					+ PROBLEM_ID_COLUMN_NAME + " VARCHAR(" + ProblemManager.MAX_PROBLEM_ID_LENGTH + ") NOT NULL, "
+					+ PREDICATE_NAME_COLUMN_NAME + " TEXT NOT NULL, "
+					+ ATOM_ID_COLUMN_NAME + " INT NOT NULL,"
+					+ "PRIMARY KEY (" + PROBLEM_ID_COLUMN_NAME + ", " + ATOM_ID_COLUMN_NAME + "));";
+			PreparedStatement prepStmt = conn.prepareStatement(stmt);
+			prepStmt.execute();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	public RDBMSDataStore getDataStore() {
@@ -117,8 +139,16 @@ public class DatabaseManager {
 		ConstantType[] args = new ConstantType[arity];
 		Arrays.fill(args, ARG_TYPE);
 		StandardPredicate stdPred = StandardPredicate.get(name, args);
-		try {
+		try (Connection conn = dataStore.getConnection()) {
 			dataStore.registerPredicate(stdPred);
+
+			PredicateInfo predInfo = new PredicateInfo(stdPred);
+			String stmt = "ALTER TABLE " + predInfo.tableName()
+					+ " ADD " + ATOM_ID_COLUMN_NAME + " INT;";
+			stmt += " CREATE TRIGGER atom_del_" + name + " AFTER DELETE ON " + predInfo.tableName()
+					+ " FOR EACH ROW CALL \"" + AtomDeletionTrigger.class.getName() + "\";";
+			PreparedStatement prepStmt = conn.prepareStatement(stmt);
+			prepStmt.execute();
 		} catch (Exception e) {
 			System.err.println("Ignoring problem when registering predicate: " + e.getClass() + ": " + e.getMessage());
 		}
@@ -147,13 +177,12 @@ public class DatabaseManager {
 		StandardPredicate pred = predicates.get(predName);
 		if (pred == null)
 			System.err.println("ERROR: undeclared predicate \"" + predName + "\"!");
-		if (contains(pred, tuple))
-			return;
+//		if (contains(pred, tuple))
+//			return;
 
-		atomsTotal++;
-
-		Inserter inserter = dataStore.getInserter(pred, stdPartition);
-		inserter.insertValue(value, (Object[]) tuple);
+//		Inserter inserter = dataStore.getInserter(pred, stdPartition);
+//		inserter.insertValue(value, (Object[]) tuple);
+		atomsTotal += registerAtom(problemId, predName, stdPartition.getID(), value, tuple);
 
 		if (atomsTotal % 100000 == 0) {
 			Runtime runtime = Runtime.getRuntime();
@@ -164,6 +193,49 @@ public class DatabaseManager {
 					+ ", expansion of memory footprint since starting to add atoms: " + addedMemory + " MB");
 		}
 		problemsToAtoms.put(problemId, new AtomTemplate(predName, tuple));
+	}
+
+	private int registerAtom(String problemId, String predName, int partition, double value, String... args) {
+		try (Connection conn = dataStore.getConnection()) {
+			Predicate pred = predicates.get(predName);
+			PredicateInfo predInfo = new PredicateInfo(pred);
+			String getIdStmt = attachWhereClause(
+					new StringBuilder("SELECT " + ATOM_ID_COLUMN_NAME + " FROM " + predInfo.tableName()),
+					new AtomTemplate(predName, args)).toString() + ";";
+			PreparedStatement getIdPrepStmt = conn.prepareStatement(getIdStmt);
+			for (int i = 0; i < args.length; i++)
+				getIdPrepStmt.setString(i + 1, args[i]);
+			ResultSet res = getIdPrepStmt.executeQuery();
+			boolean atomInDB = res.next();
+			int id = (atomInDB) ? res.getInt(1) : nextAtomId();
+
+			String insertMapStmt = "INSERT INTO " + PROBLEMS2ATOMS_TABLE + "("
+					+ PROBLEM_ID_COLUMN_NAME + ", " + PREDICATE_NAME_COLUMN_NAME + ", "
+					+ ATOM_ID_COLUMN_NAME + ") VALUES ("
+					+ "?, ?, " + id + ");";
+			PreparedStatement insertMapPrepStmt = conn.prepareStatement(insertMapStmt);
+			insertMapPrepStmt.setString(1, problemId);
+			insertMapPrepStmt.setString(2, predName);
+			insertMapPrepStmt.execute();
+
+			if (!atomInDB) {
+				String insertAtomStmt = " INSERT INTO " + predInfo.tableName() + "("
+						+ ATOM_ID_COLUMN_NAME + ", " + PredicateInfo.PARTITION_COLUMN_NAME + ", "
+						+ PredicateInfo.VALUE_COLUMN_NAME + ", " + StringUtils.join(predInfo.argumentColumns(), ", ")
+						+ ") VALUES ("
+						+ id + ", " + partition + ", " + value + ", '" + StringUtils.join(args, "', '")
+						+ "');";
+				PreparedStatement insertAtomPrepStmt = conn.prepareStatement(insertAtomStmt);
+				return insertAtomPrepStmt.executeUpdate();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return 0;
+	}
+
+	private int nextAtomId() {
+		return nextId++;
 	}
 	
 	public void associateAtomWithProblem(String problemId, AtomTemplate atom){
@@ -1286,4 +1358,169 @@ public class DatabaseManager {
 		return matches;
 	}
 
+
+	private class WhereStatement {
+
+		private static final double DEFAULT_BELIEF_GREATER_THAN = -1.0;
+		private static final double DEFAULT_BELIEF_LESS_THAN = 2.0;
+
+		private String problemId;
+		private Set<Integer> inPartitions;
+		private double beliefGreaterThan;
+		private double beliefLessThan;
+		private List<AtomTemplate> atomsToMatch;
+		private List<List<String>> productMatch;
+
+		public WhereStatement() {
+			problemId = null;
+			inPartitions = new HashSet<>();
+			beliefGreaterThan = DEFAULT_BELIEF_GREATER_THAN;
+			beliefLessThan = DEFAULT_BELIEF_LESS_THAN;
+			atomsToMatch = new ArrayList<>();
+		}
+
+		public void ownedByProblem(String problemId) {
+			this.problemId = problemId;
+		}
+
+		public void isInPartition(int... partitionIds) {
+			for (int partitionId : partitionIds)
+				inPartitions.add(partitionId);
+		}
+
+		public void isInPartition(Collection<Integer> partitionIds) {
+			inPartitions.addAll(partitionIds);
+		}
+
+		public void beliefAboveThreshold(double threshold) {
+			beliefGreaterThan = threshold;
+		}
+
+		public void beliefBelowThreshold(double threshold) {
+			beliefLessThan = threshold;
+		}
+
+		public void beliefBetween(double from, double to) {
+			beliefAboveThreshold(from);
+			beliefBelowThreshold(to);
+		}
+
+		public void matchAtoms(AtomTemplate... atoms) {
+			matchAtoms(Arrays.asList(atoms));
+		}
+
+		public void matchAtoms(Collection<AtomTemplate> atoms) {
+			atomsToMatch.addAll(atoms);
+		}
+
+		public String getConditions() {
+			StringBuilder cond = new StringBuilder();
+
+			if (problemId != null) {
+				cond.append("(")
+						.append(PRED_SHORT).append(".").append(ATOM_ID_COLUMN_NAME)
+						.append(" = ")
+						.append(P2A_SHORT).append(".").append(ATOM_ID_COLUMN_NAME)
+						.append(" AND ")
+						.append(P2A_SHORT).append(".").append(PROBLEM_ID_COLUMN_NAME)
+						.append(" = '")
+						.append(problemId)
+						.append("') AND ");
+			}
+			if (!inPartitions.isEmpty()) {
+				cond.append("(")
+						.append(PRED_SHORT).append(".").append(PredicateInfo.PARTITION_COLUMN_NAME)
+						.append(" IN (")
+						.append(StringUtils.join(inPartitions, ", "))
+						.append(") AND ");
+			}
+			if (beliefGreaterThan > DEFAULT_BELIEF_GREATER_THAN) {
+				cond.append("(")
+						.append(PRED_SHORT).append(".").append(PredicateInfo.VALUE_COLUMN_NAME)
+						.append(" > ")
+						.append(beliefGreaterThan)
+						.append(") AND ");
+			}
+			if (beliefLessThan < DEFAULT_BELIEF_LESS_THAN) {
+				cond.append("(")
+						.append(PRED_SHORT).append(".").append(PredicateInfo.VALUE_COLUMN_NAME)
+						.append(" < ")
+						.append(beliefLessThan)
+						.append(") AND ");
+			}
+			if (!atomsToMatch.isEmpty()) {
+				cond.append("(");
+				boolean whereEmpty = true;
+				List<String> cols = getPredicateInfo(atomsToMatch.get(0)).argumentColumns();
+				for (AtomTemplate atom : atomsToMatch) {
+					String[] args = atom.getArgs();
+					boolean atomEmpty = true;
+					if (args != null && args.length > 0) {
+						cond.append("("); // *
+						for (int i = 0; i < args.length; i++) {
+							if (!args[i].equals("?")) {
+								atomEmpty = false;
+								whereEmpty = false;
+								cond.append(ATOM_ID_COLUMN_NAME).append(".").append(cols.get(i))
+										.append(" = ? AND ");
+							}
+						}
+
+					}
+					if (!atomEmpty) { // delete final AND
+						cond.delete(cond.length() - 5, cond.length()).append(") OR ");
+					}
+					else // delete opening bracket from *
+						cond.deleteCharAt(cond.length() - 1);
+				}
+				if (!whereEmpty) { // delete final OR
+					cond.delete(cond.length() - 4, cond.length()).append(")");
+				}
+				cond.append(") AND ");
+			}
+
+			if (cond.length() > 0) // delete final AND
+				cond.delete(cond.length() - 5, cond.length());
+			return cond.toString();
+		}
+
+		@Override
+		public String toString() {
+			String cond = getConditions();
+			if (cond.isEmpty())
+				return "";
+
+			return " WHERE " + cond;
+		}
+	}
+
+
+	public static class AtomDeletionTrigger implements Trigger {
+
+		@Override
+		public void init(Connection connection, String s, String s1, String s2, boolean b, int i) throws SQLException {
+
+		}
+
+		@Override
+		public void fire(Connection connection, Object[] deleted, Object[] nothing) throws SQLException {
+			try {
+				String stmt = "DELETE FROM " + PROBLEMS2ATOMS_TABLE
+						+ " WHERE " + ATOM_ID_COLUMN_NAME + " = " + deleted[deleted.length - 1] + ";";
+				connection.prepareStatement(stmt).execute();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		@Override
+		public void close() throws SQLException {
+
+		}
+
+		@Override
+		public void remove() throws SQLException {
+
+		}
+	}
 }

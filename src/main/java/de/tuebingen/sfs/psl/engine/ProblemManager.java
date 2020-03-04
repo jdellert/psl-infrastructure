@@ -21,6 +21,7 @@ public class ProblemManager {
 	private InferenceStore inferenceStore;
 	private DatabaseManager dbManager;
 
+	public static final int MAX_PROBLEM_ID_LENGTH = 255;
 	private int nextId = 1;
 
 	// map from problemId to problem
