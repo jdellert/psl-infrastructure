@@ -417,7 +417,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 * @param args
 	 */
 	public void fixateAtomsToValue(double value, String predName, String... args) {
-		dbManager.setAtomsToValue(value, predName, args);
+		dbManager.setAtomsToValueForProblem(getName(), predName, new AtomTemplate(predName, args), value);
 		AtomTemplate atom = new AtomTemplate(predName, args);
 		List<AtomTemplate> matches = new ArrayList<>();
 		for (AtomTemplate openAtom : targets){

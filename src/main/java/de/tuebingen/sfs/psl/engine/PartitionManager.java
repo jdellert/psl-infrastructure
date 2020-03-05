@@ -1,14 +1,7 @@
 package de.tuebingen.sfs.psl.engine;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.linqs.psl.database.Partition;
@@ -235,8 +228,7 @@ public class PartitionManager {
 
 	private int moveToPartition(PslProblem problem, int sourceID, int targetID, AtomTemplate atomTemplate) {
 //		System.err.println("Trying to move " + atomTemplate + " from " + sourceID + " to " + targetID);
-		PredicateInfo predInfo = new PredicateInfo(dbManager.getPredicateByName(atomTemplate.getPredicateName()));
-		int rowsMoved = dbManager.moveToPartition(sourceID, targetID, predInfo, atomTemplate.getArgs());
+		int rowsMoved = dbManager.moveToPartition(Collections.singleton(sourceID), targetID, atomTemplate);
 		// TODO (vbl)
 		// ONLY uncomment this if the relevant predicate contains very few atoms
 		// else you will spend a lot of time printing entries and pollute the output considerably
