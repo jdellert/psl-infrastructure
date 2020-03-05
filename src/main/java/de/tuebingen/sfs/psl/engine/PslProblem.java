@@ -524,11 +524,10 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 
 	// TODO make these methods protected. should only be used in call(), later on you can use the InferenceResult (vbl)
 	public Map<String, Double> extractResult(PrintStream print, boolean onlyOpen) {
-		Set<AtomTemplate> atoms = reserveAtomsForWriting();
-		if (! onlyOpen){
-			atoms.addAll(declareAtomsForReading());
-		}
-		Multimap<String, RankingEntry<AtomTemplate>> predicatesToAtoms = dbManager.getAtomValuesByPredicate(atoms);
+		Set<String> predicates = talkingPredicates.keySet();
+		if (onlyOpen)
+			predicates.removeAll(closedPredicates);
+		Multimap<String, RankingEntry<AtomTemplate>> predicatesToAtoms = dbManager.getAtomValuesByPredicate(getName(), predicates);
 		Map<String, Double> atomToValue = new TreeMap<>();
 		for (String predicate : predicatesToAtoms.keySet()){
 			for (RankingEntry<AtomTemplate> rankingEntry : predicatesToAtoms.getList(predicate)){
@@ -539,22 +538,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	}
 
 	public Map<Tuple, Double> extractTableForPredicate(String pred) {
-		Set<AtomTemplate> atomsForPred = new HashSet<>();
-		Set<AtomTemplate> allAtoms = reserveAtomsForWriting();
-		allAtoms.addAll(declareAtomsForReading());
-		for (AtomTemplate atom : allAtoms){
-			if (atom.getPredicateName().equals(pred)){
-				atomsForPred.add(atom);
-			}
-		}
-		Multimap<String, RankingEntry<AtomTemplate>> predicatesToAtoms = dbManager.getAtomValuesByPredicate(atomsForPred);
-		Map<Tuple, Double> argsToVal = new HashMap<>();
-		for (String predicate : predicatesToAtoms.keySet()){
-			for (RankingEntry<AtomTemplate> rankingEntry : predicatesToAtoms.getList(predicate)){
-				argsToVal.put(rankingEntry.key.getArgTuple(), rankingEntry.value);
-			}
-		}
-		return argsToVal;
+		return dbManager.getAllWithValueForProblem(pred, getName());
 	}
 
 	public void printResult() {
@@ -563,13 +547,13 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 
 	// TODO how does this differ from InferenceResult.printInferenceValues(); ? (vbl)
 	public void printResult(PrintStream printStream) {
-		dbManager.printWithValue(reserveAtomsForWriting(), printStream);
+		Set<String> predicates = talkingPredicates.keySet();
+		predicates.removeAll(closedPredicates);
+		dbManager.printWithValue(getName(), predicates, printStream);
 	}
 	
 	public void printAtomsToConsole() {
-		Set<AtomTemplate> atomSet = reserveAtomsForWriting();
-		atomSet.addAll(declareAtomsForReading());
-		dbManager.print(atomSet, System.out);
+		dbManager.print(getName(), talkingPredicates.keySet(), System.out);
 	}
 
 	public Map<String, TalkingPredicate> getTalkingPredicates() {

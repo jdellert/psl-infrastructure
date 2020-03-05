@@ -84,6 +84,31 @@ public class DatabaseManager {
 	}
 
 
+	////////////////
+	// DEPRECATED //
+	////////////////
+
+	// Method body contains new idioms, so replace calls to these methods by method body!
+
+	// TODO: Remove once unused
+	@Deprecated
+	public Set<Tuple> getTuplesForPredicateAboveThreshold(String problemId, String predName, double threshold) {
+		return new HashSet<>(getAllAboveThresholdForProblem(predName, problemId, threshold));
+	}
+
+	// TODO: Remove once unused
+	@Deprecated
+	public Set<Tuple> getTuplesForPredicateBelowThreshold(String problemId, String predName, double threshold) {
+		return new HashSet<>(getAllBelowThresholdForProblem(predName, problemId, threshold));
+	}
+
+	// TODO: Remove once unused
+	@Deprecated
+	public Set<Tuple> getTuplesForPredicate(String problemId, String predName) {
+		return new HashSet<>(getAllForProblem(predName, problemId));
+	}
+
+
 	////////////////////
 	// SIMPLE GETTERS //
 	////////////////////
@@ -134,52 +159,23 @@ public class DatabaseManager {
 
 	public boolean contains(String predName, String... args) {
 		StandardPredicate pred = getPredicateByName(predName);
-		if (pred == null)
-			return false;
+		if (pred != null) {
+			PredicateInfo predInfo = new PredicateInfo(pred);
+			AtomTemplate atom = new AtomTemplate(predName, args);
 
-		return contains(pred, args);
-	}
+			StringBuilder stmt = new StringBuilder();
+			stmt.append("SELECT 1 FROM ").append(predInfo.tableName()).append(" ").append(PRED_SHORT);
+			WhereStatement where = new WhereStatement();
+			stmt.append(where.isInPartition(stdPartition.getID())
+					.matchAtoms(atom)
+					.toString());
 
-	public boolean contains(StandardPredicate pred, String... args) {
-		PredicateInfo predInfo = new PredicateInfo(pred);
-
-		StringBuilder stmt = new StringBuilder();
-		stmt.append("SELECT 1 FROM ").append(predInfo.tableName());
-		Set<Integer> readIDs = new HashSet<>();
-		readIDs.add(stdPartition.getID());
-		attachWhereClauseWithPartitions(stmt, predInfo, stdPartition.getID(), readIDs, args);
-
-		try (Connection conn = dataStore.getConnection();
-			 PreparedStatement prepStmt = conn.prepareStatement(stmt.toString());) {
-			for (int i = 0; i < args.length; i++)
-				if (!args[i].equals("?"))
-					prepStmt.setString(i + 1, args[i]);
-			ResultSet res = prepStmt.executeQuery();
-			return res.next();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-
-	public boolean contains(Predicate predicate, int writeID, Set<Integer> readIDs, String... args) {
-		return contains(new PredicateInfo(predicate), writeID, readIDs, args);
-	}
-
-	public boolean contains(PredicateInfo predicate, int writeID, Set<Integer> readIDs, String... args) {
-		StringBuilder stmt = new StringBuilder();
-		stmt.append("SELECT 1 FROM ").append(predicate.tableName());
-		attachWhereClauseWithPartitions(stmt, predicate, writeID, readIDs, args);
-
-		try (Connection conn = dataStore.getConnection();
-			 PreparedStatement prepStmt = conn.prepareStatement(stmt.toString());) {
-			for (int i = 0; i < args.length; i++)
-				if (!args[i].equals("?"))
-					prepStmt.setString(i + 1, args[i]);
-			ResultSet res = prepStmt.executeQuery();
-			return res.next();
-		} catch (SQLException e) {
-			e.printStackTrace();
+			try (Connection conn = dataStore.getConnection()) {
+			ResultSet res = runQueryOn(conn, stmt.toString(), atom);
+				return res != null && res.next();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 		return false;
 	}
@@ -213,273 +209,171 @@ public class DatabaseManager {
 	// DB GETTERS //
 	////////////////
 
-	public List<Tuple> getAll(Predicate predicate, int writeID, Set<Integer> readIDs) {
-		return getAllWhere(predicate, writeID, readIDs, "");
+	public List<Tuple> getAll(String predName) {
+		return getAllForProblem(predName, "");
 	}
 
-	public List<Tuple> getAtomsBetweenValues(Predicate predicate, int writeID, Set<Integer> readIDs, double lower,
-											 double upper) {
-		return getAllWhere(predicate, writeID, readIDs, "value BETWEEN " + lower + " AND " + upper);
+	public List<Tuple> getAllForProblem(String predName, String problemId) {
+		return getAllWhere(predName, new WhereStatement().ownedByProblem(problemId));
 	}
 
-	public List<Tuple> getAllOrderedBy(String problemId, String predName, int[] orderBy) {
-		return getAllOrderedBy(problemId, predName, orderBy, false);
+	public List<Tuple> getAllOrderedBy(String predName, int[] orderBy) {
+		return getAllOrderedByForProblem(predName, "", orderBy);
 	}
 
-	public List<Tuple> getAllOrderedBy(String problemId, String predName, int[] orderBy, boolean castToInt) {
+	public List<Tuple> getAllOrderedBy(String predName, int[] orderBy, boolean castToInt) {
+		return getAllOrderedByForProblem(predName, "", orderBy, castToInt);
+	}
+
+	public List<Tuple> getAllOrderedByForProblem(String predName, String problemId, int[] orderBy) {
+		return getAllOrderedByForProblem(problemId, predName, orderBy, false);
+	}
+
+	public List<Tuple> getAllOrderedByForProblem(String predName, String problemId, int[] orderBy, boolean castToInt) {
+		OrderByStatement orderByStmt = new OrderByStatement();
+		OrderByStatement.CastType castType = (castToInt) ? OrderByStatement.CastType.INT : OrderByStatement.CastType.NO_CAST;
+		List<String> cols = new PredicateInfo(predicates.get(predName)).argumentColumns();
+		for (int col : orderBy)
+			orderByStmt.orderBy(cols.get(col), castType);
+		return getAllWhereOrderBy(predName, new WhereStatement().ownedByProblem(problemId), orderByStmt);
+	}
+
+	public Map<Integer, Set<Tuple>> getPartitionIdToAtoms(String predName) {
+		return getPartitionIdToAtomsForProblem(predName, "");
+	}
+
+	public Map<Integer, Set<Tuple>> getPartitionIdToAtomsForProblem(String predName, String problemId) {
+		Map<Integer, Set<Tuple>> results = new HashMap<>();
+		for (RankingEntry<AtomTemplate> re : getAllWhereOrderByWithValueAndPartition(
+				predName, new WhereStatement().ownedByProblem(problemId), new OrderByStatement())) {
+			results.computeIfAbsent(Integer.parseInt(re.extraInformation), x -> new HashSet<>())
+					.add(re.key.getArgTuple());
+		}
+		return results;
+	}
+
+	public Map<Tuple, Double> getAllWithValue(String predName) {
+		return getAllWithValueForProblem(predName, "");
+	}
+
+	public Map<Tuple, Double> getAllWithValueForProblem(String predName, String problemId) {
+		return getAllWhereOrderByWithValueAndPartition(
+				predName, new WhereStatement().ownedByProblem(problemId), new OrderByStatement()).stream()
+				.collect(Collectors.toMap(rankEntry -> rankEntry.key.getArgTuple(),
+						rankEntry -> rankEntry.value));
+	}
+
+	public List<Tuple> getAllMatching(String predName, AtomTemplate match) {
+		return getAllMatchingForProblem(predName, "", match);
+	}
+
+	public List<Tuple> getAllMatchingForProblem(String predName, String problemId, AtomTemplate match) {
+		return getAllWhere(predName, new WhereStatement().ownedByProblem(problemId).matchAtoms(match));
+	}
+
+	public List<Tuple> getAllAboveThreshold(String predName, double threshold) {
+		return getAllAboveThresholdForProblem(predName, "", threshold);
+	}
+
+	public List<Tuple> getAllAboveThresholdForProblem(String predName, String problemId, double threshold) {
+		return getAllBetweenValuesForProblem(predName, problemId, threshold, WhereStatement.DEFAULT_BELIEF_LESS_THAN);
+	}
+
+	public List<Tuple> getAllBelowThreshold(String predName, double threshold) {
+		return getAllBelowThresholdForProblem(predName, "", threshold);
+	}
+
+	public List<Tuple> getAllBelowThresholdForProblem(String predName, String problemId, double threshold) {
+		return getAllBetweenValuesForProblem(predName, problemId, WhereStatement.DEFAULT_BELIEF_GREATER_THAN, threshold);
+	}
+
+	public List<Tuple> getAllBetweenValues(String predName, double lower, double upper) {
+		return getAllBetweenValuesForProblem(predName, "", lower, upper);
+	}
+
+	public List<Tuple> getAllBetweenValuesForProblem(String predName, String problemId, double lower, double upper) {
+		return getAllWhere(predName, new WhereStatement()
+				.ownedByProblem(problemId).beliefAboveThreshold(lower).beliefBelowThreshold(upper));
+	}
+
+	public List<Tuple> getAllWhere(String predName, WhereStatement where, AtomTemplate... atoms) {
+		return getAllWhereOrderBy(predName, where, new OrderByStatement(), atoms);
+	}
+
+	public List<Tuple> getAllWhereOrderBy(String predName, WhereStatement where, OrderByStatement orderBy,
+									AtomTemplate... atoms) {
+		List<Tuple> tuples = new ArrayList<>();
 		Predicate pred = predicates.get(predName);
-		PredicateInfo predInfo = new PredicateInfo(pred);
-		List<AtomTemplate> atoms = new ArrayList<>();
-		for (AtomTemplate atom : problemsToAtoms.get(problemId)){
-			if (atom.getPredicateName().equals(predName)){
-				atoms.add(atom);
-			}
-		}
-		List<String> argCols = predInfo.argumentColumns();
-		String cols = StringUtils.join(argCols, "`,`");
-		StringBuilder stmt = new StringBuilder();
-		stmt.append("SELECT `").append(cols).append("` FROM ").append(predInfo.tableName());
-		attachWhereClause(stmt, atoms.toArray(new AtomTemplate[0]));
-		stmt.append(orderByStatement(predInfo, orderBy, castToInt)).append(";");
-		List<Tuple> tuples = new ArrayList<>();
-		try (
-				Connection conn = dataStore.getConnection();
-				PreparedStatement prepStmt = conn.prepareStatement(stmt.toString());
-		) {
-			int paramCounter = 1;
-			for (AtomTemplate atom : atoms){
-				for (String arg : atom.getArgs()){
-					if (!arg.equals("?")){
-						prepStmt.setString(paramCounter++, arg);
+		if (pred != null) {
+			PredicateInfo predInfo = new PredicateInfo(pred);
+			String stmt = "SELECT " + PRED_SHORT + "."
+					+ StringUtils.join(predInfo.argumentColumns(), ", " + PRED_SHORT + ".")
+					+ " FROM " + predInfo.tableName() + " " + PRED_SHORT + ", "
+					+ PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT
+					+ where.toString() + " " + orderBy.toString() + ";";
+
+			try (Connection conn = dataStore.getConnection()) {
+				ResultSet res = runQueryOn(conn, stmt, atoms);
+				while (res.next()) {
+					Tuple tuple = new Tuple();
+					for (int i = 1; i <= pred.getArity(); i++) {
+						System.err.print(res.getString(i) + " ");
+						tuple.addElement(res.getString(i));
 					}
+					System.err.println();
+					tuples.add(tuple);
 				}
-			}
-			ResultSet res = prepStmt.executeQuery();
-			while (res.next()) {
-				Tuple tuple = new Tuple();
-				for (int i = 1; i <= pred.getArity(); i++) {
-					System.err.print(res.getString(i) + " ");
-					tuple.addElement(res.getString(i));
-				}
-				System.err.println();
-				tuples.add(tuple);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return tuples;
-	}
-
-	public List<Tuple> getAllOrderedBy(Predicate predicate, int writeID, Set<Integer> readIDs, int[] orderBy) {
-		return getAllWhere(predicate, writeID, readIDs, "", orderBy, false);
-	}
-
-	public List<Tuple> getAllOrderedBy(Predicate predicate, int writeID, Set<Integer> readIDs, int[] orderBy,
-									   boolean castToInt) {
-		return getAllWhere(predicate, writeID, readIDs, "", orderBy, castToInt);
-	}
-
-	private List<Tuple> getAllWhere(Predicate predicate, int writeID, Set<Integer> readIDs, String where) {
-		return getAllWhere(predicate, writeID, readIDs, where, "");
-	}
-
-	private List<Tuple> getAllWhere(Predicate predicate, int writeID, Set<Integer> readIDs, String where, int[] orderBy,
-									boolean castToInt) {
-		List<String> argCols = new PredicateInfo(predicate).argumentColumns();
-		String orderByStmt = Arrays.stream(orderBy).mapToObj(argCols::get)
-				.collect(Collectors.joining((castToInt) ? " as INT), cast(" : ", "));
-		if (castToInt)
-			orderByStmt = "cast(" + orderByStmt + " as INT)";
-		return getAllWhere(predicate, writeID, readIDs, where, orderByStmt);
-	}
-
-	private List<Tuple> getAllWhere(Predicate predicate, int writeID, Set<Integer> readIDs, String where, String orderBy) {
-		PredicateInfo predInfo = new PredicateInfo(predicate);
-		List<String> argCols = predInfo.argumentColumns();
-		String cols = StringUtils.join(argCols, "`,`");
-		if (!where.isEmpty())
-			where += " AND";
-		String stmt = "SELECT `" + cols + "` FROM " + predInfo.tableName()
-				+ " WHERE " + where;
-		if (writeID >= 0 && readIDs != null)
-			stmt += " " + whereInPartitions(writeID, readIDs);
-		if (orderBy != null && !orderBy.isEmpty())
-			stmt += " ORDER BY " + orderBy;
-		stmt += ";";
-		List<Tuple> tuples = new ArrayList<>();
-		try (
-				Connection conn = dataStore.getConnection();
-				PreparedStatement prepStmt = conn.prepareStatement(stmt);
-		) {
-			ResultSet res = prepStmt.executeQuery();
-			while (res.next()) {
-				Tuple tuple = new Tuple();
-				for (int i = 1; i <= predicate.getArity(); i++) {
-					System.err.print(res.getString(i) + " ");
-					tuple.addElement(res.getString(i));
-				}
-				System.err.println();
-				tuples.add(tuple);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return tuples;
-	}
-
-	public Map<Tuple, Double> getAllWithValue(Predicate predicate, int writeID, Set<Integer> readIDs) {
-		PredicateInfo predInfo = new PredicateInfo(predicate);
-		String cols = StringUtils.join(predInfo.argumentColumns(), "`,`");
-		String stmt = "SELECT `value`,`" + cols + "` FROM " + predInfo.tableName() + " WHERE "
-				+ whereInPartitions(writeID, readIDs) + ";";
-		Map<Tuple, Double> atomsWithValues = new TreeMap<>();
-		try (Connection conn = dataStore.getConnection(); PreparedStatement prepStmt = conn.prepareStatement(stmt);) {
-			ResultSet res = prepStmt.executeQuery();
-			while (res.next()) {
-				double value = res.getDouble(1);
-				Tuple tuple = new Tuple();
-				for (int i = 2; i <= predicate.getArity() + 1; i++) {
-					tuple.addElement(res.getString(i));
-				}
-				atomsWithValues.put(tuple, value);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return atomsWithValues;
-	}
-
-	public Map<Integer, Set<Tuple>> getAllWithPartition(Predicate predicate) {
-		PredicateInfo predInfo = new PredicateInfo(predicate);
-		String cols = StringUtils.join(predInfo.argumentColumns(), "`,`");
-		String stmt = "SELECT `" + PredicateInfo.PARTITION_COLUMN_NAME + "`,`" + cols + "` FROM " + predInfo.tableName()
-				+ ";";
-		Map<Integer, Set<Tuple>> part2Tuples = new TreeMap<>();
-		try (Connection conn = dataStore.getConnection(); PreparedStatement prepStmt = conn.prepareStatement(stmt);) {
-			ResultSet res = prepStmt.executeQuery();
-			while (res.next()) {
-				int partitionID = res.getInt(1);
-				Tuple tuple = new Tuple();
-				for (int i = 2; i <= predicate.getArity() + 1; i++) {
-					tuple.addElement(res.getString(i));
-				}
-				Set<Tuple> tuples = part2Tuples.get(partitionID);
-				if (tuples == null) {
-					tuples = new TreeSet<>();
-					part2Tuples.put(partitionID, tuples);
-				}
-				tuples.add(tuple);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return part2Tuples;
-	}
-
-	public Set<Tuple> getTuplesForPredicateAndAllProblems(String predName) {
-		PredicateInfo pred = new PredicateInfo(predicates.get(predName));
-		Set<Tuple> argTuples = new HashSet<Tuple>();
-
-		try (Connection conn = dataStore.getConnection();
-			 PreparedStatement prepStmt = conn.prepareStatement("SELECT * FROM " + pred.tableName() + ";");) {
-			ResultSet rs = prepStmt.executeQuery();
-			ResultSetMetaData rsmd = rs.getMetaData();
-			while (rs.next()) {
-				if (rsmd.getColumnCount() < 3) {
-					System.err.println("Could not read an entry in the " + predName + " table: "
-							+ "Expected at least 3 columns, found only " + rsmd.getColumnCount());
-					continue;
-				}
-				Tuple args = new Tuple();
-				for (int i = 3; i <= rsmd.getColumnCount(); i++) {
-					args.addElement(rs.getString(i));
-				}
-				argTuples.add(args);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return argTuples;
-	}
-
-	public Set<Tuple> getTuplesForPredicate(String problemId, String predName) {
-		Set<Tuple> tuples = new HashSet<>();
-		for (AtomTemplate atom : problemsToAtoms.get(problemId)) {
-			if (atom.getPredicateName().equals(predName)) {
-				tuples.add(atom.getArgTuple());
+			} catch (SQLException e) {
+				e.printStackTrace();
 			}
 		}
 		return tuples;
 	}
 
-	public Set<Tuple> getTuplesForPredicate(String problemId, String predName, String... args) {
-		return getTuplesForPredicate(problemId, new AtomTemplate(predName, args));
-	}
+	public List<RankingEntry<AtomTemplate>> getAllWhereOrderByWithValueAndPartition(
+			String predName, WhereStatement where, OrderByStatement orderBy, AtomTemplate... atoms) {
+		List<RankingEntry<AtomTemplate>> tuples = new ArrayList<>();
+		Predicate pred = predicates.get(predName);
+		if (pred != null) {
+			PredicateInfo predInfo = new PredicateInfo(pred);
+			String stmt = "SELECT " + PRED_SHORT + "." + PredicateInfo.PARTITION_COLUMN_NAME + ", "
+					+ PRED_SHORT + "." + PredicateInfo.VALUE_COLUMN_NAME + ", "
+					+ PRED_SHORT + "." + StringUtils.join(predInfo.argumentColumns(), ", " + PRED_SHORT + ".")
+					+ " FROM " + predInfo.tableName() + " " + PRED_SHORT + ", "
+					+ PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT
+					+ where.toString() + " " + orderBy.toString() + ";";
 
-	public Set<Tuple> getTuplesForPredicate(String problemId, AtomTemplate atom) {
-		Set<Tuple> tuples = new HashSet<>();
-		for (AtomTemplate candidate : problemsToAtoms.get(problemId)) {
-			if (candidate.equalsWithWildcards(atom)) {
-				tuples.add(candidate.getArgTuple());
-			}
-		}
-		return tuples;
-	}
-
-	public Set<Tuple> getTuplesForPredicateAboveThreshold(String problemId, String predName, double threshold) {
-		return getTuplesForPredicateBetweenValues(problemId, predName, threshold, 1.0);
-	}
-
-	public Set<Tuple> getTuplesForPredicateBelowThreshold(String problemId, String predName, double threshold) {
-		return getTuplesForPredicateBetweenValues(problemId, predName, 0.0, threshold);
-	}
-
-	public Set<Tuple> getTuplesForPredicateBetweenValues(String problemId, String predName, double lower, double upper) {
-		Set<Tuple> tuples = new HashSet<>();
-		Set<AtomTemplate> candidates = new HashSet<>();
-		for (AtomTemplate atom : problemsToAtoms.get(problemId)){
-			if (atom.getPredicateName().equals(predName)){
-				candidates.add(atom);
-			}
-		}
-		AtomTemplate[] atoms = candidates.toArray(new AtomTemplate[0]);
-
-		Predicate predicate = predicates.get(predName);
-		PredicateInfo predInfo = new PredicateInfo(predicate);
-		StringBuilder sb = new StringBuilder();
-		sb.append("SELECT `").append(StringUtils.join(predInfo.argumentColumns(), "`,`"));
-		sb.append("` FROM ").append(predInfo.tableName());
-		attachWhereClause(sb, atoms);
-		sb.append(" AND value BETWEEN ").append(lower).append(" AND ").append(upper);
-		sb.append(";");
-		try (Connection conn = dataStore.getConnection();
-			 PreparedStatement prepStmt = conn.prepareStatement(sb.toString());) {
-			int paramCounter = 1;
-			for (AtomTemplate atom : atoms) {
-				String[] args = atom.getArgs();
-				if (args != null && args.length > 0) {
-					for (int i = 0; i < args.length; i++) {
-						if (!args[i].equals("?")){
-							prepStmt.setString(paramCounter++, args[i]);
-						}
+			try (Connection conn = dataStore.getConnection()) {
+				ResultSet res = runQueryOn(conn, stmt, atoms);
+				while (res.next()) {
+					String partitionId = res.getString(1);
+					double value = res.getDouble(2);
+					String[] args = new String[pred.getArity()];
+					for (int i = 0; i < pred.getArity(); i++) {
+//						System.err.print(res.getString(i + 3) + " ");
+						args[i] = res.getString(i + 3);
 					}
+//					System.err.println();
+					tuples.add(new RankingEntry<>(new AtomTemplate(predName, args), partitionId, value));
 				}
+			} catch (SQLException e) {
+				e.printStackTrace();
 			}
-			ResultSet rs = prepStmt.executeQuery();
-			while (rs.next()) {
-				Tuple tuple = new Tuple();
-				for (int i = 1; i <= predicate.getArity(); i++) {
-					System.err.print(rs.getString(i) + " ");
-					tuple.addElement(rs.getString(i));
-				}
-				System.err.println();
-				tuples.add(tuple);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
 		}
-
 		return tuples;
+	}
+
+	// Note:
+	// the result can be sorted after the method call, but isn't sorted yet
+	public Multimap<String, RankingEntry<AtomTemplate>> getAtomValuesByPredicate(String problemId, Set<String> predicates) {
+		Multimap<String, RankingEntry<AtomTemplate>> results = new Multimap<>(CollectionType.LIST);
+		for (String predName : predicates) {
+			results.putAll(predName,
+					getAllWhereOrderByWithValueAndPartition(predName,
+							new WhereStatement().ownedByProblem(problemId),
+							new OrderByStatement()));
+		}
+		return results;
 	}
 
 	public List<String> getTable(PredicateInfo predicate) {
@@ -500,66 +394,6 @@ public class DatabaseManager {
 			e.printStackTrace();
 		}
 		return table;
-	}
-
-	// the RankingEntry contains the partition info
-	// this can contain multiple results in case the atom arguments contain
-	// wildcards
-	public List<RankingEntry<AtomTemplate>> getAtomValues(AtomTemplate atom) {
-		String predName = atom.getPredicateName();
-		PredicateInfo pred = new PredicateInfo(predicates.get(predName));
-		List<RankingEntry<AtomTemplate>> atomsWithValues = new ArrayList<>();
-
-		StringBuilder stmt = new StringBuilder();
-		stmt.append("SELECT * FROM ");
-		stmt.append(pred.tableName());
-		attachWhereClause(stmt, atom).append(";");
-		System.err.println("Getting values for " + atom);
-		try (Connection conn = dataStore.getConnection();
-			 PreparedStatement prepStmt = conn.prepareStatement(stmt.toString());) {
-			String[] templateArgs = atom.getArgs();
-			for (int i = 0; i < templateArgs.length; i++){
-				if (!templateArgs[i].equals("?")){
-					prepStmt.setString(i + 1, templateArgs[i]);
-				}
-			}
-			ResultSet rs = prepStmt.executeQuery();
-			ResultSetMetaData rsmd = rs.getMetaData();
-			while (rs.next()) {
-				if (rsmd.getColumnCount() < 3) {
-					System.err.println("Could not read an entry in the " + predName + " table: "
-							+ "Expected at least 3 columns, found only " + rsmd.getColumnCount());
-					continue;
-				}
-				// Columns (1-indexed):
-				// 1 - partition
-				// 2 - value
-				// 3+ - args
-				String partition = rs.getString(1);
-				double value = rs.getDouble(2);
-				List<String> args = new ArrayList<>();
-				for (int i = 3; i <= rsmd.getColumnCount(); i++) {
-					args.add(rs.getString(i));
-				}
-				// Creating a new AtomTemplate in case the one for querying
-				// contains wildcards
-				atomsWithValues.add(new RankingEntry<AtomTemplate>(new AtomTemplate(predName, args), partition, value));
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return atomsWithValues;
-	}
-
-	// Note:
-	// the result can be sorted after the method call, but isn't sorted yet
-	public Multimap<String, RankingEntry<AtomTemplate>> getAtomValuesByPredicate(Set<AtomTemplate> atomSet) {
-		// TODO this could be nicer/more efficient in terms of bundling SQL queries (vbl)
-		Multimap<String, RankingEntry<AtomTemplate>> results = new Multimap<>(CollectionType.LIST);
-		for (AtomTemplate atom : atomSet) {
-			results.putAll(atom.getPredicateName(), getAtomValues(atom));
-		}
-		return results;
 	}
 
 
@@ -634,7 +468,7 @@ public class DatabaseManager {
 			boolean atomInDB = res.next();
 			int id = (atomInDB) ? res.getInt(1) : nextAtomId();
 
-			String insertMapStmt = "INSERT INTO " + PROBLEMS2ATOMS_TABLE + "("
+			String insertMapStmt = "MERGE INTO " + PROBLEMS2ATOMS_TABLE + "("
 					+ PROBLEM_ID_COLUMN_NAME + ", " + PREDICATE_NAME_COLUMN_NAME + ", "
 					+ ATOM_ID_COLUMN_NAME + ") VALUES ("
 					+ "?, ?, " + id + ");";
@@ -1235,24 +1069,25 @@ public class DatabaseManager {
 		printTable(new PredicateInfo(predicates.get(predicate)));
 	}
 
-	public void print(Set<AtomTemplate> atomSet, PrintStream printStream) {
-		print(atomSet, printStream, false, false);
+	public void print(String problemId, Set<String> predicates, PrintStream printStream) {
+		print(problemId, predicates, printStream, false, false);
 	}
 
-	public void printWithValue(Set<AtomTemplate> atomSet, PrintStream printStream) {
-		print(atomSet, printStream, true, false);
+	public void printWithValue(String problemId, Set<String> predicates, PrintStream printStream) {
+		print(problemId, predicates, printStream, true, false);
 	}
 
-	public void printWithPartition(Set<AtomTemplate> atomSet, PrintStream printStream) {
-		print(atomSet, printStream, false, true);
+	public void printWithPartition(String problemId, Set<String> predicates, PrintStream printStream) {
+		print(problemId, predicates, printStream, false, true);
 	}
 
-	public void printWithValueAndPartition(Set<AtomTemplate> atomSet, PrintStream printStream) {
-		print(atomSet, printStream, true, true);
+	public void printWithValueAndPartition(String problemId, Set<String> predicates, PrintStream printStream) {
+		print(problemId, predicates, printStream, true, true);
 	}
 
-	private void print(Set<AtomTemplate> atomSet, PrintStream printStream, boolean printValue, boolean printPartition) {
-		Multimap<String, RankingEntry<AtomTemplate>> predicatesToAtoms = getAtomValuesByPredicate(atomSet);
+	private void print(String problemId, Set<String> predicates, PrintStream printStream,
+					   boolean printValue, boolean printPartition) {
+		Multimap<String, RankingEntry<AtomTemplate>> predicatesToAtoms = getAtomValuesByPredicate(problemId, predicates);
 		for (String predicate : predicatesToAtoms.keySet()) {
 			List<RankingEntry<AtomTemplate>> atoms = predicatesToAtoms.getList(predicate);
 			atoms.sort(null);
@@ -1382,6 +1217,34 @@ public class DatabaseManager {
 	}
 
 
+	public ResultSet runQueryOn(Connection conn, String query, AtomTemplate... atoms) throws SQLException {
+		PreparedStatement prepStmt = conn.prepareStatement(query);
+		int p = 1;
+		for (AtomTemplate atom : atoms) {
+			for (String arg : atom.getArgs())
+				if (!arg.equals("?"))
+					prepStmt.setString(p++, arg);
+		}
+		return prepStmt.executeQuery();
+	}
+
+	public int runUpdateOn(String query, AtomTemplate... atoms) {
+		try (Connection conn = dataStore.getConnection();
+			 PreparedStatement prepStmt = conn.prepareStatement(query)) {
+			int p = 1;
+			for (AtomTemplate atom : atoms) {
+				for (String arg : atom.getArgs())
+					if (!arg.equals("?"))
+						prepStmt.setString(p++, arg);
+			}
+			return prepStmt.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return 0;
+		}
+	}
+
+
 	private class WhereStatement {
 
 		private static final double DEFAULT_BELIEF_GREATER_THAN = -1.0;
@@ -1395,51 +1258,58 @@ public class DatabaseManager {
 		private List<List<String>> productMatch;
 
 		public WhereStatement() {
-			problemId = null;
+			problemId = "";
 			inPartitions = new HashSet<>();
 			beliefGreaterThan = DEFAULT_BELIEF_GREATER_THAN;
 			beliefLessThan = DEFAULT_BELIEF_LESS_THAN;
 			atomsToMatch = new ArrayList<>();
 		}
 
-		public void ownedByProblem(String problemId) {
+		public WhereStatement ownedByProblem(String problemId) {
 			this.problemId = problemId;
+			return this;
 		}
 
-		public void isInPartition(int... partitionIds) {
+		public WhereStatement isInPartition(int... partitionIds) {
 			for (int partitionId : partitionIds)
 				inPartitions.add(partitionId);
+			return this;
 		}
 
-		public void isInPartition(Collection<Integer> partitionIds) {
+		public WhereStatement isInPartition(Collection<Integer> partitionIds) {
 			inPartitions.addAll(partitionIds);
+			return this;
 		}
 
-		public void beliefAboveThreshold(double threshold) {
+		public WhereStatement beliefAboveThreshold(double threshold) {
 			beliefGreaterThan = threshold;
+			return this;
 		}
 
-		public void beliefBelowThreshold(double threshold) {
+		public WhereStatement beliefBelowThreshold(double threshold) {
 			beliefLessThan = threshold;
+			return this;
 		}
 
-		public void beliefBetween(double from, double to) {
+		public WhereStatement beliefBetween(double from, double to) {
 			beliefAboveThreshold(from);
 			beliefBelowThreshold(to);
+			return this;
 		}
 
-		public void matchAtoms(AtomTemplate... atoms) {
-			matchAtoms(Arrays.asList(atoms));
+		public WhereStatement matchAtoms(AtomTemplate... atoms) {
+			return matchAtoms(Arrays.asList(atoms));
 		}
 
-		public void matchAtoms(Collection<AtomTemplate> atoms) {
+		public WhereStatement matchAtoms(Collection<AtomTemplate> atoms) {
 			atomsToMatch.addAll(atoms);
+			return this;
 		}
 
 		public String getConditions() {
 			StringBuilder cond = new StringBuilder();
 
-			if (problemId != null) {
+			if (!problemId.isEmpty()) {
 				cond.append("(")
 						.append(PRED_SHORT).append(".").append(ATOM_ID_COLUMN_NAME)
 						.append(" = ")
@@ -1472,19 +1342,19 @@ public class DatabaseManager {
 						.append(") AND ");
 			}
 			if (!atomsToMatch.isEmpty()) {
-				cond.append("(");
+				cond.append("("); // *
 				boolean whereEmpty = true;
 				List<String> cols = getPredicateInfo(atomsToMatch.get(0)).argumentColumns();
 				for (AtomTemplate atom : atomsToMatch) {
 					String[] args = atom.getArgs();
 					boolean atomEmpty = true;
 					if (args != null && args.length > 0) {
-						cond.append("("); // *
+						cond.append("("); // **
 						for (int i = 0; i < args.length; i++) {
 							if (!args[i].equals("?")) {
 								atomEmpty = false;
 								whereEmpty = false;
-								cond.append(ATOM_ID_COLUMN_NAME).append(".").append(cols.get(i))
+								cond.append(PRED_SHORT).append(".").append(cols.get(i))
 										.append(" = ? AND ");
 							}
 						}
@@ -1493,17 +1363,19 @@ public class DatabaseManager {
 					if (!atomEmpty) { // delete final AND
 						cond.delete(cond.length() - 5, cond.length()).append(") OR ");
 					}
-					else // delete opening bracket from *
+					else // delete opening bracket from **
 						cond.deleteCharAt(cond.length() - 1);
 				}
 				if (!whereEmpty) { // delete final OR
-					cond.delete(cond.length() - 4, cond.length()).append(")");
+					cond.delete(cond.length() - 4, cond.length()).append(") AND ");
 				}
-				cond.append(") AND ");
+				else // delete opening bracket from *
+					cond.deleteCharAt(cond.length() - 1);
 			}
 
 			if (cond.length() > 0) // delete final AND
 				cond.delete(cond.length() - 5, cond.length());
+
 			return cond.toString();
 		}
 
@@ -1514,6 +1386,62 @@ public class DatabaseManager {
 				return "";
 
 			return " WHERE " + cond;
+		}
+	}
+
+
+	private static class OrderByStatement {
+
+		public enum CastType { INT, NO_CAST }
+
+		private List<String> colOrder;
+		private List<CastType> castCols;
+
+		public OrderByStatement() {
+			colOrder = new ArrayList<>();
+			castCols = new ArrayList<>();
+		}
+
+		public OrderByStatement orderBy(String col) {
+			return orderBy(colOrder.size(), col);
+		}
+
+		public OrderByStatement orderBy(String col, CastType cast) {
+			return orderBy(colOrder.size(), col, cast);
+		}
+
+		public OrderByStatement orderBy(int pos, String col) {
+			return orderBy(pos, col, CastType.NO_CAST);
+		}
+
+		public OrderByStatement orderBy(int pos, String col, CastType cast) {
+			colOrder.add(pos, col);
+			castCols.add(pos, cast);
+			return this;
+		}
+
+		public String getOrder() {
+			StringBuilder order = new StringBuilder();
+
+			for (int i = 0; i < colOrder.size(); i++) {
+				if (castCols.get(i) == CastType.INT)
+					order.append("CAST(").append(colOrder.get(i)).append(" AS INT), ");
+				else
+					order.append(colOrder.get(i)).append(", ");
+			}
+
+			if (order.length() > 0)
+				order.delete(order.length() - 2, order.length());
+
+			return order.toString();
+		}
+
+		@Override
+		public String toString() {
+			String order = getOrder();
+			if (order.isEmpty())
+				return "";
+			return " ORDER BY " + order;
 		}
 	}
 
