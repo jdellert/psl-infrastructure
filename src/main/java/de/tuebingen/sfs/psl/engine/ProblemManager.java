@@ -81,8 +81,7 @@ public class ProblemManager {
 	}
 
 	public void delete(PslProblem problem, String predName, String... args) {
-		dbManager.deleteAtoms(predName, partitionManager.getWritePartitionID(problem),
-				partitionManager.getReadPartitionIDs(problem), args);
+		dbManager.deleteAtomsForProblem(predName, problem.getName(), new AtomTemplate(predName, args));
 	}
 	
 	// For tests/demos that only work with individual problems.

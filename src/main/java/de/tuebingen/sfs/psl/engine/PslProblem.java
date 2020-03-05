@@ -274,7 +274,15 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	}
 
 	protected void declareOpenPredicate(TalkingPredicate pred) {
-		declarePredicate(pred, false);
+		declarePredicate(pred, false, false);
+	}
+
+	protected void declareOpenPredicateWithAuxiliary(String name, int arity) {
+		declareOpenPredicateWithAuxiliary(new TalkingPredicate(name, arity));
+	}
+
+	protected void declareOpenPredicateWithAuxiliary(TalkingPredicate pred) {
+		declarePredicate(pred, false, true);
 	}
 
 	protected void declareClosedPredicate(String name, int arity) {
@@ -282,12 +290,17 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	}
 
 	protected void declareClosedPredicate(TalkingPredicate pred) {
-		declarePredicate(pred, true);
+		declarePredicate(pred, true, false);
 	}
 
-	private void declarePredicate(TalkingPredicate pred, boolean closed) {
-		dbManager.declarePredicate(pred);
+	private void declarePredicate(TalkingPredicate pred, boolean closed, boolean auxiliary) {
+		TalkingPredicate auxPred = dbManager.declarePredicate(pred, !closed && auxiliary);
 		talkingPredicates.put(pred.getSymbol(), pred);
+
+		if (auxiliary) {
+			talkingPredicates.put(auxPred.getSymbol(), auxPred);
+			closedPredicates.add(auxPred.getSymbol());
+		}
 
 		if (closed)
 			closedPredicates.add(pred.getSymbol());
@@ -301,6 +314,10 @@ public abstract class PslProblem implements Callable<InferenceResult> {
     public static String existentialAtomName(String predName) {
         return "X" + predName;
     }
+
+	public static String undoExistentialAtomName(String predName) {
+		return predName.substring(1);
+	}
 
     public static String systemPriorName(String predName) {
         return "V" + predName;

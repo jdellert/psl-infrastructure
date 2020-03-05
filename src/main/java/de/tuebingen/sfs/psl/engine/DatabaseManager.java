@@ -45,7 +45,7 @@ public class DatabaseManager {
 	private final RDBMSDataStore dataStore;
 	private Map<String, TalkingPredicate> talkingPredicates;
 	private Map<String, StandardPredicate> predicates;
-	private Multimap<String, AtomTemplate> problemsToAtoms;
+	private Multimap<String, AtomTemplate> problemsToAtoms; // TODO: Remove once unused
 
 	private Map<String, Database> problemsToDatabases;
 	private int nextId = 0;
@@ -59,8 +59,8 @@ public class DatabaseManager {
 
 	public DatabaseManager(RDBMSDataStore dataStore) {
 		this.dataStore = dataStore;
-		predicates = new TreeMap<String, StandardPredicate>();
-		talkingPredicates = new TreeMap<String, TalkingPredicate>();
+		predicates = new TreeMap<>();
+		talkingPredicates = new TreeMap<>();
 		problemsToAtoms = new Multimap<>(CollectionType.SET);
 		problemsToDatabases = new HashMap<>();
 		stdPartition = dataStore.getPartition(PartitionManager.STD_PARTITION_ID);
@@ -144,8 +144,8 @@ public class DatabaseManager {
 		return 0;
 	}
 
-	// TODO: How to implement?
-	public int getNumberOfTargets(String problemId, Set<AtomTemplate> originalTargets){
+	// TODO: How to implement? Mark target status in problems2atoms DB?
+	public int getNumberOfTargets(String problemId, Set<AtomTemplate> originalTargets) {
 		int count = 0;
 		Collection<AtomTemplate> currentAtoms = problemsToAtoms.get(problemId);
 		for (AtomTemplate originalTarget : originalTargets){
@@ -281,7 +281,7 @@ public class DatabaseManager {
 	}
 
 	public List<Tuple> getAllMatchingForProblem(String predName, String problemId, AtomTemplate match) {
-		return getAllWhere(predName, new WhereStatement().ownedByProblem(problemId).matchAtoms(match));
+		return getAllWhere(predName, new WhereStatement().ownedByProblem(problemId).matchAtoms(match), match);
 	}
 
 	public List<Tuple> getAllAboveThreshold(String predName, double threshold) {
@@ -402,10 +402,29 @@ public class DatabaseManager {
 	////////////
 
 	public void declarePredicate(String name, int arity) {
-		declarePredicate(new TalkingPredicate(name, arity));
+		declarePredicate(name, arity, false);
+	}
+
+	public TalkingPredicate declarePredicate(String name, int arity, boolean auxiliary) {
+		return declarePredicate(new TalkingPredicate(name, arity), auxiliary);
 	}
 
 	public void declarePredicate(TalkingPredicate pred) {
+		declarePredicate(pred, false);
+	}
+
+	public TalkingPredicate declarePredicate(TalkingPredicate pred, boolean auxiliary) {
+		registerPredicate(pred, false);
+		if (auxiliary) {
+			TalkingPredicate auxPred = new TalkingPredicate(
+					PslProblem.existentialAtomName(pred.getSymbol()), pred.getArity());
+			registerPredicate(auxPred, true);
+			return auxPred;
+		}
+		return null;
+	}
+
+	private void registerPredicate(TalkingPredicate pred, boolean isAuxiliary) {
 		talkingPredicates.put(pred.getSymbol(), pred);
 		String name = pred.getSymbol();
 		int arity = pred.getArity();
@@ -420,6 +439,16 @@ public class DatabaseManager {
 					+ " ADD " + ATOM_ID_COLUMN_NAME + " INT;";
 			stmt += " CREATE TRIGGER atom_del_" + name + " AFTER DELETE ON " + predInfo.tableName()
 					+ " FOR EACH ROW CALL \"" + AtomDeletionTrigger.class.getName() + "\";";
+
+			if (isAuxiliary) {
+				PredicateInfo mainInfo = getPredicateInfo(PslProblem.undoExistentialAtomName(name));
+				stmt += " ALTER TABLE " + predInfo.tableName()
+						+ " ADD FOREIGN KEY (" + StringUtils.join(predInfo.argumentColumns(), ", ")
+						+ ") REFERENCES "
+						+ mainInfo.tableName() + "(" + StringUtils.join(mainInfo.argumentColumns(), ", ")
+						+ ") ON DELETE CASCADE;";
+			}
+
 			PreparedStatement prepStmt = conn.prepareStatement(stmt);
 			prepStmt.execute();
 		} catch (Exception e) {
@@ -490,9 +519,8 @@ public class DatabaseManager {
 	private int associateAtomWithProblem(Connection conn, String problemId, String predName, String... args) throws SQLException {
 		Predicate pred = predicates.get(predName);
 		PredicateInfo predInfo = new PredicateInfo(pred);
-		String getIdStmt = attachWhereClause(
-				new StringBuilder("SELECT " + ATOM_ID_COLUMN_NAME + " FROM " + predInfo.tableName()),
-				new AtomTemplate(predName, args)).toString() + ";";
+		String getIdStmt = "SELECT " + ATOM_ID_COLUMN_NAME + " FROM " + predInfo.tableName() + " " + PRED_SHORT
+				+ new WhereStatement().matchAtoms(new AtomTemplate(predName, args)) + ";";
 		PreparedStatement getIdPrepStmt = conn.prepareStatement(getIdStmt);
 		for (int i = 0; i < args.length; i++)
 			getIdPrepStmt.setString(i + 1, args[i]);
@@ -552,6 +580,11 @@ public class DatabaseManager {
 		return 0;
 	}
 
+	public boolean deleteAtomPermanently(String predName, AtomTemplate atom) {
+		blacklist.add(predName, atom.getArgs());
+		return deleteAtomsGlobally(predName, atom) > 0;
+	}
+
 	public int deleteAtomsGlobally(String predName, AtomTemplate... atoms) {
 		return deleteAtomsGloballyWhere(predName, new WhereStatement().matchAtoms(atoms), atoms);
 	}
@@ -600,487 +633,6 @@ public class DatabaseManager {
 			return deleted;
 		}
 		return 0;
-	}
-
-	@Deprecated
-	public void deleteAtoms(String predName, int writeID, Set<Integer> readIDs, String... constantPattern) {
-		Predicate pred = getPredicateByName(predName);
-		deleteBatch(pred, writeID, readIDs, new AtomTemplate(predName, constantPattern));
-	}
-
-	@Deprecated
-	public void deleteAtomPermanently(String predName, int writeID, Set<Integer> readIDs, String... args) {
-		deleteAtoms(predName, writeID, readIDs, args);
-		blacklist.add(predName, args);
-	}
-
-    /**
-     * Deletes a batch of atoms satisfying args.
-     * Example:
-     *    args = [[A, B], [], [C, D]]
-     *    => query: DELETE ...
-     *              WHERE (col1 = A AND col3 = C)
-     *                 OR (col1 = B AND col3 = D) ...
-     * All non-empty lists are assumed to be of the same length!
-     * @param predicate
-     * @param writeID
-     * @param readIDs
-     * @param args
-     * @return
-     */
-	@Deprecated
-	public int deleteBatch(Predicate predicate, int writeID, Set<Integer> readIDs, AtomTemplate... args) {
-		return deleteBatch(new PredicateInfo(predicate), writeID, readIDs, args);
-	}
-
-	@Deprecated
-	public int deleteBatch(PredicateInfo predicate, int writeID, Set<Integer> readIDs, AtomTemplate... atoms) {
-		StringBuilder stmtBuilder = new StringBuilder();
-        stmtBuilder.append("DELETE FROM ").append(predicate.tableName()).append(" WHERE ");
-        attachWhereBody(stmtBuilder, atoms).append(whereInPartitions(writeID, readIDs)).append(";");
-        String stmt = stmtBuilder.toString();
-
-		try (Connection conn = dataStore.getConnection(); PreparedStatement prepStmt = conn.prepareStatement(stmt);) {
-			int c = 1;
-			for (AtomTemplate atom : atoms) {
-				for (String arg : atom.getArgs()) {
-					if (!arg.equals("?")) {
-						prepStmt.setString(c, arg);
-						c++;
-					}
-				}
-			}
-			int count = prepStmt.executeUpdate();
-			atomsTotal -= count;
-			for (AtomTemplate atom : atoms)
-			    deleteFromProblemsToAtomsMap(atom);
-			return count;
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return -1;
-		}
-	}
-
-    /**
-     * Deletes a batch of atoms satisfying args.
-     * Example:
-     *    args = [[A, B], [], [C, D], [E]]
-     *    => query: DELETE ...
-     *              WHERE col1 IN (A, B)
-     *                AND col3 IN (C, D)
-     *                AND col4 IN (E) ...
-     * Sublists can be of different lengths.
-     * @param predicate
-     * @param writeID
-     * @param readIDs
-     * @param args
-     * @return
-     */
-	@Deprecated
-	public int deleteProduct(Predicate predicate, int writeID, Set<Integer> readIDs, List<String>... args) {
-		return deleteProduct(new PredicateInfo(predicate), writeID, readIDs, args);
-	}
-
-	@Deprecated
-	public int deleteProduct(PredicateInfo predicate, int writeID, Set<Integer> readIDs, List<String>... args) {
-		String stmt = prepareDeleteStatementProduct(predicate, writeID, readIDs, args);
-		try (Connection conn = dataStore.getConnection(); PreparedStatement prepStmt = conn.prepareStatement(stmt);) {
-			int c = 1;
-			for (List<String> argList : args) {
-				if (argList.size() > 0) {
-					for (String arg : argList) {
-						prepStmt.setString(c, arg);
-						c++;
-					}
-				}
-			}
-			int count = prepStmt.executeUpdate();
-			atomsTotal -= count;
-			for (String[] template : getTemplatesMatchingProduct(0, args))
-				deleteFromProblemsToAtomsMap(new AtomTemplate(predicate.predicate().getName(), template));
-			return count;
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return -1;
-		}
-	}
-
-	@Deprecated
-	private List<String[]> getTemplatesMatchingProduct(int i, List<String>... args) {
-        List<String[]> templates = new ArrayList<>();
-	    if (i == args.length - 1) {
-	        for (String finalArg : args[i]) {
-                String[] template = new String[args.length];
-                template[i] = finalArg;
-                templates.add(template);
-            }
-	        return templates;
-        }
-
-        List<String[]> oldTemplates = getTemplatesMatchingProduct(i + 1, args);
-        for (String[] template : oldTemplates) {
-            if (args[i].isEmpty()) {
-                template[i] = "?";
-                templates.add(template);
-            }
-            else {
-                for (String arg : args[i]) {
-                    String[] newTemplate = template.clone();
-                    newTemplate[i] = arg;
-                    templates.add(newTemplate);
-                }
-            }
-        }
-        return templates;
-    }
-	
-	/*
-	 * args = [[A, B], [], [C, D], [E]]
-     *    => query: DELETE ...
-     *              WHERE col1 IN (A, B)
-     *                AND col3 IN (C, D)
-     *                AND col4 IN (E) ...
-	 */
-	@Deprecated
-	public int deleteProduct(String problemId, String predName, List<String>... args) {
-		Set<AtomTemplate> toDelete = matchProduct(problemsToAtoms.get(problemId), predName, args);
-		return deleteAtomsForPredicate(toDelete.toArray(new AtomTemplate[0]));
-	}
-
-    /**
-     * Deletes all atoms of a predicate below a certain belief value.
-     * @param predicate
-     * @param writeID
-     * @param readIDs
-     * @param threshold
-     * @return
-     */
-	@Deprecated
-	public int deleteBatchBelowThreshold(Predicate predicate, int writeID, Set<Integer> readIDs, double threshold) {
-		String stmt = "DELETE FROM " + new PredicateInfo(predicate).tableName() + " WHERE value < " + threshold
-				+ " AND " + whereInPartitions(writeID, readIDs) + ";";
-		try (Connection conn = dataStore.getConnection(); PreparedStatement prepStmt = conn.prepareStatement(stmt);) {
-			int count = prepStmt.executeUpdate();
-			atomsTotal -= count;
-			return count;
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return -1;
-		}
-	}
-	
-    /**
-     * Deletes all atoms of a predicate below a certain belief value plus all matching auxiliary ("X") atoms of that
-     * predicate.
-     * @param predicate
-     * @param writeID
-     * @param readIDs
-     * @param threshold
-     * @return
-     */
-	@Deprecated
-	public int deleteBatchBelowThreshold(Predicate predicate, Predicate auxiliary, int writeID, Set<Integer> readIDs,
-			double threshold) {
-		PredicateInfo pred = new PredicateInfo(predicate);
-		PredicateInfo aux = new PredicateInfo(auxiliary);
-		int count;
-		String stmt = prepareDeleteStatementForAuxiliary(pred, aux, writeID, readIDs, threshold);
-		try (Connection conn = dataStore.getConnection(); PreparedStatement prepStmt = conn.prepareStatement(stmt);) {
-			count = prepStmt.executeUpdate();
-			atomsTotal -= count;
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return -1;
-		}
-
-		return count + deleteBatchBelowThreshold(predicate, writeID, readIDs, threshold);
-	}
-	
-	/**
-	 * Deletes all instances of a predicate for a given PSL problem below a given threshold.
-	 * @param problemId
-	 * @param predicate
-	 * @param threshold
-	 * @return
-	 */
-	@Deprecated
-	public int deleteBatchBelowThreshold(String problemId, String predicate, double threshold) {
-		List<AtomTemplate> toDelete = new ArrayList<>(); 
-		for (AtomTemplate atom : problemsToAtoms.get(problemId)){
-			if (atom.getPredicateName().equals(predicate)){
-				toDelete.add(atom);
-			}
-		}
-
-		// TODO: Remove this if problem in deleteAtomsForPredicateIfBelowThreshold is solved
-		for (Tuple tuple : getTuplesForPredicateBelowThreshold(problemId, predicate, threshold))
-			deleteFromProblemsToAtomsMap(new AtomTemplate(predicate, tuple.toList()));
-
-		return deleteAtomsForPredicateIfBelowThreshold(threshold, toDelete.toArray(new AtomTemplate[0]));		
-	}
-	
-	/**
-	 * Deletes all instances of a predicate for a given PSL problem below a given threshold, 
-	 * plus all corresponding instances of an auxiliary predicate.
-	 * @param problemId
-	 * @param predicate
-	 * @param auxiliary
-	 * @param threshold
-	 * @return
-	 */
-	@Deprecated
-	public int deleteBatchBelowThreshold(String problemId, String predicate, String auxiliary, double threshold) {
-		// Delete the auxiliary atoms first
-		// (whether they should be deleted depends on the corresponding 'main' atoms' values)
-		List<AtomTemplate> toDeleteAux = new ArrayList<>(); for (AtomTemplate atom : problemsToAtoms.get(problemId)){
-			if (atom.getPredicateName().equals(auxiliary)){
-				toDeleteAux.add(atom);
-			}
-		}
-
-		// TODO: Remove this if problem below is solved
-		for (Tuple tuple : getTuplesForPredicateBelowThreshold(problemId, predicate, threshold))
-			deleteFromProblemsToAtomsMap(new AtomTemplate(auxiliary, tuple.toList()));
-
-		String stmt = prepareDeleteStatementForAuxiliary(new PredicateInfo(predicates.get(predicate)), threshold,
-				toDeleteAux.toArray(new AtomTemplate[0]));
-		int count;
-		try (Connection conn = dataStore.getConnection(); PreparedStatement prepStmt = conn.prepareStatement(stmt);) {
-			int paramCounter = 1;
-			for (AtomTemplate atom : toDeleteAux){
-				// The loop needs to be executed twice, once for checking the auxiliary's values...
-				for (String arg : atom.getArgs()){
-					if (!arg.equals("?")){					
-						prepStmt.setString(paramCounter++, arg);
-					}
-				}
-				// ... and once for checking the main atom's values
-				for (String arg : atom.getArgs()){
-					if (!arg.equals("?")){					
-						prepStmt.setString(paramCounter++, arg);
-					}
-				}
-			}
-			count = prepStmt.executeUpdate();
-			atomsTotal -= count;
-			// TODO: This deletes ALL auxiliary atoms, not only those below threshold!!
-//			for (AtomTemplate atom : toDeleteAux){
-//				deleteFromProblemsToAtomsMap(atom);
-//			}
-			
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return -1;
-		}
-		
-		// Now delete instances of the main predicate:
-		return count + deleteBatchBelowThreshold(problemId, predicate, threshold);
-	}
-
-	@Deprecated
-	public int deleteAtom(AtomTemplate atom){
-		return deleteAtomIfBelowThreshold(atom, -1.0);
-	}
-
-	@Deprecated
-	public int deleteAtomIfBelowThreshold(AtomTemplate atom, double threshold){
-		return deleteAtomsForPredicateIfBelowThreshold(threshold, atom);
-	}
-	
-	
-	// Assumes that all atoms belong to the same predicate.
-	@Deprecated
-	private int deleteAtomsForPredicate(AtomTemplate... atoms){
-		return deleteAtomsForPredicateIfBelowThreshold(-1.0, atoms);
-	}
-	
-	// Assumes that all atoms belong to the same predicate.
-	@Deprecated
-	private int deleteAtomsForPredicateIfBelowThreshold(double threshold, AtomTemplate... atoms) {
-		String stmt = prepareDeleteStatementBelowThreshold(threshold, atoms);
-		try (Connection conn = dataStore.getConnection(); 
-				PreparedStatement prepStmt = conn.prepareStatement(stmt);) {
-			int paramCounter = 1;
-			for (AtomTemplate atom : atoms){				
-				for (String arg : atom.getArgs()){
-					if (!arg.equals("?")){					
-						prepStmt.setString(paramCounter++, arg);
-					}
-				}
-			}
-			int count = prepStmt.executeUpdate();
-			atomsTotal -= count;
-
-			// TODO: This deletes ALL atoms, not only those below threshold!!
-			if (threshold < 0) {
-				for (AtomTemplate atom : atoms) {
-					deleteFromProblemsToAtomsMap(atom);
-				}
-			}
-			return count;
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return -1;
-		}
-	}
-
-	@Deprecated
-	private String prepareDeleteStatement(PredicateInfo predicate, int writeID, Set<Integer> readIDs, int nOfOrs,
-										  String... args) {
-		StringBuilder condBuilder = new StringBuilder("(");
-		List<String> cols = predicate.argumentColumns();
-		boolean empty = true;
-		for (int i = 0; i < args.length; i++) {
-			if (!args[i].equals("?")) {
-				empty = false;
-				condBuilder.append(cols.get(i)).append(" = ? AND ");
-			}
-		}
-		String where = "";
-		if (empty)
-			where = " WHERE " + whereInPartitions(writeID, readIDs);
-		else {
-			condBuilder.delete(condBuilder.length() - 5, condBuilder.length()).append(")");
-			String cond = condBuilder.toString();
-			StringBuilder whereBuilder = new StringBuilder(" WHERE ");
-			for (int i = 0; i < nOfOrs; i++)
-				whereBuilder.append(cond).append(" OR ");
-			whereBuilder.delete(whereBuilder.length() - 4, whereBuilder.length());
-			where = whereBuilder.append(" AND ").append(whereInPartitions(writeID, readIDs)).toString();
-		}
-		return "DELETE FROM " + predicate.tableName() + where + ";";
-	}
-
-	@Deprecated
-	private String prepareDeleteStatementProduct(PredicateInfo predicate, int writeID, Set<Integer> readIDs,
-												 List<String>... args) {
-		StringBuilder stmt = new StringBuilder();
-		stmt.append("DELETE FROM ").append(predicate.tableName()).append(" WHERE ");
-		List<String> cols = predicate.argumentColumns();
-		for (int i = 0; i < args.length; i++) {
-			if (args[i].size() > 0) {
-				stmt.append(cols.get(i)).append(" IN ").append(getPlaceholders(args[i].size())).append(" AND ");
-			}
-		}
-		stmt.append(whereInPartitions(writeID, readIDs)).append(";");
-		return stmt.toString();
-	}
-
-	@Deprecated
-	private String prepareDeleteStatementProduct(PredicateInfo predicate, List<String>... args) {
-		StringBuilder stmt = new StringBuilder();
-		stmt.append("DELETE FROM ").append(predicate.tableName()).append(" WHERE ");
-		List<String> cols = predicate.argumentColumns();
-		for (int i = 0; i < args.length; i++) {
-			if (args[i].size() > 0) {
-				stmt.append(cols.get(i)).append(" IN ").append(getPlaceholders(args[i].size())).append(" AND ");
-			}
-		}
-		stmt.append(";");
-		return stmt.toString();
-	}
-
-	// Assumes that all atoms belong to the same predicate.
-	@Deprecated
-	private String prepareDeleteStatement(AtomTemplate... atoms) {
-		return prepareDeleteStatementBelowThreshold(-1.0, atoms);
-	}
-
-	// Assumes that all atoms belong to the same predicate.
-	@Deprecated
-	private String prepareDeleteStatementBelowThreshold(double threshold, AtomTemplate... atoms) {
-		PredicateInfo predicate = new PredicateInfo(predicates.get(atoms[0].getPredicateName()));
-		StringBuilder stmt = new StringBuilder();
-		stmt.append("DELETE FROM ").append(predicate.tableName());
-		attachWhereClause(stmt, atoms);
-		if (threshold >= 0.0){
-			stmt.append("AND value < ").append(threshold);
-		}
-		stmt.append(";");
-		return stmt.toString();
-	}
-
-	@Deprecated
-	private String prepareDeleteStatementForAuxiliary(PredicateInfo pred, PredicateInfo aux, int writeID,
-													  Set<Integer> readIDs, double threshold) {
-		String auxTable = aux.tableName();
-		String predTable = pred.tableName();
-		StringBuilder stmtBuilder = new StringBuilder();
-		stmtBuilder.append("DELETE FROM ").append(auxTable).append(" WHERE ")
-				.append(whereInPartitions(writeID, readIDs)).append(" AND EXISTS (SELECT 1 FROM ").append(predTable)
-				.append(" WHERE ").append(predTable).append(".value < ").append(threshold).append(" AND ")
-				.append(predTable).append(".").append(whereInPartitions(writeID, readIDs));
-		for (String col : aux.argumentColumns()) {
-			stmtBuilder.append(" AND ").append(predTable).append(".").append(col).append(" = ").append(auxTable)
-					.append(".").append(col);
-		}
-		stmtBuilder.append(");");
-		return stmtBuilder.toString();
-	}
-
-	// Assumes that all atom templates belong to the same (auxiliary) predicate.
-	@Deprecated
-	private String prepareDeleteStatementForAuxiliary(PredicateInfo pred, double threshold, AtomTemplate... auxAtoms) {
-		if (auxAtoms.length == 0){
-			return ";";
-		}
-
-		PredicateInfo aux = new PredicateInfo(predicates.get(auxAtoms[0].getPredicateName()));
-		String auxTable = aux.tableName();
-		String predTable = pred.tableName();
-		StringBuilder stmtBuilder = new StringBuilder();
-		List<String> cols = aux.argumentColumns();
-
-		// DELETE FROM auxTable WHERE
-		// (arg1 = ? AND arg2 = ?
-		//  AND EXISTS (SELECT 1 FROM predTable p WHERE
-		//   p.value < threshold
-		//   AND p.arg1 = ? AND p.arg2 = ?)
-		// ) OR (arg1 = ? AND ......);
-		//
-		stmtBuilder.append("DELETE FROM ").append(auxTable).append(" WHERE ");
-		for (AtomTemplate atom : auxAtoms){
-			String[] args = atom.getArgs();
-			if (args == null || args.length == 0) {
-				continue;
-			}
-
-			stmtBuilder.append("(");
-			for (int i = 0; i < args.length; i++) {
-				if (!args[i].equals("?")) {
-					stmtBuilder.append(cols.get(i)).append(" = ? AND ");
-				}
-			}
-			stmtBuilder.append("EXISTS (SELECT 1 FROM ").append(predTable)
-					.append(" p WHERE p.value < ").append(threshold);
-			for (int i = 0; i < args.length; i++) {
-				if (!args[i].equals("?")) {
-					stmtBuilder.append(" AND p.");
-					stmtBuilder.append(cols.get(i)).append(" = ?");
-				}
-			}
-
-			stmtBuilder.append(")) OR ");
-		}
-		stmtBuilder.delete(stmtBuilder.length() - 4, stmtBuilder.length());
-		stmtBuilder.append(";");
-		return stmtBuilder.toString();
-	}
-
-	@Deprecated
-	private void deleteFromProblemsToAtomsMap(AtomTemplate atomToDelete) {
-		System.err.println("DELETING " + atomToDelete);
-
-		for (Collection<AtomTemplate> values : problemsToAtoms.values()) {
-			Set<AtomTemplate> toBeDeleted = new HashSet<>();
-			for (AtomTemplate atom : values){
-				// This check works because the atoms in problemsToAtoms cannot contain wildcards.
-				if (atom.equalsWithWildcards(atomToDelete)){
-					toBeDeleted.add(atom);
-				}
-			}
-			values.removeAll(toBeDeleted);
-		}
 	}
 
 	////////////////////////////
@@ -1165,71 +717,6 @@ public class DatabaseManager {
 	// * Helper methods (mostly for SQL statements) *
 	// **********************************************
 
-	private StringBuilder attachWhereClauseWithPartitions(StringBuilder stmt, PredicateInfo predicate, int writeID,
-			Set<Integer> readIDs, String... args) {
-		stmt.append(" WHERE ");
-		List<String> cols = predicate.argumentColumns();
-		for (int i = 0; i < args.length; i++) {
-			if (!args[i].equals("?")) {
-				stmt.append(cols.get(i)).append(" = ? AND ");
-			}
-		}
-		stmt.append(whereInPartitions(writeID, readIDs)).append(";");
-		return stmt;
-	}
-
-    // Assumes that all atoms belong to the same predicate.
-    private StringBuilder attachWhereClause(StringBuilder stmt, AtomTemplate... atoms) {
-	    return attachWhereBody(stmt.append(" WHERE "), atoms);
-    }
-
-    // Assumes that all atoms belong to the same predicate.
-	private StringBuilder attachWhereBody(StringBuilder stmt, AtomTemplate... atoms) {
-		if (atoms.length == 0){
-			return stmt;
-		}
-	    StringBuilder where = new StringBuilder("(");
-	    boolean whereEmpty = true;
-        List<String> cols = getPredicateInfo(atoms[0]).argumentColumns();
-	    for (AtomTemplate atom : atoms) {
-            String[] args = atom.getArgs();
-            boolean atomEmpty = true;
-            if (args != null && args.length > 0) {
-                where.append("(");
-                for (int i = 0; i < args.length; i++) {
-                    if (!args[i].equals("?")) {
-                        atomEmpty = false;
-                        whereEmpty = false;
-                        where.append(cols.get(i)).append(" = ? AND ");
-                    }
-                }
-
-            }
-            if (!atomEmpty){            	
-            	where.delete(where.length() - 5, where.length()).append(") OR ");
-            }
-        }
-	    if (!whereEmpty){	    	
-	    	stmt.append(where.delete(where.length() - 4, where.length())).append(")");
-	    }
-		return stmt;
-	}
-
-	private String whereInPartitions(int writeID, Set<Integer> readIDs) {
-		return PredicateInfo.PARTITION_COLUMN_NAME + " IN (" + StringUtils.join(readIDs, ',') + "," + writeID + ")";
-	}
-
-	private String getPlaceholders(int n) {
-		if (n == 1)
-			return "(?)";
-		StringBuilder placeholders = new StringBuilder("(");
-		for (int i = 0; i < n; i++) {
-			placeholders.append("?, ");
-		}
-		placeholders.delete(placeholders.length() - 2, placeholders.length()).append(")");
-		return placeholders.toString();
-	}
-
 	private PredicateInfo getPredicateInfo(String predName) {
 		return new PredicateInfo(predicates.get(predName));
 	}
@@ -1237,37 +724,6 @@ public class DatabaseManager {
 	private PredicateInfo getPredicateInfo(AtomTemplate atom) {
 		return getPredicateInfo(atom.getPredicateName());
 	}
-	
-	private Set<AtomTemplate> matchProduct(Collection<AtomTemplate> candidates, String predName, List<String>... args){
-		// This assumes the atom templates don't contain wildcards.
-		Set<AtomTemplate> matches = new HashSet<>();
-		atomLoop: for (AtomTemplate atom : candidates){
-			if (atom.getPredicateName().equals(predName)){
-				String[] atomArgs = atom.getArgs();
-				if (atomArgs.length < args.length){
-					continue;
-				}
-				argLoop: for (int i = 0; i < args.length; i++){
-					if (args[i].isEmpty()){
-						continue argLoop;
-					}
-					boolean match = false;
-					for (String argOption : args[i]){
-						if (atomArgs[i].equals(argOption)){
-							match = true;
-							break;
-						}
-					}
-					if (! match){
-						continue atomLoop;
-					}
-				}
-				matches.add(atom);
-			}
-		}
-		return matches;
-	}
-
 
 	private ResultSet runQueryOn(Connection conn, String query, AtomTemplate... atoms) throws SQLException {
 		PreparedStatement prepStmt = conn.prepareStatement(query);
