@@ -32,6 +32,7 @@ public class DatabaseManager {
 	public static final String PROBLEMS2ATOMS_TABLE = "problems_to_atoms";
 	private static final String P2A_SHORT = "prob";
 	private static final String PRED_SHORT = "pred";
+	private static final String AUX_SHORT = "aux";
 	public static final String PROBLEM_ID_COLUMN_NAME = "problem_id";
 	public static final String PREDICATE_NAME_COLUMN_NAME = "predicate";
 	public static final String ATOM_ID_COLUMN_NAME = "atom_id";
@@ -157,25 +158,29 @@ public class DatabaseManager {
 		return count;
 	}
 
-	public boolean contains(String predName, String... args) {
-		StandardPredicate pred = getPredicateByName(predName);
+	public boolean existsAtom(String predName, String... args) {
+		Predicate pred = getPredicateByName(predName);
 		if (pred != null) {
 			PredicateInfo predInfo = new PredicateInfo(pred);
 			AtomTemplate atom = new AtomTemplate(predName, args);
 
-			StringBuilder stmt = new StringBuilder();
-			stmt.append("SELECT 1 FROM ").append(predInfo.tableName()).append(" ").append(PRED_SHORT);
-			WhereStatement where = new WhereStatement();
-			stmt.append(where.isInPartition(stdPartition.getID())
-					.matchAtoms(atom)
-					.toString());
+			String stmt = "SELECT 1 FROM " + predInfo.tableName() + " " + PRED_SHORT
+					+ new WhereStatement().matchAtoms(atom) + ";";
+			return runQueryResultNotEmpty(stmt, atom);
+		}
+		return false;
+	}
 
-			try (Connection conn = dataStore.getConnection()) {
-			ResultSet res = runQueryOn(conn, stmt.toString(), atom);
-				return res != null && res.next();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+	public boolean isAtomOwnedByProblem(String problemId, String predName, String... args) {
+		Predicate pred = getPredicateByName(predName);
+		if (pred != null) {
+			PredicateInfo predInfo = new PredicateInfo(pred);
+			AtomTemplate atom = new AtomTemplate(predName, args);
+
+			String stmt = "SELECT 1 FROM " + PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT + ", "
+					+ predInfo.tableName() + " " + PRED_SHORT
+					+ new WhereStatement().ownedByProblem(problemId).matchAtoms(atom) + ";";
+			return runQueryResultNotEmpty(stmt, atom);
 		}
 		return false;
 	}
@@ -402,29 +407,10 @@ public class DatabaseManager {
 	////////////
 
 	public void declarePredicate(String name, int arity) {
-		declarePredicate(name, arity, false);
-	}
-
-	public TalkingPredicate declarePredicate(String name, int arity, boolean auxiliary) {
-		return declarePredicate(new TalkingPredicate(name, arity), auxiliary);
+		declarePredicate(new TalkingPredicate(name, arity));
 	}
 
 	public void declarePredicate(TalkingPredicate pred) {
-		declarePredicate(pred, false);
-	}
-
-	public TalkingPredicate declarePredicate(TalkingPredicate pred, boolean auxiliary) {
-		registerPredicate(pred, false);
-		if (auxiliary) {
-			TalkingPredicate auxPred = new TalkingPredicate(
-					PslProblem.existentialAtomName(pred.getSymbol()), pred.getArity());
-			registerPredicate(auxPred, true);
-			return auxPred;
-		}
-		return null;
-	}
-
-	private void registerPredicate(TalkingPredicate pred, boolean isAuxiliary) {
 		talkingPredicates.put(pred.getSymbol(), pred);
 		String name = pred.getSymbol();
 		int arity = pred.getArity();
@@ -439,15 +425,6 @@ public class DatabaseManager {
 					+ " ADD " + ATOM_ID_COLUMN_NAME + " INT;";
 			stmt += " CREATE TRIGGER atom_del_" + name + " AFTER DELETE ON " + predInfo.tableName()
 					+ " FOR EACH ROW CALL \"" + AtomDeletionTrigger.class.getName() + "\";";
-
-			if (isAuxiliary) {
-				PredicateInfo mainInfo = getPredicateInfo(PslProblem.undoExistentialAtomName(name));
-				stmt += " ALTER TABLE " + predInfo.tableName()
-						+ " ADD FOREIGN KEY (" + StringUtils.join(predInfo.argumentColumns(), ", ")
-						+ ") REFERENCES "
-						+ mainInfo.tableName() + "(" + StringUtils.join(mainInfo.argumentColumns(), ", ")
-						+ ") ON DELETE CASCADE;";
-			}
 
 			PreparedStatement prepStmt = conn.prepareStatement(stmt);
 			prepStmt.execute();
@@ -593,18 +570,18 @@ public class DatabaseManager {
 		return deleteAtomsForProblem(predName, problemId, false, atoms);
 	}
 
-	public int deleteAtomsForProblem(String predName, String problemId, boolean cleanup, AtomTemplate... atoms) {
+	public int deleteAtomsForProblem(String predName, String problemId, boolean auxiliary, AtomTemplate... atoms) {
 		return deleteAtomsForProblemWhere(
-				predName, new WhereStatement().ownedByProblem(problemId).matchAtoms(atoms), cleanup, atoms);
+				predName, problemId, new WhereStatement().matchAtoms(atoms), auxiliary, atoms);
 	}
 
 	public int deleteAtomsForProblemBelowThreshold(String predName, String problemId, double threshold) {
 		return deleteAtomsForProblemBelowThreshold(predName, problemId, false, threshold);
 	}
 
-	public int deleteAtomsForProblemBelowThreshold(String predName, String problemId, boolean cleanup, double threshold) {
+	public int deleteAtomsForProblemBelowThreshold(String predName, String problemId, boolean auxiliary, double threshold) {
 		return deleteAtomsForProblemWhere(
-				predName, new WhereStatement().ownedByProblem(problemId).beliefBelowThreshold(threshold), cleanup);
+				predName, problemId, new WhereStatement().beliefBelowThreshold(threshold), auxiliary);
 	}
 
 	private int deleteAtomsGloballyWhere(String predName, WhereStatement where, AtomTemplate... atoms) {
@@ -618,19 +595,31 @@ public class DatabaseManager {
 		return 0;
 	}
 
-	private int deleteAtomsForProblemWhere(String predName, WhereStatement where, boolean cleanup, AtomTemplate... atoms) {
+	private int deleteAtomsForProblemWhere(String predName, String problemId, WhereStatement where,
+										   boolean auxiliary, AtomTemplate... atoms) {
 		Predicate pred = predicates.get(predName);
 		if (pred != null) {
 			PredicateInfo predInfo = new PredicateInfo(pred);
 			String stmt = "DELETE FROM " + PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT
-					+ " WHERE " + P2A_SHORT + "." + ATOM_ID_COLUMN_NAME + " IN ("
+					+ " WHERE " + P2A_SHORT + "." + PROBLEM_ID_COLUMN_NAME + " = '" + problemId
+					+ "' AND " + P2A_SHORT + "." + ATOM_ID_COLUMN_NAME + " IN ("
 					+ "SELECT " + PRED_SHORT + "." + ATOM_ID_COLUMN_NAME
 					+ " FROM " + predInfo.tableName() + " " + PRED_SHORT
 					+ where + ");";
-			int deleted = runUpdateOn(stmt, atoms);
-			if (cleanup)
-				deleteUnused(predName);
-			return deleted;
+			int deleted = 0;
+			if (auxiliary) {
+				String auxName = PslProblem.existentialAtomName(predName);
+				PredicateInfo auxPredInfo = getPredicateInfo(auxName);
+				String auxStmt = "DELETE FROM " + PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT
+						+ " WHERE " + P2A_SHORT + "." + PROBLEM_ID_COLUMN_NAME + " = '" + problemId
+						+ "' AND " + P2A_SHORT + "." + ATOM_ID_COLUMN_NAME + " IN ("
+						+ "SELECT " + AUX_SHORT + "." + ATOM_ID_COLUMN_NAME
+						+ " FROM " + auxPredInfo.tableName() + " " + AUX_SHORT
+						+ ", " + predInfo.tableName() + " " + PRED_SHORT
+						+ where.matchAuxiliary(auxName) + ");";
+				deleted = runUpdateOn(auxStmt, atoms);
+			}
+			return deleted + runUpdateOn(stmt, atoms);
 		}
 		return 0;
 	}
@@ -736,6 +725,16 @@ public class DatabaseManager {
 		return prepStmt.executeQuery();
 	}
 
+	private boolean runQueryResultNotEmpty(String query, AtomTemplate... atoms) {
+		try (Connection conn = dataStore.getConnection()) {
+			ResultSet res = runQueryOn(conn, query, atoms);
+			return res != null && res.next();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
 	private int runUpdateOn(String query, AtomTemplate... atoms) {
 		try (Connection conn = dataStore.getConnection();
 			 PreparedStatement prepStmt = conn.prepareStatement(query)) {
@@ -766,6 +765,7 @@ public class DatabaseManager {
 		private double beliefLessThan;
 		private List<AtomTemplate> atomsToMatch;
 		private List<List<String>> productMatch;
+		private String auxToMatch;
 
 		public WhereStatement() {
 			p2aTableKnown = true;
@@ -774,6 +774,7 @@ public class DatabaseManager {
 			beliefGreaterThan = DEFAULT_BELIEF_GREATER_THAN;
 			beliefLessThan = DEFAULT_BELIEF_LESS_THAN;
 			atomsToMatch = new ArrayList<>();
+			auxToMatch = "";
 		}
 
 		public WhereStatement problemMapTableKnown(boolean p2aTableKnown) {
@@ -824,6 +825,11 @@ public class DatabaseManager {
 
 		public WhereStatement matchAtoms(Collection<AtomTemplate> atoms) {
 			atomsToMatch.addAll(atoms);
+			return this;
+		}
+
+		public WhereStatement matchAuxiliary(String auxiliary) {
+			auxToMatch = auxiliary;
 			return this;
 		}
 
@@ -902,6 +908,19 @@ public class DatabaseManager {
 				}
 				else // delete opening bracket from *
 					cond.deleteCharAt(cond.length() - 1);
+			}
+			if (!auxToMatch.isEmpty()) {
+				List<String> cols = getPredicateInfo(auxToMatch).argumentColumns();
+				if (!cols.isEmpty()) {
+					cond.append("(");
+					for (String col : cols) {
+						cond.append(AUX_SHORT).append(".").append(col)
+								.append(" = ")
+								.append(PRED_SHORT).append(".").append(col)
+								.append(" AND ");
+					}
+					cond.delete(cond.length() - 5, cond.length()).append(") AND ");
+				}
 			}
 
 			if (cond.length() > 0) // delete final AND
