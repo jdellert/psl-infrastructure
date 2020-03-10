@@ -335,10 +335,10 @@ public class DatabaseManager {
 				while (res.next()) {
 					Tuple tuple = new Tuple();
 					for (int i = 1; i <= pred.getArity(); i++) {
-						System.err.print(res.getString(i) + " ");
+//						System.err.print(res.getString(i) + " ");
 						tuple.addElement(res.getString(i));
 					}
-					System.err.println();
+//					System.err.println();
 					tuples.add(tuple);
 				}
 			} catch (SQLException e) {

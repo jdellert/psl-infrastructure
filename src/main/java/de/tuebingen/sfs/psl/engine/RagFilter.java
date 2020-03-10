@@ -14,11 +14,18 @@ import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.psl.util.data.StringUtils;
 
 public class RagFilter {
+
+	protected Map<String, String> groundPred2ActualNames;
 	protected Set<String> ignoreList;
 	protected Map<String, Double> transparencyMap;
 
 	public RagFilter(Map<String, Double> toneMap) {
-		ignoreList = new TreeSet<String>();
+		this(toneMap, null);
+	}
+
+	public RagFilter(Map<String, Double> toneMap, Map<String, String> groundPred2ActualNames) {
+		this.groundPred2ActualNames = groundPred2ActualNames;
+		this.ignoreList = new TreeSet<String>();
 		if (toneMap == null) {
 			this.transparencyMap = new TreeMap<String, Double>();
 		} else {
@@ -73,7 +80,9 @@ public class RagFilter {
 	public String atomToSimplifiedString(GroundAtom atom) {
 		String predName = atom.getPredicate().getName();
 		//TODO: find out why this wasn't previously necessary
-		predName = predName.charAt(0) + predName.toLowerCase().substring(1);
+		predName = (groundPred2ActualNames == null)
+				? predName.charAt(0) + predName.toLowerCase().substring(1)
+				: groundPred2ActualNames.get(predName);
 		Tuple argTuple = new Tuple();
 		for (Constant c : atom.getArguments()) {
 			String cStr = c.toString();

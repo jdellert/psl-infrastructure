@@ -75,7 +75,7 @@ public class TalkingLogicalRule extends TalkingRule {
 			if (i == positiveArgs)
 				positiveGroundArgs = printableArgs.size();
 
-			if (rag.getIgnoredPredicates().contains(args[i].substring(0, 4)) || args[i].charAt(0) == '(') // Skip (X == 'x')
+			if (rag.getIgnoredPredicates().contains(args[i].substring(0, args[i].indexOf('('))) || args[i].charAt(0) == '(') // Skip (X == 'x')
 																										  // TODO: Improve
 				skip++;
 			else {
@@ -86,7 +86,7 @@ public class TalkingLogicalRule extends TalkingRule {
                     printableArgs.add(groundAtom);
                     String[] predDetails = StringUtils.split(groundAtom, '(');
                     String predName = predDetails[0];
-                    String[] predArgs = StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1),',');
+                    String[] predArgs = StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1),", ");
                     printableTalkingPredicates.add(nameToTalkingPredicate.get(predName));
                     printablePredicateArgs.add(predArgs);
                     printableBeliefValues.add(rag.getValue(groundAtom));
