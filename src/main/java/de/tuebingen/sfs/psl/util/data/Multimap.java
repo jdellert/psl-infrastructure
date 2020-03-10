@@ -23,6 +23,14 @@ public class Multimap<T1, T2> {
 		this.collectionType = collectionType;
 	}
 
+	public boolean containsKey(T1 key) {
+		return map.containsKey(key);
+	}
+
+	public boolean containsValue(T1 key, T2 value) {
+		return containsKey(key) && get(key).contains(value);
+	}
+
 	public void put(T1 key, T2 value) {
 		Collection<T2> values = map.get(key);
 		if (values == null) {
