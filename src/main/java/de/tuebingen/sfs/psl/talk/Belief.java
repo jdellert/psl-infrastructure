@@ -7,15 +7,19 @@ public class Belief {
 	private String adverb;
 	private String adjectiveHigh;
 	private String similarity;
+	private String frequencyAdv;
+	private String frequencyAdj;
 
 	public Belief(double threshold, String adjective, String predicate, String adverb, String adjectiveHigh,
-			String similarity) {
+			String similarity, String frequencyAdv, String frequencyAdj) {
 		this.threshold = threshold;
 		this.adjective = adjective;
 		this.predicate = predicate;
 		this.adverb = adverb;
 		this.adjectiveHigh = adjectiveHigh;
 		this.similarity = similarity;
+		this.frequencyAdv = frequencyAdv;
+		this.frequencyAdj = frequencyAdj;
 	}
 
 	/**
@@ -106,6 +110,36 @@ public class Belief {
 	 */
 	public void setSimilarity(String similarity) {
 		this.similarity = similarity;
+	}
+
+	/**
+	 * @return the frequencyAdv
+	 */
+	public String getFrequencyAdverb() {
+		return frequencyAdv;
+	}
+
+	/**
+	 * @param frequencyAdv
+	 *            the frequencyAdv to set
+	 */
+	public void setFrequencyAdverb(String frequencyAdv) {
+		this.frequencyAdv = frequencyAdv;
+	}
+
+	/**
+	 * @return the frequencyAdj
+	 */
+	public String getFrequencyAdjective() {
+		return frequencyAdj;
+	}
+
+	/**
+	 * @param frequencyAdj
+	 *            the frequencyAdj to set
+	 */
+	public void setFrequencyAdjective(String frequencyAdj) {
+		this.frequencyAdj = frequencyAdj;
 	}
 
 }
