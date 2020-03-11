@@ -97,17 +97,25 @@ public class StringUtils {
     }
 
     public static String join(Iterable<?> a, char c) {
+        return join(a, c, "null");
+    }
+
+    public static String join(Iterable<?> a, char c, String nullReplacement) {
         StringBuilder s = new StringBuilder();
         for (Object p : a)
-            s.append(p.toString()).append(c);
+            s.append((p == null) ? nullReplacement : p.toString()).append(c);
         if (s.length() > 0) s.deleteCharAt(s.length()-1);
         return s.toString();
     }
-    
+
     public static String join(Iterable<?> a, String c) {
+        return join(a, c, "null");
+    }
+    
+    public static String join(Iterable<?> a, String c, String nullReplacement) {
         StringBuilder s = new StringBuilder();
         for (Object p : a)
-            s.append(p.toString()).append(c);
+            s.append((p == null) ? nullReplacement : p.toString()).append(c);
         if (s.length() > 0) s.delete(s.length() - c.length(), s.length());
         return s.toString();
     }
