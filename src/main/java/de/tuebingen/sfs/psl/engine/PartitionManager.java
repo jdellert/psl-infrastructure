@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import de.tuebingen.sfs.util.InferenceLogger;
 import org.linqs.psl.database.Partition;
 import org.linqs.psl.database.rdbms.PredicateInfo;
 
@@ -13,6 +14,8 @@ import org.linqs.psl.model.predicate.Predicate;
 import org.linqs.psl.model.predicate.StandardPredicate;
 
 public class PartitionManager {
+
+	protected final InferenceLogger stdLogger;
 	
 	// ONLY set this to true if you're working with a VERY small set of atoms.
 	public boolean verbose = false;
@@ -29,6 +32,7 @@ public class PartitionManager {
 
 	public PartitionManager(DatabaseManager dbManager) {
 		this.dbManager = dbManager;
+		stdLogger = new InferenceLogger();
 		stdPartition = dbManager.getDataStore().getPartition(STD_PARTITION_ID);
 		atomsToProblemIds = new Multimap<>(CollectionType.LIST);
 		problemsToReadPartitions = new Multimap<>(CollectionType.SET);
@@ -62,12 +66,19 @@ public class PartitionManager {
 		}
 		return null;
 	}
+
+	public List<ProblemWithPartitions> preparePartitions(List<PslProblem> problems) throws PartitionException {
+		return preparePartitions(problems, stdLogger);
+	}
 	
-	public List<ProblemWithPartitions> preparePartitions(List<PslProblem> problems) throws PartitionException{
+	public List<ProblemWithPartitions> preparePartitions(List<PslProblem> problems,
+														 InferenceLogger logger) throws PartitionException {
 		if (problems == null || problems.isEmpty()) {
 			System.err.println("No tasks given");
 			return null;
 		}
+
+		logger.display("Reserving atoms in database...");
 
 		List<ProblemWithPartitions> problemsWithPartitions = new ArrayList<>();
 
@@ -118,6 +129,7 @@ public class PartitionManager {
 		}
 
 		printPartitionSummary();
+		logger.displayln(" Done.");
 		return problemsWithPartitions;
 	}
 
@@ -211,10 +223,16 @@ public class PartitionManager {
 	}
 
 	public void cleanUp(PslProblem problem) {
+		cleanUp(problem, stdLogger);
+	}
+
+	public void cleanUp(PslProblem problem, InferenceLogger logger) {
 		// After the inference, move the atoms back to the standard partitions,
 		// when possible.
 		// TODO for the write partition (which isn't shared!), this could be more efficient 
 		// atom args) (vbl)
+		System.err.println("Moving atoms reserved for " + problem.getName() + " back to standard partition");
+		logger.display("Returning reserved atoms to shared database...");
 		changeWritePartition(problem, stdPartition);
 		List<PslProblem> problems = new ArrayList<>();
 		problems.add(problem);
@@ -224,6 +242,7 @@ public class PartitionManager {
 			partitionsToProblems.removeFromOrDeleteCollection(originalSrc, problem);
 			problemsToReadPartitions.removeFromOrDeleteCollection(problem, originalSrc);
 		}
+		logger.displayln(" Done.");
 	}
 
 	private int moveToPartition(PslProblem problem, int sourceID, int targetID, AtomTemplate atomTemplate) {

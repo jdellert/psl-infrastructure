@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
+import de.tuebingen.sfs.util.InferenceLogger;
 import org.linqs.psl.config.Config;
 import org.linqs.psl.database.rdbms.RDBMSDataStore;
 import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver;
@@ -109,9 +110,13 @@ public class ProblemManager {
 	}
 
 	public boolean preparePartitionsAndRun(List<PslProblem> problems) {
+		return preparePartitionsAndRun(problems, partitionManager.stdLogger);
+	}
+
+	public boolean preparePartitionsAndRun(List<PslProblem> problems, InferenceLogger logger) {
 		boolean success = true;
 		try {
-			List<ProblemWithPartitions> problemsWithPartitions = partitionManager.preparePartitions(problems);
+			List<ProblemWithPartitions> problemsWithPartitions = partitionManager.preparePartitions(problems, logger);
 			runParallelProblems(problemsWithPartitions);
 		} catch (PartitionException e) {
 			System.err.println(e.getMessage());
@@ -119,7 +124,7 @@ public class ProblemManager {
 		}
 		finally {
 			for (PslProblem problem : problems)
-				partitionManager.cleanUp(problem);
+				partitionManager.cleanUp(problem, logger);
 		}
 		return success;
 	}
