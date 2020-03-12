@@ -7,17 +7,21 @@ import java.util.List;
  * Faster String split() and join() implementations.
  */
 public class StringUtils {
-	
+
     public static String[] split(String s, char c) {
-        String[] res = new String[count(s, c) + 1];
-        int i = s.indexOf(c);
+        return split(s, c, 0);
+    }
+	
+    public static String[] split(String s, char c, int minLen) {
+        String[] res = new String[count(s, c, minLen) + 1];
+        int i = s.indexOf(c, minLen);
         int j = -1;
         int n = 0;
         while (i >= 0) {
             res[n] = s.substring(j+1, i);
             n++;
             j = i;
-            i = s.indexOf(c, j+1);
+            i = s.indexOf(c, j+minLen+1);
         }
         res[n] = s.substring(j+1);
 
@@ -65,11 +69,15 @@ public class StringUtils {
     }
 
     public static int count(String s, char c) {
+        return count(s, c, 0);
+    }
+
+    public static int count(String s, char c, int minDist) {
         int n = 0;
         int i = s.indexOf(c);
         while (i >= 0) {
             n++;
-            i = s.indexOf(c, i+1);
+            i = s.indexOf(c, i+minDist+1);
         }
         return n;
     }
