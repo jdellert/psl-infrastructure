@@ -265,7 +265,7 @@ public class RuleAtomGraph {
 	}
 
 	public double getValue(String atomString) {
-		return renderer.getTransparencyForAtom(atomString);
+		return renderer.getValueForAtom(atomString);
 	}
 
 	public double updateValue(String atomString, double newValue) {

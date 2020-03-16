@@ -37,6 +37,14 @@ public class RagFilter {
 		return ignoreList;
 	}
 
+	public double getValueForAtom(String atomRepresentation) {
+		if (transparencyMap == null) {
+			return -1.0;
+		}
+		else
+			return transparencyMap.getOrDefault(atomRepresentation, -1.0);
+	}
+
 	public double getTransparencyForAtom(String atomRepresentation) {
 		if (transparencyMap == null) {
 			return 1.0;
