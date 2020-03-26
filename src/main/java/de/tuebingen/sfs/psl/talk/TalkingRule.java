@@ -114,11 +114,11 @@ public abstract class TalkingRule {
 		return verbalization;
 	}
 
-	String[] getArgs() {
+	protected String[] getArgs() {
 		return args;
 	}
 
-	PslProblem getPslProblem() {
+	protected PslProblem getPslProblem() {
 		return pslProblem;
 	}
 
