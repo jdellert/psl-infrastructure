@@ -2,6 +2,7 @@ package de.tuebingen.sfs.psl.talk;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -352,6 +353,9 @@ public abstract class TalkingRule {
 		String predicateName = printableArgs.get(index);
 		sb.append("\\url");
 		if (printableTalkingPredicates != null && printablePredicateArgs != null) {
+			for (String[] arr : printablePredicateArgs){
+				System.out.println("- " + Arrays.toString(arr));
+			}
 			String verbalization = printableTalkingPredicates.get(index)
 					.verbalizeIdeaAsNP(printablePredicateArgs.get(index));
 			if (!predicateName.equals(verbalization)) {

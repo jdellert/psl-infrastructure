@@ -46,5 +46,10 @@ public class TalkingPredicate {
 		// Override me!
 		return verbalizeIdea(args);
 	}
+	
+	@Override
+	public String toString(){
+		return predSymbol + "<" + arity + ">";
+	}
 
 }

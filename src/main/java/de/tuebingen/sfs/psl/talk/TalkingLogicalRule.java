@@ -9,6 +9,7 @@ import org.linqs.psl.model.formula.FormulaAnalysis;
 import org.linqs.psl.model.rule.Rule;
 import org.linqs.psl.model.rule.logical.AbstractLogicalRule;
 
+import de.tuebingen.sfs.eie.talk.pred.NotEqualPred;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
 import de.tuebingen.sfs.psl.util.data.StringUtils;
@@ -81,13 +82,17 @@ public class TalkingLogicalRule extends TalkingRule {
 			else {
 				String groundAtom = atomToStatus.get(i - skip).get(0);
                 if (groundAtom.equals(contextAtom)) {
-                    contextIndex = i;
+                    contextIndex = i;                    
                 } else {
                     printableArgs.add(groundAtom);
                     String[] predDetails = StringUtils.split(groundAtom, '(');
                     String predName = predDetails[0];
                     String[] predArgs = StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1),", ");
-                    printableTalkingPredicates.add(nameToTalkingPredicate.get(predName));
+                    if (predName.equals("#notequal")){
+                        printableTalkingPredicates.add(new NotEqualPred());
+                    } else {
+                    	printableTalkingPredicates.add(nameToTalkingPredicate.get(predName));
+                    }
                     printablePredicateArgs.add(predArgs);
                     printableBeliefValues.add(rag.getValue(groundAtom));
                 }
@@ -98,8 +103,6 @@ public class TalkingLogicalRule extends TalkingRule {
 
 		boolean contextFound = contextIndex >= 0;
 		boolean contextPositive = contextIndex < positiveArgs;
-		
-		
 		return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
 				printableArgs, printableTalkingPredicates, printablePredicateArgs, printableBeliefValues,
 				positiveGroundArgs, directFormulation, whyExplanation);
