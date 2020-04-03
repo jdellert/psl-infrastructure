@@ -444,20 +444,38 @@ public class DatabaseManager {
 
 		System.err.println("Adding atom " + predName + " " + Arrays.toString(tuple) + " " + value);
 		StandardPredicate pred = predicates.get(predName);
-		if (pred == null)
-			System.err.println("ERROR: undeclared predicate \"" + predName + "\"!");
-
-		atomsTotal += registerAtom(problemId, predName, stdPartition.getID(), value, tuple);
-
-		if (atomsTotal % 100000 == 0) {
-			Runtime runtime = Runtime.getRuntime();
-			runtime.gc();
-			long usedNow = runtime.totalMemory() - runtime.freeMemory();
-			long addedMemory = (usedNow - startMemory) / 1024 / 1024;
-			System.err.println("#atoms: " + atomsTotal
-					+ ", expansion of memory footprint since starting to add atoms: " + addedMemory + " MB");
+		if (pred == null) {
+			System.err.println("WARNING: Undeclared predicate \"" + predName + "\"! Ignoring atom.");
 		}
-		problemsToAtoms.put(problemId, new AtomTemplate(predName, tuple));
+		else {
+			if (tuple.length != pred.getArity()) {
+				System.err.print("WARNING: Wrong number of arguments (you entered " + tuple.length
+						+ ", but " + predName + " requires " + pred.getArity() + ")!");
+				String[] newArgs = new String[pred.getArity()];
+				if (tuple.length < pred.getArity()) {
+					System.err.println(" Filling remaining slots with empty string.");
+					System.arraycopy(tuple, 0, newArgs, 0, tuple.length);
+					Arrays.fill(newArgs, tuple.length, pred.getArity(), "");
+				}
+				else if (tuple.length > pred.getArity()) {
+					System.err.println(" Removing superfluous arguments.");
+					System.arraycopy(tuple, 0, newArgs, 0, pred.getArity());
+				}
+				tuple = newArgs;
+			}
+
+			atomsTotal += registerAtom(problemId, predName, stdPartition.getID(), value, tuple);
+
+			if (atomsTotal % 100000 == 0) {
+				Runtime runtime = Runtime.getRuntime();
+				runtime.gc();
+				long usedNow = runtime.totalMemory() - runtime.freeMemory();
+				long addedMemory = (usedNow - startMemory) / 1024 / 1024;
+				System.err.println("#atoms: " + atomsTotal
+						+ ", expansion of memory footprint since starting to add atoms: " + addedMemory + " MB");
+			}
+			problemsToAtoms.put(problemId, new AtomTemplate(predName, tuple));
+		}
 	}
 
 	private int registerAtom(String problemId, String predName, int partition, double value, String... args) {
