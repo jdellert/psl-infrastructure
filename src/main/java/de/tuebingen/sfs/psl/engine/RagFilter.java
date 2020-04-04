@@ -9,6 +9,7 @@ import java.util.TreeSet;
 import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.term.Constant;
 
+import de.tuebingen.sfs.psl.talk.TalkingPredicate;
 import de.tuebingen.sfs.psl.util.data.Multimap;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.psl.util.data.StringUtils;
@@ -89,7 +90,7 @@ public class RagFilter {
 		String predName = atom.getPredicate().getName();
 		//TODO: find out why this wasn't previously necessary
 		predName = (groundPred2ActualNames == null)
-				? predName.charAt(0) + predName.toLowerCase().substring(1)
+				? TalkingPredicate.getPredNameFromAllCaps(predName)
 				: groundPred2ActualNames.get(predName);
 		Tuple argTuple = new Tuple();
 		for (Constant c : atom.getArguments()) {

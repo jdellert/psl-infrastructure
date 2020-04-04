@@ -53,6 +53,10 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 
 	private boolean declareUserPrior;
 	
+	public static final String EXISTENTIAL_PREFIX = "X";
+	public static final String SYSTEM_PRIOR_PREFIX = "V";
+	public static final String USER_PRIOR_PREFIX = "U";
+	
 	/**
 	 * Get the DatabaseManager via
 	 * 
@@ -288,7 +292,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	private void declarePredicate(TalkingPredicate pred, boolean closed) {
 		dbManager.declarePredicate(pred);
 		talkingPredicates.put(pred.getSymbol(), pred);
-
+		
 		if (closed)
 			closedPredicates.add(pred.getSymbol());
 
@@ -299,15 +303,28 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	}
 
     public static String existentialAtomName(String predName) {
-        return "X" + predName;
+        return EXISTENTIAL_PREFIX + predName;
     }
 
     public static String systemPriorName(String predName) {
-        return "V" + predName;
+        return SYSTEM_PRIOR_PREFIX + predName;
     }
 
 	public static String userPriorName(String predName) {
-		return "U" + predName;
+		return USER_PRIOR_PREFIX + predName;
+	}
+	
+	public static String predicatePrefix(String predName){
+		if (predName.startsWith(EXISTENTIAL_PREFIX)){
+			return EXISTENTIAL_PREFIX;
+		}
+		if (predName.startsWith(SYSTEM_PRIOR_PREFIX)){
+			return SYSTEM_PRIOR_PREFIX;
+		}
+		if (predName.startsWith(USER_PRIOR_PREFIX)){
+			return USER_PRIOR_PREFIX;
+		}
+		return "";
 	}
 
 	private void declareUserPrior(String name, int arity) {
@@ -524,7 +541,8 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 
 	// TODO make these methods protected. should only be used in call(), later on you can use the InferenceResult (vbl)
 	public Map<String, Double> extractResult(PrintStream print, boolean onlyOpen) {
-		Set<String> predicates = talkingPredicates.keySet();
+		Set<String> predicates = new HashSet<>();
+		predicates.addAll(talkingPredicates.keySet());
 		if (onlyOpen)
 			predicates.removeAll(closedPredicates);
 		Multimap<String, RankingEntry<AtomTemplate>> predicatesToAtoms = dbManager.getAtomValuesByPredicate(getName(), predicates);
@@ -547,7 +565,8 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 
 	// TODO how does this differ from InferenceResult.printInferenceValues(); ? (vbl)
 	public void printResult(PrintStream printStream) {
-		Set<String> predicates = talkingPredicates.keySet();
+		Set<String> predicates = new HashSet<>();
+		predicates.addAll(talkingPredicates.keySet());
 		predicates.removeAll(closedPredicates);
 		dbManager.printWithValue(getName(), predicates, printStream);
 	}

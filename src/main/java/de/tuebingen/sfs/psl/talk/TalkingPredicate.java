@@ -2,6 +2,8 @@ package de.tuebingen.sfs.psl.talk;
 
 import org.linqs.psl.util.StringUtils;
 
+import de.tuebingen.sfs.psl.engine.PslProblem;
+
 public class TalkingPredicate {
 	String predSymbol;
 	int arity;
@@ -46,10 +48,18 @@ public class TalkingPredicate {
 		// Override me!
 		return verbalizeIdea(args);
 	}
-	
+
 	@Override
-	public String toString(){
+	public String toString() {
 		return predSymbol + "<" + arity + ">";
+	}
+
+	public static final String getPredNameFromAllCaps(String predName) {
+		String prefix = "";
+		if (predName.length() > 4) {
+			prefix = PslProblem.predicatePrefix(predName);
+		}
+		return predName.substring(0, prefix.length() + 1) + predName.toLowerCase().substring(prefix.length() + 1);
 	}
 
 }

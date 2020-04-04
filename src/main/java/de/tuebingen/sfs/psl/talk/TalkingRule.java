@@ -46,7 +46,7 @@ public abstract class TalkingRule {
 	private String ruleString;
 	// The rule itself
 	private Rule rule;
-	// A verbalization of the rule that can be presented to the user.
+	// A VERBALIZATION of the rule that can be presented to the user.
 	private String verbalization;
 	// Arguments of the rule as entered in the rule string
 	// (e.g. "Prec(Lang1, Lang2, Proto)")
@@ -214,6 +214,7 @@ public abstract class TalkingRule {
 				List<String> components = new ArrayList<String>();
 				for (int i = 0; i < positiveArgs; i++) {
 					StringBuilder sbComponent = new StringBuilder();
+//					System.out.println(name + ": " + ruleString);
 					addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sbComponent);
 					sbComponent.append(" reaching a ");
 					if (printableTalkingPredicates != null
@@ -353,9 +354,10 @@ public abstract class TalkingRule {
 		String predicateName = printableArgs.get(index);
 		sb.append("\\url");
 		if (printableTalkingPredicates != null && printablePredicateArgs != null) {
-			for (String[] arr : printablePredicateArgs){
-				System.out.println("- " + Arrays.toString(arr));
-			}
+//			System.out.println(index);
+//			for (int i = 0; i < printablePredicateArgs.size(); i++){
+//				System.out.println(printableTalkingPredicates.get(i) + " - " + Arrays.toString(printablePredicateArgs.get(i)));
+//			}			
 			String verbalization = printableTalkingPredicates.get(index)
 					.verbalizeIdeaAsNP(printablePredicateArgs.get(index));
 			if (!predicateName.equals(verbalization)) {
