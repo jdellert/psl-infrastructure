@@ -14,6 +14,8 @@ public class BeliefScale {
 					"very low", "very dissimilar", "very rarely", "very rare"),
 			new Belief(0.15, "unlikely", "is unlikely", "probably not", "low",
 					"dissimilar", "rarely", "rare"),
+			// TODO alternative to 'doubtfully' since it cannot be used in the same constructions as e.g. 'probably not'
+			// * "X is doubtfully derived from Y."
 			new Belief(0.33, "doubtful", "is doubtful", "doubtfully",
 					"moderately low", "moderately dissimilar", "rather rarely", "rather rare"),
 			new Belief(0.50, "slightly doubtful", "is slightly doubtful", "perhaps",

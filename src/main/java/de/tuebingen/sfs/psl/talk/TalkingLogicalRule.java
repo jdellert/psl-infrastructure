@@ -89,6 +89,7 @@ public class TalkingLogicalRule extends TalkingRule {
                     String predName = predDetails[0];
                     String[] predArgs = StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1),", ");
                     if (predName.equals("#notequal")){
+                    	// TODO either skip this predicate instead or make sure no URL is created
                         printableTalkingPredicates.add(new NotEqualPred());
                     } else {
                     	printableTalkingPredicates.add(nameToTalkingPredicate.get(predName));

@@ -369,7 +369,7 @@ public abstract class TalkingRule {
 		sb.append("{").append(predicateName).append("}");
 	}
 
-	private static String escapeForURL(String s) {
+	protected static String escapeForURL(String s) {
 		s = s.replaceAll("(?!\\\\)\\[", "\\\\[");
 		s = s.replaceAll("(?!\\\\)\\]", "\\\\]");
 		s = s.replaceAll("(?!\\\\)\\{", "\\\\{");
