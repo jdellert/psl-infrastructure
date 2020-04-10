@@ -43,9 +43,9 @@ public class BeliefScale {
 				break;
 			}
 		}
-		if (i >= scale.length) {
-			System.err.println("Encountered weird belief value during verbalization: " + belief);
-			return "<weird belief value>";
+		if (belief < 0.0 || i >= scale.length) {
+			System.err.println("Encountered strange belief value during verbalization: " + belief);
+			return "<strange belief value>";
 		}
 		switch (type) {
 			case ADVERB:
