@@ -293,6 +293,11 @@ public class RuleAtomGraph {
 		return renderer.getIgnoreList();
 	}
 	
+	public boolean renderAtom(String atomName) {
+		String predName = atomName.split("(")[0];
+		return renderer.isRendered(predName);
+	}
+	
 	public Set<Tuple> getOutgoingLinks(String atomName) {
 		Set<Tuple> outgoingLinksForAtom = outgoingLinks.get(atomName);
 		if (outgoingLinksForAtom == null) {
