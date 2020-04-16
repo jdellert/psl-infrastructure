@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 import org.linqs.psl.database.rdbms.PredicateInfo;
 
@@ -24,6 +25,14 @@ public class AtomTemplate implements Comparable<AtomTemplate> {
 	public AtomTemplate(String predicate, List<String> args) {
 		this.predicate = predicate;
 		this.args = args.toArray(new String[args.size()]);
+	}
+	
+	public AtomTemplate(String... predicateAndArgs) {
+		this.predicate = predicateAndArgs[0];
+		this.args = new String[predicateAndArgs.length];
+		for (int i = 0; i < args.length; i++){
+			this.args[i] = predicateAndArgs[i + 1];
+		}
 	}
 
 	public String getPredicateName() {
