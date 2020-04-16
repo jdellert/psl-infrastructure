@@ -24,6 +24,7 @@ import org.linqs.psl.reasoner.admm.ADMMReasoner;
 import org.linqs.psl.reasoner.function.FunctionComparator;
 
 import de.tuebingen.sfs.psl.util.color.ColorUtils;
+import de.tuebingen.sfs.psl.util.color.HslColor;
 import de.tuebingen.sfs.psl.util.data.RankingEntry;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.util.InferenceLogger;
@@ -493,5 +494,9 @@ public class RuleAtomGraph {
 		}
 		Collections.sort(groundingRanking);
 		return groundingRanking;
+	}
+	
+	public HslColor atomToBaseColor(String name) {
+		return renderer.atomToBaseColor(name);
 	}
 }

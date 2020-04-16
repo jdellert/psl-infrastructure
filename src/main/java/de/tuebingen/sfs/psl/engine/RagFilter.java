@@ -1,5 +1,6 @@
 package de.tuebingen.sfs.psl.engine;
 
+import java.awt.Color;
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.Set;
@@ -10,11 +11,14 @@ import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.term.Constant;
 
 import de.tuebingen.sfs.psl.talk.TalkingPredicate;
+import de.tuebingen.sfs.psl.util.color.HslColor;
 import de.tuebingen.sfs.psl.util.data.Multimap;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.psl.util.data.StringUtils;
 
 public class RagFilter {
+	
+	public static HslColor BASECOLOR = new HslColor(new Color(255, 214, 51));
 
 	protected Map<String, String> groundPred2ActualNames;
 	protected Set<String> ignoreList;
@@ -82,6 +86,10 @@ public class RagFilter {
 
 	public String atomToColor(String name) {
 		return "#FFFFFF";
+	}
+	
+	public HslColor atomToBaseColor(String name) {
+		return BASECOLOR;
 	}
 	
 	public boolean isRendered(String predName) {
