@@ -293,9 +293,9 @@ public class RuleAtomGraph {
 		return renderer.getIgnoreList();
 	}
 	
-	public boolean renderAtom(String atomName) {
-		String predName = atomName.split("(")[0];
-		return renderer.isRendered(predName);
+	public boolean renderAtomInGui(String atomName) {
+		System.out.println(atomName);
+		return renderer.isRenderedInGui(atomName.split("\\(")[0]);
 	}
 	
 	public Set<Tuple> getOutgoingLinks(String atomName) {

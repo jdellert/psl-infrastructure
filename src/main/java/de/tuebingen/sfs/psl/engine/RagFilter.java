@@ -18,6 +18,7 @@ public class RagFilter {
 
 	protected Map<String, String> groundPred2ActualNames;
 	protected Set<String> ignoreList;
+	protected Set<String> ignoreInGui;
 	protected Map<String, Double> transparencyMap;
 
 	public RagFilter(Map<String, Double> toneMap) {
@@ -27,6 +28,7 @@ public class RagFilter {
 	public RagFilter(Map<String, Double> toneMap, Map<String, String> groundPred2ActualNames) {
 		this.groundPred2ActualNames = groundPred2ActualNames;
 		this.ignoreList = new TreeSet<String>();
+		this.ignoreInGui = new TreeSet<String>();
 		if (toneMap == null) {
 			this.transparencyMap = new TreeMap<String, Double>();
 		} else {
@@ -81,9 +83,13 @@ public class RagFilter {
 	public String atomToColor(String name) {
 		return "#FFFFFF";
 	}
-
+	
 	public boolean isRendered(String predName) {
 		return !ignoreList.contains(predName);
+	}
+
+	public boolean isRenderedInGui(String predName) {
+		return !ignoreInGui.contains(predName);
 	}
 
 	public String atomToSimplifiedString(GroundAtom atom) {

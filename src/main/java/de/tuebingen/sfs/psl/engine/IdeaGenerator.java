@@ -2,7 +2,7 @@ package de.tuebingen.sfs.psl.engine;
 
 public class IdeaGenerator {
 	
-	// TODO add IdeaObjectManager?
+	// TODO add TheoryObjectManager?
 	
 	protected PslProblem pslProblem;
 	
