@@ -43,6 +43,11 @@ public class TalkingPredicate {
 		// Override me!
 		return verbalizeIdea(args);
 	}
+	
+	public String verbalizeIdeaAsSentence(double belief, String... args) {
+		// Override me!
+		return verbalizeIdeaWithBelief(belief, args);
+	}
 
 	public String verbalizeIdeaAsNP(String... args) {
 		// Override me!
