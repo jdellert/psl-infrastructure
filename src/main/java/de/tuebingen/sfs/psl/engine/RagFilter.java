@@ -2,10 +2,12 @@ package de.tuebingen.sfs.psl.engine;
 
 import java.awt.Color;
 import java.io.PrintStream;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.term.Constant;
@@ -13,8 +15,8 @@ import org.linqs.psl.model.term.Constant;
 import de.tuebingen.sfs.psl.talk.TalkingPredicate;
 import de.tuebingen.sfs.psl.util.color.HslColor;
 import de.tuebingen.sfs.psl.util.data.Multimap;
-import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.psl.util.data.StringUtils;
+import de.tuebingen.sfs.psl.util.data.Tuple;
 
 public class RagFilter {
 	
@@ -113,6 +115,15 @@ public class RagFilter {
 			argTuple.addElement(cStr);
 		}
 		return predName + "(" + StringUtils.join(argTuple.toList(),", ") + ")";
+	}
+	
+	public void printInformativeValues(PrintStream out) {
+		transparencyMap.entrySet().stream()
+		.filter(entry -> isRenderedInGui(entry.getKey().split("\\(")[0]) && entry.getValue() > 0.0)
+	    .sorted(Comparator.comparing(Map.Entry::getValue, Comparator.reverseOrder()))
+	    .map(entry -> entry.getKey() + "\t" + entry.getValue())
+	    .collect(Collectors.toList())
+	    .forEach(out::println);
 	}
 
 	public void printHeader(PrintStream out) {

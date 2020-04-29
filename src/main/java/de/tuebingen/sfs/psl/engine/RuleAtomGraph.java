@@ -126,6 +126,10 @@ public class RuleAtomGraph {
 			}
 		}
 	}
+	
+	public RagFilter getRagFilter(){
+		return renderer;
+	}
 
 	private void add(String groundingName, GroundRule groundRule) {
 		groundingNodes.add(groundingName);

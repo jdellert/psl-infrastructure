@@ -6,6 +6,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 
 import org.linqs.psl.application.groundrulestore.GroundRuleStore;
@@ -569,6 +570,12 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 		predicates.addAll(talkingPredicates.keySet());
 		predicates.removeAll(closedPredicates);
 		dbManager.printWithValue(getName(), predicates, printStream);
+	}
+	
+	public void printRules(PrintStream out){
+		for (Entry<String, TalkingRule> rule : nameToTalkingRule.entrySet()){
+			out.println(rule.getKey() + "\t" + rule.getValue().getRuleString());
+		}
 	}
 	
 	public void printAtomsToConsole() {
