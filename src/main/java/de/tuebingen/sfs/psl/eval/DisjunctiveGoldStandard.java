@@ -26,6 +26,7 @@ public class DisjunctiveGoldStandard implements GoldStandard {
                 ArgumentSet argSet = argsSets.get(setName);
                 if (argSet == null) {
                     argSet = new ArgumentSet(setName);
+                    argsSets.put(setName, argSet);
                     args.add(argSet);
                 }
                 argSet.addArgs(iter.getArgs());
