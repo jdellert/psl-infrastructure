@@ -172,6 +172,18 @@ public class StringUtils {
         return s.deleteCharAt(s.length()-1).toString();
     }
 
+    public static String join(char[] a, char c) {
+        return join(a, c, 0, a.length);
+    }
+
+    public static String join(char[] a, char c, int from, int to) {
+        StringBuilder s = new StringBuilder();
+        for (int i = from; i < to; i++)
+            s.append(a[i]).append(c);
+        if (s.length() > 0) s.deleteCharAt(s.length()-1);
+        return s.toString();
+    }
+
     public static void main(String[] args) {
         for (String s : split("aaaabbaaabbaabba", "bb"))
             System.out.println(s);
