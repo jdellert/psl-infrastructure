@@ -2,6 +2,8 @@ package de.tuebingen.sfs.psl.eval;
 
 import de.tuebingen.sfs.psl.util.data.Tuple;
 
+import java.util.Set;
+
 public interface Arguments extends Comparable<Arguments> {
 
     boolean matches(PredicateEvaluationTemplate template, Tuple args);
@@ -26,5 +28,7 @@ public interface Arguments extends Comparable<Arguments> {
         }
         return sb.deleteCharAt(sb.length()-1).toString();
     }
+
+    Set<String[]> getArgs();
 
 }

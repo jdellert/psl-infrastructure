@@ -1,6 +1,8 @@
 package de.tuebingen.sfs.psl.eval;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Set;
 
 import de.tuebingen.sfs.psl.util.data.StringUtils;
 import de.tuebingen.sfs.psl.util.data.Tuple;
@@ -24,6 +26,11 @@ public class SingleArguments implements Arguments {
     }
 
     @Override
+    public Set<String[]> getArgs() {
+        return Collections.singleton(args.clone());
+    }
+
+    @Override
     public int compareTo(Arguments o) {
         if (o instanceof SingleArguments) {
             SingleArguments os = (SingleArguments) o;
@@ -33,4 +40,5 @@ public class SingleArguments implements Arguments {
             return -1;
         return -1;
     }
+
 }

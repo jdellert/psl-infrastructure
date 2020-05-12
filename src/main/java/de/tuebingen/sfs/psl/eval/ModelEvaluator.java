@@ -19,11 +19,14 @@ public class ModelEvaluator {
     }
 
     public Evaluation evaluate() {
-        return new Evaluation();
+        return new Evaluation(pslProblem, gs);
     }
 
 
-    public class Evaluation {
+    public static class Evaluation {
+
+        PslProblem pslProblem;
+        GoldStandard gs;
 
         int[] inGS;
         double[] inGSSums;
@@ -32,10 +35,13 @@ public class ModelEvaluator {
         double[] notInGSSums;
 
         List<Set<Tuple>> found;
+        List<Set<Tuple>> foundNotInGS;
         List<Set<Arguments>> notFound;
 
 
-        Evaluation() {
+        Evaluation(PslProblem pslProblem, GoldStandard gs) {
+            this.pslProblem = pslProblem;
+            this.gs = gs;
             PredicateEvaluationTemplate[] preds = gs.getPredicates();
 
             inGS = new int[preds.length];
@@ -43,11 +49,13 @@ public class ModelEvaluator {
             notInGS = new int[preds.length];
             notInGSSums = new double[preds.length];
             found = new ArrayList<>();
+            foundNotInGS = new ArrayList<>();
             notFound = new ArrayList<>();
 
             for (int p = 0; p < preds.length; p++) {
                 PredicateEvaluationTemplate pred = preds[p];
                 Set<Tuple> foundHere = new TreeSet<>();
+                Set<Tuple> foundHereNotInGS = new TreeSet<>();
                 Map<Tuple, Double> results;
                 results = pslProblem.extractTableForPredicate(pred.getName());
                 for (Map.Entry<Tuple, Double> entry : results.entrySet()) {
@@ -59,9 +67,11 @@ public class ModelEvaluator {
                     else if (!pred.isIgnoredAtom(entry.getKey())){
                         notInGS[p]++;
                         notInGSSums[p] += entry.getValue();
+                        foundHereNotInGS.add(entry.getKey());
                     }
                 }
                 found.add(foundHere);
+                foundNotInGS.add(foundHereNotInGS);
                 notFound.add(gs.missingAtoms(pred, foundHere));
             }
         }
@@ -75,30 +85,48 @@ public class ModelEvaluator {
             pStream.println("===========================");
             pStream.println("COMPARISON TO GOLD STANDARD");
             pStream.println("===========================\n");
+
             PredicateEvaluationTemplate[] preds = gs.getPredicates();
+
             for (int p = 0; p < preds.length; p++) {
                 pStream.println("RESULTS FOR " + preds[p].getName().toUpperCase() + ":");
+
                 int nFound = inGS[p];
                 int missing = notFound.get(p).size();
-                int total = nFound + missing;
-                pStream.printf("\tFound %d/%d GS atoms (%.3f%%).\n", nFound, total, ((((double) nFound) / total) * 100));
-                pStream.printf("\tFound %d atoms not in GS.\n", notInGS[p]);
-                pStream.printf("\tAverage belief value of found GS atoms: %.3f\n", (inGSSums[p] / nFound));
-                pStream.printf("\tAverage belief value of GS atoms: %.3f\n", (inGSSums[p] / total));
-                pStream.printf("\tAverage belief value of found non-GS atoms: %.3f\n", (notInGSSums[p] / notInGS[p]));
+                printNumericEvaluation(pStream, nFound, missing, notInGS[p], inGSSums[p], notInGSSums[p]);
+
                 pStream.println("\tFound GS atoms:");
                 if (found.get(p).isEmpty())
                     pStream.println("\t\tNone");
                 for (Tuple args : found.get(p)) {
                     pStream.println("\t\t" + preds[p].getName() + "(" + args.toString() + ")");
                 }
+
                 pStream.println("\tMissing GS atoms:");
                 if (notFound.get(p).isEmpty())
                     pStream.println("\t\tNone");
                 for (Arguments args : notFound.get(p)) {
                     pStream.println("\t\t" + args.toString(preds[p]));
                 }
+
+                gs.additionalEvaluation(preds[p], found.get(p), foundNotInGS.get(p), notFound.get(p),
+                        pslProblem, pStream);
             }
+        }
+
+        public static void printNumericEvaluation(PrintStream pStream, int nFound, int nMissing, int nFoundButNotInGS,
+                                                  double inGSSum, double notInGSSum) {
+            int total = nFound + nMissing;
+            pStream.printf(Locale.ROOT, "\tFound %d/%d GS atoms (%.3f%%).\n",
+                    nFound, total, ((((double) nFound) / total) * 100));
+            pStream.printf(Locale.ROOT, "\tFound %d atoms not in GS.\n",
+                    nFoundButNotInGS);
+            pStream.printf(Locale.ROOT, "\tAverage belief value of found GS atoms: %.3f\n",
+                    (inGSSum / nFound));
+            pStream.printf(Locale.ROOT, "\tAverage belief value of GS atoms: %.3f\n",
+                    (inGSSum / total));
+            pStream.printf(Locale.ROOT, "\tAverage belief value of found non-GS atoms: %.3f\n",
+                    (notInGSSum / nFoundButNotInGS));
         }
 
     }

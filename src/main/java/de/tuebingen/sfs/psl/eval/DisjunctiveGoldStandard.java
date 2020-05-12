@@ -1,16 +1,20 @@
 package de.tuebingen.sfs.psl.eval;
 
+import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 
 public class DisjunctiveGoldStandard implements GoldStandard {
 
+    private DisjunctiveGoldStandardIterator iter;
     private PredicateEvaluationTemplate[] predicates;
     private Map<PredicateEvaluationTemplate, TreeSet<Arguments>> atoms;
 
     public DisjunctiveGoldStandard(DisjunctiveGoldStandardIterator iter) {
+        this.iter = iter;
         this.predicates = iter.getPredicates();
         this.atoms = new TreeMap<>();
         for (PredicateEvaluationTemplate pred : predicates)
@@ -70,6 +74,13 @@ public class DisjunctiveGoldStandard implements GoldStandard {
                 missing.remove(match);
         }
         return missing;
+    }
+
+    @Override
+    public void additionalEvaluation(PredicateEvaluationTemplate predicate, Set<Tuple> foundAtoms,
+                                     Set<Tuple> foundNotInGSAtoms, Set<Arguments> missingAtoms,
+                                     PslProblem problem, PrintStream pStream) {
+        iter.additionalEvaluation(predicate, foundAtoms, foundNotInGSAtoms, missingAtoms, problem, pStream);
     }
 
 }
