@@ -2,7 +2,9 @@ package de.tuebingen.sfs.psl.engine;
 
 import java.awt.Color;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -60,6 +62,20 @@ public class RagFilter {
 		}
 		else
 			return transparencyMap.getOrDefault(atomRepresentation, 1.0);
+	}
+	
+	public Map<String, Double> getAtomsWithFirstArgument(String argument){
+		Map<String, Double> atoms = new TreeMap<>();
+		for (String atom : transparencyMap.keySet()){
+			String[] predAndArgs = atom.split("\\(");
+			if (ignoreList.contains(predAndArgs[0]) || ignoreInGui.contains(predAndArgs[0])){
+				continue;
+			}
+			if (argument.equals(predAndArgs[1].split(",")[0].trim())){
+				atoms.put(atom, transparencyMap.get(atom));
+			}
+		}
+		return atoms;
 	}
 	
 	public double getToneForAtom(String atomRepresentation) {
