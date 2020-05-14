@@ -77,10 +77,12 @@ public class DisjunctiveGoldStandard implements GoldStandard {
     }
 
     @Override
-    public void additionalEvaluation(PredicateEvaluationTemplate predicate, Set<Tuple> foundAtoms,
-                                     Set<Tuple> foundNotInGSAtoms, Set<Arguments> missingAtoms,
+    public void additionalEvaluation(PredicateEvaluationTemplate predicate, Map<Tuple, Double> foundAtoms,
+                                     Map<Tuple, Double> foundNotInGSAtoms, Set<Arguments> missingAtoms,
                                      PslProblem problem, PrintStream pStream) {
-        iter.additionalEvaluation(predicate, foundAtoms, foundNotInGSAtoms, missingAtoms, problem, pStream);
+        iter.additionalEvaluation(predicate, new TreeSet<>(atoms.get(predicate)),
+                foundAtoms, foundNotInGSAtoms, missingAtoms,
+                problem, pStream);
     }
 
 }

@@ -1,6 +1,7 @@
 package de.tuebingen.sfs.psl.eval;
 
 import java.io.PrintStream;
+import java.util.Map;
 import java.util.Set;
 
 import de.tuebingen.sfs.psl.engine.PslProblem;
@@ -17,7 +18,7 @@ public interface GoldStandard {
 
     Set<Arguments> missingAtoms(PredicateEvaluationTemplate predicate, Set<Tuple> foundAtoms);
 
-    void additionalEvaluation(PredicateEvaluationTemplate predicate, Set<Tuple> foundAtoms,
-                              Set<Tuple> foundNotInGSAtoms, Set<Arguments> missingAtoms,
+    void additionalEvaluation(PredicateEvaluationTemplate predicate, Map<Tuple, Double> foundAtoms,
+                              Map<Tuple, Double> foundNotInGSAtoms, Set<Arguments> missingAtoms,
                               PslProblem problem, PrintStream pStream);
 }

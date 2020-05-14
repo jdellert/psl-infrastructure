@@ -34,8 +34,8 @@ public class ModelEvaluator {
         int[] notInGS;
         double[] notInGSSums;
 
-        List<Set<Tuple>> found;
-        List<Set<Tuple>> foundNotInGS;
+        List<Map<Tuple, Double>> found;
+        List<Map<Tuple, Double>> foundNotInGS;
         List<Set<Arguments>> notFound;
 
 
@@ -54,25 +54,25 @@ public class ModelEvaluator {
 
             for (int p = 0; p < preds.length; p++) {
                 PredicateEvaluationTemplate pred = preds[p];
-                Set<Tuple> foundHere = new TreeSet<>();
-                Set<Tuple> foundHereNotInGS = new TreeSet<>();
+                Map<Tuple, Double> foundHere = new TreeMap<>();
+                Map<Tuple, Double> foundHereNotInGS = new TreeMap<>();
                 Map<Tuple, Double> results;
                 results = pslProblem.extractTableForPredicate(pred.getName());
                 for (Map.Entry<Tuple, Double> entry : results.entrySet()) {
                     if (gs.contains(pred, entry.getKey())) {
                         inGS[p]++;
                         inGSSums[p] += entry.getValue();
-                        foundHere.add(entry.getKey());
+                        foundHere.put(entry.getKey(), entry.getValue());
                     }
                     else if (!pred.isIgnoredAtom(entry.getKey())){
                         notInGS[p]++;
                         notInGSSums[p] += entry.getValue();
-                        foundHereNotInGS.add(entry.getKey());
+                        foundHereNotInGS.put(entry.getKey(), entry.getValue());
                     }
                 }
                 found.add(foundHere);
                 foundNotInGS.add(foundHereNotInGS);
-                notFound.add(gs.missingAtoms(pred, foundHere));
+                notFound.add(gs.missingAtoms(pred, foundHere.keySet()));
             }
         }
 
@@ -98,8 +98,9 @@ public class ModelEvaluator {
                 pStream.println("\tFound GS atoms:");
                 if (found.get(p).isEmpty())
                     pStream.println("\t\tNone");
-                for (Tuple args : found.get(p)) {
-                    pStream.println("\t\t" + preds[p].getName() + "(" + args.toString() + ")");
+                for (Tuple args : found.get(p).keySet()) {
+                    pStream.printf(Locale.ROOT, "\t\t%s(%s): %.3f\n",
+                            preds[p].getName(), args.toString(), found.get(p).get(args));
                 }
 
                 pStream.println("\tMissing GS atoms:");
