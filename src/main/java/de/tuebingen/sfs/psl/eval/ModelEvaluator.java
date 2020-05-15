@@ -82,14 +82,20 @@ public class ModelEvaluator {
         }
 
         public void printEvaluation(PrintStream pStream) {
+            pStream.println();
             pStream.println("===========================");
             pStream.println("COMPARISON TO GOLD STANDARD");
-            pStream.println("===========================\n");
+            pStream.println("===========================");
 
             PredicateEvaluationTemplate[] preds = gs.getPredicates();
 
             for (int p = 0; p < preds.length; p++) {
-                pStream.println("RESULTS FOR " + preds[p].getName().toUpperCase() + ":");
+                pStream.println("\nRESULTS FOR " + preds[p].getName().toUpperCase() + ":");
+
+                if (inGS[p] + notInGS[p] == 0) {
+                    pStream.println("\tNo " + preds[p].getName() + " atoms found.");
+                    continue;
+                }
 
                 int nFound = inGS[p];
                 int missing = notFound.get(p).size();
