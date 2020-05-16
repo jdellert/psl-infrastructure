@@ -303,6 +303,19 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 //		}
 	}
 
+	protected void setPredicateClosed(String name) {
+		if (talkingPredicates.containsKey(name)) {
+			closedPredicates.add(name);
+			fixateAtoms(name);
+		}
+		else
+			System.err.println("Tried to close unknown predicate \"" + name + "\".");
+	}
+
+	protected void setPredicateOpen(String name) {
+		closedPredicates.remove(name);
+	}
+
     public static String existentialAtomName(String predName) {
         return EXISTENTIAL_PREFIX + predName;
     }

@@ -352,7 +352,7 @@ public class RuleAtomGraph {
 		for (int i = 0; i < groundAtoms.size(); i++) {
 			GroundAtom atom = groundAtoms.get(i);
 			String atomRepresentation = renderer.atomToSimplifiedString(atom);
-			double value = 1 - renderer.getToneForAtom(atomRepresentation);
+			double value = renderer.getValueForAtom(atomRepresentation);
 			if (ATOM_VALUE_OUTPUT) logger.logln("      " + atomRepresentation + ": " + value + " (coeff = " + coefficients.get(i) + ")");
 			valueVector[i] = value;
 		}
