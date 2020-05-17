@@ -25,7 +25,6 @@ public class PartitionManager {
 	private int nextPartition = 0;
 
 	private DatabaseManager dbManager;
-	private Multimap<AtomTemplate, String> atomsToProblemIds; // TODO is this actually used anywhere? (vbl)
 	private Multimap<PslProblem, Partition> problemsToReadPartitions;
 	private Map<PslProblem, Partition> problemsToWritePartitions;
 	private Multimap<Partition, PslProblem> partitionsToProblems;
@@ -34,7 +33,6 @@ public class PartitionManager {
 		this.dbManager = dbManager;
 		stdLogger = new InferenceLogger();
 		stdPartition = dbManager.getDataStore().getPartition(STD_PARTITION_ID);
-		atomsToProblemIds = new Multimap<>(CollectionType.LIST);
 		problemsToReadPartitions = new Multimap<>(CollectionType.SET);
 		problemsToWritePartitions = new HashMap<>();
 		partitionsToProblems = new Multimap<>(CollectionType.SET);
@@ -166,18 +164,14 @@ public class PartitionManager {
 
 	private void changeWritePartition(PslProblem problem, Partition targetPartition) {
 		System.err.println("Reserving write atoms for " + problem.getName());
-		Collection<AtomTemplate> writeAtoms = problem.reserveAtomsForWriting();
+
 		Partition sourcePartition = problemsToWritePartitions.get(problem);
 		System.err.println("Moving target atoms for " + problem.getName() + " from " + sourcePartition
 				+ " (id: " + sourcePartition.getID() + ") to " + targetPartition + " (id: " + targetPartition.getID() + ")");
-		for (AtomTemplate writeAtom : writeAtoms) {
-			int rowsMoved = moveToPartition(problem, sourcePartition.getID(), targetPartition.getID(), writeAtom);
-			if (verbose){
-				System.err
-				.println("Tried to move " + writeAtom + " from " + sourcePartition + " to " + targetPartition + ": " + rowsMoved);
-			}
-			atomsToProblemIds.put(writeAtom, problem.getName());
-		}
+		dbManager.moveToWritePartition(problem.getName(),
+				Collections.singleton(sourcePartition.getID()),
+				targetPartition.getID());
+
 		partitionsToProblems.removeFromOrDeleteCollection(problemsToWritePartitions.get(problem), problem);
 		problemsToWritePartitions.put(problem, targetPartition);
 		partitionsToProblems.put(targetPartition, problem);
@@ -195,28 +189,10 @@ public class PartitionManager {
 			System.err.println(readAtoms);
 		}
 
-		Set<Partition> potentialSources = new HashSet<>();
 		for (PslProblem problem : problems) {
-			potentialSources.addAll(problemsToReadPartitions.get(problem));
-		}
-
-		// TODO more efficient query (vbl)
-		for (AtomTemplate readAtom : readAtoms) {
-			for (Partition sourcePartition : potentialSources) {
-				int rowsMoved = moveToPartition(problems.get(0), sourcePartition.getID(),
-						targetPartition.getID(), readAtom);
-				if (verbose){
-					System.err.println(
-							"Tried to move " + readAtom + " from " + sourcePartition + " to " + targetPartition + ": " + rowsMoved);
-				}
-				if (rowsMoved > 0) {
-					// The atom templates here don't contain wildcards -- each template can only move up to one row.
-					break;
-				}
-			}
-		}
-
-		for (PslProblem problem : problems) {
+			dbManager.moveToReadPartition(problem.getName(),
+					problemsToReadPartitions.get(problem).stream().map(Partition::getID).collect(Collectors.toSet()),
+					targetPartition.getID());
 			problemsToReadPartitions.get(problem).add(targetPartition);
 			partitionsToProblems.put(targetPartition, problem);
 		}

@@ -49,9 +49,6 @@ public abstract class PslProblem implements Callable<InferenceResult> {
     Map<String, TalkingPredicate> talkingPredicates;
     Set<String> closedPredicates;
 
-	Set<AtomTemplate> observations;
-	Set<AtomTemplate> targets;
-
 	private boolean declareUserPrior;
 	
 	public static final String EXISTENTIAL_PREFIX = "X";
@@ -114,9 +111,6 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 		}
 
 		model = new PSLModel(this, dbManager.getDataStore());
-
-		observations = new HashSet<>();
-		targets = new HashSet<>();
 	}
 	
 	/*
@@ -158,7 +152,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 * @return
 	 */
 	public Set<AtomTemplate> reserveAtomsForWriting() {
-		return new HashSet<>(targets);
+		return getAtomsMarkedAs(true);
 	}
 
 	/**
@@ -171,7 +165,23 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 * @return
 	 */
 	public Set<AtomTemplate> declareAtomsForReading() {
-		return new HashSet<>(observations);
+		return getAtomsMarkedAs(false);
+	}
+
+	private Set<AtomTemplate> getAtomsMarkedAs(boolean target) {
+		Set<AtomTemplate> atoms = new HashSet<>();
+		for (String predName : talkingPredicates.keySet()) {
+			List<Tuple> predAtoms;
+			if (target) {
+				predAtoms = dbManager.getAllTargetsForProblem(predName, name);
+			} else {
+				predAtoms = dbManager.getAllObservationsForProblem(predName, name);
+			}
+			for (Tuple args : predAtoms) {
+				atoms.add(new AtomTemplate(predName, args.toList()));
+			}
+		}
+		return atoms;
 	}
 
 	// --- END called by the partition manager
@@ -200,12 +210,6 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 		return new HashSet<>(closedPredicates);
 	}
 	
-	public Set<AtomTemplate> getAllAtoms() {
-		Set<AtomTemplate> atomSet = reserveAtomsForWriting();
-		atomSet.addAll(declareAtomsForReading());
-		return atomSet;
-	}
-	
 	public int getNumberOfAtoms(){
 		// The DB manager knows about atom deletions.
 		return dbManager.getNumberOfAtoms(name);
@@ -213,7 +217,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	
 	public int getNumberOfTargets(){
 		// The DB manager knows about atom deletions.
-		return dbManager.getNumberOfTargets(name, targets);
+		return dbManager.getNumberOfTargets(name);
 	}
 
 	/**
@@ -353,13 +357,13 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	}
 
 	// Should only be used internally. Actual PslProblem instances should call addObservation/addTarget!
-	private void addAtom(String predName, String... tuple) {
-		dbManager.addAtom(name, predName, tuple);
+	private void addAtom(boolean isTarget, String predName, String... tuple) {
+		dbManager.addAtom(name, isTarget, predName, tuple);
 	}
 	
 	// Should only be used internally. Actual PslProblem instances should call addObservation/addTarget!
-	private void addAtom(String predName, double value, String... tuple) {
-		dbManager.addAtom(name, predName, value, tuple);
+	private void addAtom(boolean isTarget, String predName, double value, String... tuple) {
+		dbManager.addAtom(name, isTarget, predName, value, tuple);
 	}
 
 	/**
@@ -368,8 +372,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 * @param tuple
 	 */
 	public void addObservation(String predName, String... tuple) {
-		observations.add(new AtomTemplate(predName, tuple));
-		addAtom(predName, tuple);
+		addAtom(false, predName, tuple);
 	}
 
 	/**
@@ -379,8 +382,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 * @param tuple
 	 */
 	public void addObservation(String predName, double value, String... tuple) {
-		observations.add(new AtomTemplate(predName, tuple));
-		addAtom(predName, value, tuple);
+		addAtom(false, predName, value, tuple);
 	}
 
 	/**
@@ -390,8 +392,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 * @param tuple
 	 */
 	public void addTarget(String predName, double value, String... tuple) {
-		targets.add(new AtomTemplate(predName, tuple));
-		addAtom(predName, value, tuple);
+		addAtom(true, predName, value, tuple);
 	}
 
 	/**
@@ -400,8 +401,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 * @param tuple
 	 */
 	public void addTarget(String predName, String... tuple) {
-		targets.add(new AtomTemplate(predName, tuple));
-		addAtom(predName, tuple);
+		addAtom(true, predName, tuple);
 	}
 	
 	public void addUserPrior(String predName, double value, String... tuple) {
@@ -409,13 +409,11 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	}
 
 	public void registerExistingTarget(AtomTemplate atom){
-		targets.add(atom);
-		dbManager.associateAtomWithProblem(name, atom);
+		dbManager.associateAtomWithProblem(name, true, atom);
 	}
 	
 	public void registerExistingObservation(AtomTemplate atom){
-		observations.add(atom);
-		dbManager.associateAtomWithProblem(name, atom);
+		dbManager.associateAtomWithProblem(name, false, atom);
 	}
 	
 	/**
@@ -425,18 +423,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 * @param predName
 	 */
 	public void fixateAtoms(String predName){
-		// If this is very slow, it might be worthwhile to check
-		// whether it's possible to get the relevant partitions 
-		// to move all atoms for this predicate 
-		List<AtomTemplate> matches = new ArrayList<>();
-		for (AtomTemplate openAtom : targets){
-			if (predName.equals(openAtom.getPredicateName())){
-				matches.add(openAtom);
-				observations.add(openAtom);
-			}
-		}
-		targets.removeAll(matches);
-		// The actual partition update happens the next time the PartitionManager prepares a new inference.
+		dbManager.setAtomsAsObservation(predName, name);
 	}
 	
 	/**
@@ -449,15 +436,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 */
 	public void fixateAtomsToValue(double value, String predName, String... args) {
 		dbManager.setAtomsToValueForProblem(getName(), predName, new AtomTemplate(predName, args), value);
-		AtomTemplate atom = new AtomTemplate(predName, args);
-		List<AtomTemplate> matches = new ArrayList<>();
-		for (AtomTemplate openAtom : targets){
-			if (atom.equalsWithWildcards(openAtom)){
-				matches.add(openAtom);
-				observations.add(openAtom);
-			}
-		}
-		targets.removeAll(matches);
+		dbManager.setAtomsAsObservation(predName, name, new AtomTemplate(predName, args));
 	}
 	
 	/**
@@ -468,15 +447,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	 * @param args
 	 */
 	public void releaseAtoms(String predName, String... args) {
-		AtomTemplate atom = new AtomTemplate(predName, args);
-		List<AtomTemplate> matches = new ArrayList<>();
-		for (AtomTemplate closedAtom : observations){
-			if (atom.equalsWithWildcards(closedAtom)){
-				matches.add(closedAtom);
-				targets.add(closedAtom);
-			}
-		}
-		observations.removeAll(matches);
+		dbManager.setAtomsAsTarget(predName, name, new AtomTemplate(predName, args));
 	}
 	
     public void addRule(TalkingRule rule) {
@@ -601,8 +572,8 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 
 	public Multimap<String, Tuple> getTuplesByPredicate(){
 		Multimap<String, Tuple> map = new Multimap<>(CollectionType.SET);
-		for (AtomTemplate atom : getAllAtoms()) {
-			map.put(atom.getPredicateName(), atom.getArgTuple());
+		for (String predName : talkingPredicates.keySet()) {
+			map.putAll(predName, dbManager.getAllForProblem(predName, name));
 		}
 		return map;
 	}

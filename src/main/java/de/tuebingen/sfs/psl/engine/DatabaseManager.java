@@ -36,6 +36,7 @@ public class DatabaseManager {
 	public static final String PROBLEM_ID_COLUMN_NAME = "problem_id";
 	public static final String PREDICATE_NAME_COLUMN_NAME = "predicate";
 	public static final String ATOM_ID_COLUMN_NAME = "atom_id";
+	public static final String IS_TARGET_COLUMN_NAME = "is_target";
 
 	// Stuff:
 	public static final double DEFAULT_BELIEF = 1.0;
@@ -75,7 +76,8 @@ public class DatabaseManager {
 			String stmt = "CREATE TABLE " + PROBLEMS2ATOMS_TABLE + " ("
 					+ PROBLEM_ID_COLUMN_NAME + " VARCHAR(" + ProblemManager.MAX_PROBLEM_ID_LENGTH + ") NOT NULL, "
 					+ PREDICATE_NAME_COLUMN_NAME + " TEXT NOT NULL, "
-					+ ATOM_ID_COLUMN_NAME + " INT NOT NULL,"
+					+ ATOM_ID_COLUMN_NAME + " INT NOT NULL, "
+					+ IS_TARGET_COLUMN_NAME + " BOOLEAN NOT NULL, "
 					+ "PRIMARY KEY (" + PROBLEM_ID_COLUMN_NAME + ", " + ATOM_ID_COLUMN_NAME + "));";
 			PreparedStatement prepStmt = conn.prepareStatement(stmt);
 			prepStmt.execute();
@@ -145,17 +147,20 @@ public class DatabaseManager {
 		return 0;
 	}
 
-	// TODO: How to implement? Mark target status in problems2atoms DB?
-	public int getNumberOfTargets(String problemId, Set<AtomTemplate> originalTargets) {
-		int count = 0;
-		Collection<AtomTemplate> currentAtoms = problemsToAtoms.get(problemId);
-		for (AtomTemplate originalTarget : originalTargets){
-			if (currentAtoms.contains(originalTarget)){
-				// = if the atom hasn't been deleted
-				count++;
-			}
+	public int getNumberOfTargets(String problemId) {
+		try (Connection conn = dataStore.getConnection()) {
+			String stmt = "SELECT count(*) FROM " + PROBLEMS2ATOMS_TABLE
+					+ " WHERE " + PROBLEM_ID_COLUMN_NAME + " = ?"
+					+ " AND " + IS_TARGET_COLUMN_NAME + " = TRUE;";
+			PreparedStatement prepStmt = conn.prepareStatement(stmt);
+			prepStmt.setString(1, problemId);
+			ResultSet res = prepStmt.executeQuery();
+			if (res.next())
+				return res.getInt(1);
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
-		return count;
+		return 0;
 	}
 
 	public boolean existsAtom(String predName, String... args) {
@@ -220,6 +225,14 @@ public class DatabaseManager {
 
 	public List<Tuple> getAllForProblem(String predName, String problemId) {
 		return getAllWhere(predName, new WhereStatement().ownedByProblem(problemId));
+	}
+
+	public List<Tuple> getAllTargetsForProblem(String predName, String problemId) {
+		return getAllWhere(predName, new WhereStatement().isTargetOfProblem(problemId, true));
+	}
+
+	public List<Tuple> getAllObservationsForProblem(String predName, String problemId) {
+		return getAllWhere(predName, new WhereStatement().isTargetOfProblem(problemId, false));
 	}
 
 	public List<Tuple> getAllOrderedBy(String predName, int[] orderBy) {
@@ -382,9 +395,13 @@ public class DatabaseManager {
 	}
 
 	public List<String> getTable(PredicateInfo predicate) {
+		return getTableByName(predicate.tableName());
+	}
+
+	private List<String> getTableByName(String tableName) {
 		List<String> table = new ArrayList<String>();
 		try (Connection conn = dataStore.getConnection();
-			 PreparedStatement prepStmt = conn.prepareStatement("SELECT * FROM " + predicate.tableName() + ";");) {
+			 PreparedStatement prepStmt = conn.prepareStatement("SELECT * FROM " + tableName + ";");) {
 			ResultSet rs = prepStmt.executeQuery();
 			ResultSetMetaData rsmd = rs.getMetaData();
 			while (rs.next()) {
@@ -434,11 +451,11 @@ public class DatabaseManager {
 		predicates.put(name, stdPred);
 	}
 
-	public void addAtom(String problemId, String predName, String... tuple) {
-		addAtom(problemId, predName, DEFAULT_BELIEF, tuple);
+	public void addAtom(String problemId, boolean isTarget, String predName, String... tuple) {
+		addAtom(problemId, isTarget, predName, DEFAULT_BELIEF, tuple);
 	}
 
-	public void addAtom(String problemId, String predName, double value, String... tuple) {
+	public void addAtom(String problemId, boolean isTarget, String predName, double value, String... tuple) {
 		if (blacklist.contains(predName, tuple))
 			return;
 
@@ -464,7 +481,7 @@ public class DatabaseManager {
 				tuple = newArgs;
 			}
 
-			atomsTotal += registerAtom(problemId, predName, stdPartition.getID(), value, tuple);
+			atomsTotal += registerAtom(problemId, isTarget, predName, stdPartition.getID(), value, tuple);
 
 			if (atomsTotal % 100000 == 0) {
 				Runtime runtime = Runtime.getRuntime();
@@ -478,9 +495,10 @@ public class DatabaseManager {
 		}
 	}
 
-	private int registerAtom(String problemId, String predName, int partition, double value, String... args) {
+	private int registerAtom(String problemId, boolean isTarget, String predName, int partition, double value,
+							 String... args) {
 		try (Connection conn = dataStore.getConnection()) {
-			int id = associateAtomWithProblem(conn, problemId, predName, args);
+			int id = associateAtomWithProblem(conn, problemId, isTarget, predName, args);
 			if (id < 0) {
 				id = -(id + 1);
 				PredicateInfo predInfo = getPredicateInfo(predName);
@@ -503,15 +521,16 @@ public class DatabaseManager {
 		return nextId++;
 	}
 	
-	public void associateAtomWithProblem(String problemId, AtomTemplate atom) {
+	public void associateAtomWithProblem(String problemId, boolean isTarget, AtomTemplate atom) {
 		try (Connection conn = dataStore.getConnection()) {
-			associateAtomWithProblem(conn, problemId, atom.getPredicateName(), atom.getArgs());
+			associateAtomWithProblem(conn, problemId, isTarget, atom.getPredicateName(), atom.getArgs());
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private int associateAtomWithProblem(Connection conn, String problemId, String predName, String... args) throws SQLException {
+	private int associateAtomWithProblem(Connection conn, String problemId, boolean isTarget,
+										 String predName, String... args) throws SQLException {
 		Predicate pred = predicates.get(predName);
 		PredicateInfo predInfo = new PredicateInfo(pred);
 		String getIdStmt = "SELECT " + ATOM_ID_COLUMN_NAME + " FROM " + predInfo.tableName() + " " + PRED_SHORT
@@ -525,8 +544,8 @@ public class DatabaseManager {
 
 		String insertMapStmt = "MERGE INTO " + PROBLEMS2ATOMS_TABLE + "("
 				+ PROBLEM_ID_COLUMN_NAME + ", " + PREDICATE_NAME_COLUMN_NAME + ", "
-				+ ATOM_ID_COLUMN_NAME + ") VALUES ("
-				+ "?, ?, " + id + ");";
+				+ ATOM_ID_COLUMN_NAME + ", " + IS_TARGET_COLUMN_NAME + ") VALUES ("
+				+ "?, ?, " + id + ", " + isTarget + ");";
 		PreparedStatement insertMapPrepStmt = conn.prepareStatement(insertMapStmt);
 		insertMapPrepStmt.setString(1, problemId);
 		insertMapPrepStmt.setString(2, predName);
@@ -553,6 +572,39 @@ public class DatabaseManager {
 					+ " SET " + PredicateInfo.VALUE_COLUMN_NAME + " = " + value
 					+ where;
 			return runUpdateOn(stmt, atomMatch);
+		}
+		return 0;
+	}
+
+	public int setAtomsAsTarget(String predName, String problemId, AtomTemplate... atomMatch) {
+		return setAtomsTargetStatus(predName, problemId, true, atomMatch);
+	}
+
+	public int setAtomsAsObservation(String predName, String problemId, AtomTemplate... atomMatch) {
+		return setAtomsTargetStatus(predName, problemId, false, atomMatch);
+	}
+
+	private int setAtomsTargetStatus(String predName, String problemId, boolean isTarget, AtomTemplate... atomMatch) {
+		Predicate pred = predicates.get(predName);
+		if (pred != null) {
+			if (atomMatch.length == 0) {
+				String stmt = "UPDATE " + PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT
+						+ " SET " + IS_TARGET_COLUMN_NAME + " = " + isTarget
+						+ " WHERE " + PROBLEM_ID_COLUMN_NAME + " = '" + problemId
+						+ "' AND " + PREDICATE_NAME_COLUMN_NAME + " = '" + predName + "';";
+				return runUpdateOn(stmt);
+			}
+			else {
+				PredicateInfo predInfo = new PredicateInfo(pred);
+				String stmt = "UPDATE " + PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT
+						+ " SET " + IS_TARGET_COLUMN_NAME + " = " + isTarget
+						+ " WHERE " + PROBLEM_ID_COLUMN_NAME + " = '" + problemId
+						+ "' AND " + ATOM_ID_COLUMN_NAME + " IN ("
+						+ "SELECT " + ATOM_ID_COLUMN_NAME
+						+ " FROM " + predInfo.tableName() + " " + PRED_SHORT
+						+ new WhereStatement().matchAtoms(atomMatch) + ");";
+				return runUpdateOn(stmt, atomMatch);
+			}
 		}
 		return 0;
 	}
@@ -646,6 +698,24 @@ public class DatabaseManager {
 	// PARTITION MANIPULATION //
 	////////////////////////////
 
+	public int moveToWritePartition(String problemId, Set<Integer> sourceIDs, int targetID) {
+		return moveToPartitionIfTarget(problemId, true, sourceIDs, targetID);
+	}
+
+	public int moveToReadPartition(String problemId, Set<Integer> sourceIDs, int targetID) {
+		return moveToPartitionIfTarget(problemId, false, sourceIDs, targetID);
+	}
+
+	private int moveToPartitionIfTarget(String problemId, boolean isTarget,
+							   Set<Integer> sourceIDs, int targetID) {
+		int moved = 0;
+		for (String pred : predicates.keySet()) {
+			moved += setPartitionWhere(pred, targetID,
+					new WhereStatement().isTargetOfProblem(problemId, isTarget).isInPartition(sourceIDs));
+		}
+		return moved;
+	}
+
 	public int moveToPartition(Set<Integer> sourceIDs, int targetID, AtomTemplate atomMatch) {
 		return setPartitionWhere(atomMatch.getPredicateName(), targetID,
 				new WhereStatement().isInPartition(sourceIDs).matchAtoms(atomMatch), atomMatch);
@@ -677,6 +747,13 @@ public class DatabaseManager {
 		System.out.println(predicate.tableName());
 		System.out.println("(partition, value, args)");
 		for (String s : getTable(predicate)) {
+			System.out.println(s);
+		}
+	}
+
+	public void printTableByName(String tableName) {
+		System.out.println(tableName);
+		for (String s : getTableByName(tableName)) {
 			System.out.println(s);
 		}
 	}
@@ -778,6 +855,7 @@ public class DatabaseManager {
 		private boolean p2aTableKnown;
 
 		private String problemId;
+		private Boolean isTarget;
 		private Set<Integer> inPartitions;
 		private double beliefGreaterThan;
 		private double beliefLessThan;
@@ -806,6 +884,17 @@ public class DatabaseManager {
 
 		public WhereStatement ownedByProblem(String problemId, boolean p2aTableKnown) {
 			this.problemId = problemId;
+			this.p2aTableKnown = p2aTableKnown;
+			return this;
+		}
+
+		public WhereStatement isTargetOfProblem(String problemId, boolean isTarget) {
+			return isTargetOfProblem(problemId, isTarget, true);
+		}
+
+		public WhereStatement isTargetOfProblem(String problemId, boolean isTarget, boolean p2aTableKnown) {
+			this.problemId = problemId;
+			this.isTarget = isTarget;
 			this.p2aTableKnown = p2aTableKnown;
 			return this;
 		}
@@ -855,7 +944,7 @@ public class DatabaseManager {
 			StringBuilder cond = new StringBuilder();
 
 			if (!problemId.isEmpty()) {
-				if (p2aTableKnown)
+				if (p2aTableKnown) {
 					cond.append("(")
 							.append(PRED_SHORT).append(".").append(ATOM_ID_COLUMN_NAME)
 							.append(" = ")
@@ -864,16 +953,30 @@ public class DatabaseManager {
 							.append(P2A_SHORT).append(".").append(PROBLEM_ID_COLUMN_NAME)
 							.append(" = '")
 							.append(problemId)
-							.append("') AND ");
-				else
+							.append("'");
+					if (isTarget != null) {
+						cond.append(" AND ");
+						if (!isTarget)
+							cond.append("NOT ");
+						cond.append(P2A_SHORT).append(".").append(IS_TARGET_COLUMN_NAME);
+					}
+					cond.append(") AND ");
+				} else {
 					cond.append("(")
 							.append(PRED_SHORT).append(".").append(ATOM_ID_COLUMN_NAME)
 							.append(" IN (")
 							.append("SELECT ").append(P2A_SHORT).append(".").append(ATOM_ID_COLUMN_NAME)
 							.append(" FROM ").append(PROBLEMS2ATOMS_TABLE).append(" ").append(P2A_SHORT)
 							.append(" WHERE ").append(P2A_SHORT).append(".").append(PROBLEM_ID_COLUMN_NAME)
-							.append(" = '").append(problemId)
-							.append("')) AND ");
+							.append(" = '").append(problemId).append("'");
+					if (isTarget != null) {
+						cond.append(" AND ");
+						if (!isTarget)
+							cond.append("NOT ");
+						cond.append(P2A_SHORT).append(".").append(IS_TARGET_COLUMN_NAME);
+					}
+					cond.append(")) AND ");
+				}
 			}
 			if (!inPartitions.isEmpty()) {
 				cond.append("(")
