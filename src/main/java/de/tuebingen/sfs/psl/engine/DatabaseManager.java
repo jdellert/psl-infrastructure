@@ -360,6 +360,11 @@ public class DatabaseManager {
 		}
 		return tuples;
 	}
+	
+	public List<RankingEntry<AtomTemplate>> getAtoms(String predName, AtomTemplate... atoms) {
+		return getAllWhereOrderByWithValueAndPartition(
+				predName, new WhereStatement().matchAtoms(atoms), new OrderByStatement(), atoms);
+	}
 
 	public List<RankingEntry<AtomTemplate>> getAllWhereOrderByWithValueAndPartition(
 			String predName, WhereStatement where, OrderByStatement orderBy, AtomTemplate... atoms) {
@@ -845,7 +850,6 @@ public class DatabaseManager {
 			return 0;
 		}
 	}
-
 
 	private class WhereStatement {
 

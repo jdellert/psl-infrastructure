@@ -29,7 +29,7 @@ public class AtomTemplate implements Comparable<AtomTemplate> {
 	
 	public AtomTemplate(String... predicateAndArgs) {
 		this.predicate = predicateAndArgs[0];
-		this.args = new String[predicateAndArgs.length];
+		this.args = new String[predicateAndArgs.length - 1];
 		for (int i = 0; i < args.length; i++){
 			this.args[i] = predicateAndArgs[i + 1];
 		}
