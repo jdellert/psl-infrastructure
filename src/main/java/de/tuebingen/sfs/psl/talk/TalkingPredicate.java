@@ -1,8 +1,9 @@
 package de.tuebingen.sfs.psl.talk;
 
-import org.linqs.psl.util.StringUtils;
-
 import de.tuebingen.sfs.psl.engine.PslProblem;
+import de.tuebingen.sfs.psl.util.data.StringUtils;
+
+import static de.tuebingen.sfs.eie.components.soundlaws.ideas.SoundlawIdeaGenerator.CTXT;
 
 public class TalkingPredicate {
 	String predSymbol;
@@ -65,6 +66,13 @@ public class TalkingPredicate {
 			prefix = PslProblem.predicatePrefix(predName);
 		}
 		return predName.substring(0, prefix.length() + 1) + predName.toLowerCase().substring(prefix.length() + 1);
+	}
+
+	public static String[] extractArgs(String atomString) {
+		if (atomString == null)
+			return null;
+		String argString = atomString.substring(atomString.indexOf('(') + 1, atomString.length() - 1);
+		return StringUtils.split(argString, ", ");
 	}
 
 }
