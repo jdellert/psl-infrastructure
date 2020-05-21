@@ -59,21 +59,25 @@ public class ModelEvaluator {
                 Map<Tuple, Double> results;
                 results = pslProblem.extractTableForPredicate(pred.getName());
                 for (Map.Entry<Tuple, Double> entry : results.entrySet()) {
-                    if (gs.contains(pred, entry.getKey())) {
+                    Tuple args = entry.getKey();
+                    double belief = entry.getValue();
+                    if (gs.check(pred, args)) {
                         inGS[p]++;
-                        inGSSums[p] += entry.getValue();
-                        foundHere.put(entry.getKey(), entry.getValue());
+                        inGSSums[p] += belief;
+                        foundHere.put(args, belief);
                     }
-                    else if (!pred.isIgnoredAtom(entry.getKey())){
+                    else if (!pred.isIgnoredAtom(args) && !gs.alreadyFound(pred, args)){
                         notInGS[p]++;
-                        notInGSSums[p] += entry.getValue();
-                        foundHereNotInGS.put(entry.getKey(), entry.getValue());
+                        notInGSSums[p] += belief;
+                        foundHereNotInGS.put(args, belief);
                     }
                 }
                 found.add(foundHere);
                 foundNotInGS.add(foundHereNotInGS);
-                notFound.add(gs.missingAtoms(pred, foundHere.keySet()));
+                notFound.add(gs.missingAtoms(pred));
             }
+
+            gs.reset();
         }
 
 
@@ -116,8 +120,8 @@ public class ModelEvaluator {
                     pStream.println("\t\t" + args.toString(preds[p]));
                 }
 
-                gs.additionalEvaluation(preds[p], found.get(p), foundNotInGS.get(p), notFound.get(p),
-                        pslProblem, pStream);
+                gs.additionalEvaluation(preds[p], new TreeMap<>(found.get(p)), new TreeMap<>(foundNotInGS.get(p)),
+                        new TreeSet<>(notFound.get(p)), pslProblem, pStream);
             }
         }
 
@@ -134,6 +138,50 @@ public class ModelEvaluator {
                     (inGSSum / total));
             pStream.printf(Locale.ROOT, "\tAverage belief value of found non-GS atoms: %.3f\n",
                     (notInGSSum / nFoundButNotInGS));
+        }
+
+
+        public void printTabularEvaluation(InferenceLogger logger) {
+            printTabularEvaluation(logger.getLogStream());
+        }
+
+        public void printTabularEvaluation(PrintStream pStream) {
+            PredicateEvaluationTemplate[] preds = gs.getPredicates();
+
+            pStream.println("\nTABULAR EVALUATION RESULTS:");
+            for (int p = 0; p < preds.length; p++) {
+                if (inGS[p] + notInGS[p] > 0) {
+                    printTabularEvaluation(pStream, preds[p].getName(), inGS[p], notFound.get(p).size(), notInGS[p],
+                            inGSSums[p], notInGSSums[p]);
+                    gs.additionalTabularEvaluation(preds[p], new TreeMap<>(found.get(p)), new TreeMap<>(foundNotInGS.get(p)),
+                            new TreeSet<>(notFound.get(p)), pslProblem, pStream);
+                }
+            }
+        }
+
+        public static void printTabularEvaluation(PrintStream pStream, String evalLabel,
+                                                  int nFound, int nMissing, int nFoundButNotInGS,
+                                                  double inGSSum, double notInGSSum) {
+            int totalGS = nFound + nMissing;
+            int totalFound = nFound + nFoundButNotInGS;
+            double precision = ((double) nFound) / totalFound;
+            double recall = ((double) nFound) / totalGS;
+            double gsBelief = inGSSum / totalFound;
+            double fgsBelief = inGSSum / nFound;
+            double ngsBelief = notInGSSum / nFoundButNotInGS;
+            double normFound = nFound * fgsBelief;
+            double normFoundButNotInGS = nFoundButNotInGS * ngsBelief;
+            double normPrecision = normFound / (normFound + normFoundButNotInGS);
+
+            pStream.println(evalLabel + " GS found\t" + nFound);
+            pStream.println(evalLabel + " GS missing\t" + nMissing);
+            pStream.println(evalLabel + " non-GS found\t" + nFoundButNotInGS);
+            pStream.println(evalLabel + " precision\t" + precision);
+            pStream.println(evalLabel + " recall\t" + recall);
+            pStream.println(evalLabel + " GS belief\t" + gsBelief);
+            pStream.println(evalLabel + " found GS belief\t" + fgsBelief);
+            pStream.println(evalLabel + " non-GS belief\t" + ngsBelief);
+            pStream.println(evalLabel + " norm. precision\t" + normPrecision);
         }
 
     }

@@ -24,4 +24,9 @@ public interface DisjunctiveGoldStandardIterator {
                               Set<Arguments> missingAtoms,
                               PslProblem problem, PrintStream pStream);
 
+    void additionalTabularEvaluation(PredicateEvaluationTemplate predicate, Set<Arguments> gs,
+                              Map<Tuple, Double> foundAtoms, Map<Tuple, Double> foundNotInGSAtoms,
+                              Set<Arguments> missingAtoms,
+                              PslProblem problem, PrintStream pStream);
+
 }

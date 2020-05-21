@@ -13,12 +13,19 @@ public interface GoldStandard {
 
     PredicateEvaluationTemplate[] getPredicates();
 
-    // TODO return double in [0, 1], rename to isMatched
-    boolean contains(PredicateEvaluationTemplate predicate, Tuple atom);
+    boolean check(PredicateEvaluationTemplate predicate, Tuple atom);
 
-    Set<Arguments> missingAtoms(PredicateEvaluationTemplate predicate, Set<Tuple> foundAtoms);
+    boolean alreadyFound(PredicateEvaluationTemplate predicate, Tuple atom);
+
+    Set<Arguments> missingAtoms(PredicateEvaluationTemplate predicate);
 
     void additionalEvaluation(PredicateEvaluationTemplate predicate, Map<Tuple, Double> foundAtoms,
                               Map<Tuple, Double> foundNotInGSAtoms, Set<Arguments> missingAtoms,
                               PslProblem problem, PrintStream pStream);
+
+    void additionalTabularEvaluation(PredicateEvaluationTemplate predicate, Map<Tuple, Double> foundAtoms,
+                              Map<Tuple, Double> foundNotInGSAtoms, Set<Arguments> missingAtoms,
+                              PslProblem problem, PrintStream pStream);
+
+    void reset();
 }
