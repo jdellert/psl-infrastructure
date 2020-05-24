@@ -342,6 +342,14 @@ public class RuleAtomGraph {
 	public boolean putsPressureOnGrounding(String atomName, String groundingName) {
 		return linkPressure.getOrDefault(new Tuple(atomName, groundingName), false);
 	}
+	
+	public double distanceToSatisfaction(String groundingName) {
+		double dist = groundingStatus.get(groundingName);
+		if (dist < 0){
+			return 0;
+		}
+		return dist;
+	}
 
 	public boolean isEqualityRule(String groundingName) {
 		return equalityGroundings.contains(groundingName);
