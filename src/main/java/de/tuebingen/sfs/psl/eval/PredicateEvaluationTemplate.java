@@ -6,10 +6,12 @@ import de.tuebingen.sfs.psl.util.data.Tuple;
 
 public class PredicateEvaluationTemplate implements Comparable<PredicateEvaluationTemplate> {
 
+    private String templateLabel;
     private String predicate;
     private boolean[] ignoreArguments;
 
     public PredicateEvaluationTemplate() {
+        templateLabel = "";
         predicate = "";
         ignoreArguments = new boolean[0];
     }
@@ -23,12 +25,25 @@ public class PredicateEvaluationTemplate implements Comparable<PredicateEvaluati
     }
 
     public PredicateEvaluationTemplate(String name, int arity) {
-        this(name, new boolean[arity]);
+        this(name, name, arity);
+    }
+
+    protected PredicateEvaluationTemplate(String templateName, String name, int arity) {
+        this(templateName, name, new boolean[arity]);
     }
 
     public PredicateEvaluationTemplate(String name, boolean[] ignoreArguments) {
-        this.predicate = name;
+        this(name, name, ignoreArguments);
+    }
+
+    protected PredicateEvaluationTemplate(String templateName, String predicateName, boolean[] ignoreArguments) {
+        this.templateLabel = templateName;
+        this.predicate = predicateName;
         this.ignoreArguments = ignoreArguments;
+    }
+
+    public String getTemplateLabel() {
+        return templateLabel;
     }
 
     public String getName() {
@@ -59,7 +74,11 @@ public class PredicateEvaluationTemplate implements Comparable<PredicateEvaluati
         if (o == null)
             return 1;
 
-        int c = predicate.compareTo(o.predicate);
+        int c = templateLabel.compareTo(o.templateLabel);
+        if (c != 0)
+            return c;
+
+        c = predicate.compareTo(o.predicate);
         if (c != 0)
             return c;
 
