@@ -4,6 +4,7 @@ import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,9 +25,10 @@ public interface DisjunctiveGoldStandardIterator {
                               Set<Arguments> missingAtoms,
                               PslProblem problem, PrintStream pStream);
 
-    void additionalTabularEvaluation(PredicateEvaluationTemplate predicate, Set<Arguments> gs,
-                              Map<Tuple, Double> foundAtoms, Map<Tuple, Double> foundNotInGSAtoms,
-                              Set<Arguments> missingAtoms,
-                              PslProblem problem, PrintStream pStream);
+    List<ModelEvaluator.TabularEvaluationEntry> additionalTabularEvaluation(
+            PredicateEvaluationTemplate predicate, Set<Arguments> gs,
+            Map<Tuple, Double> foundAtoms, Map<Tuple, Double> foundNotInGSAtoms,
+            Set<Arguments> missingAtoms,
+            PslProblem problem, PrintStream pStream);
 
 }

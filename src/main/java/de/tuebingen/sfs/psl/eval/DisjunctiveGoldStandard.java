@@ -4,7 +4,6 @@ import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import de.tuebingen.sfs.eie.components.soundlaws.talk.rule.ctxt.NotSupergroupRule;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 
@@ -98,12 +97,13 @@ public class DisjunctiveGoldStandard implements GoldStandard {
     }
 
     @Override
-    public void additionalTabularEvaluation(PredicateEvaluationTemplate predicate, Map<Tuple, Double> foundAtoms,
-                                     Map<Tuple, Double> foundNotInGSAtoms, Set<Arguments> missingAtoms,
-                                     PslProblem problem, PrintStream pStream) {
+    public List<ModelEvaluator.TabularEvaluationEntry> additionalTabularEvaluation(
+            PredicateEvaluationTemplate predicate, Map<Tuple, Double> foundAtoms,
+            Map<Tuple, Double> foundNotInGSAtoms, Set<Arguments> missingAtoms,
+            PslProblem problem, PrintStream pStream) {
         Set<Arguments> gs = new TreeSet<>(this.missingAtoms.get(predicate));
         gs.addAll(matchedAtoms.get(predicate));
-        iter.additionalTabularEvaluation(predicate, gs, foundAtoms, foundNotInGSAtoms, missingAtoms, problem, pStream);
+        return iter.additionalTabularEvaluation(predicate, gs, foundAtoms, foundNotInGSAtoms, missingAtoms, problem, pStream);
     }
 
     @Override

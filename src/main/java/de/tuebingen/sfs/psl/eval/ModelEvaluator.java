@@ -3,10 +3,12 @@ package de.tuebingen.sfs.psl.eval;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.util.InferenceLogger;
+import javafx.scene.control.Tab;
 import org.linqs.psl.model.rule.arithmetic.expression.coefficient.Max;
 
 import java.io.PrintStream;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ModelEvaluator {
 
@@ -40,6 +42,7 @@ public class ModelEvaluator {
 
         List<Map<Tuple, Double>> found;
         List<Map<Tuple, Double>> foundNotInGS;
+        List<List<Map.Entry<Tuple, Double>>> topFoundNotInGS;
         List<Set<Arguments>> notFound;
 
 
@@ -56,6 +59,7 @@ public class ModelEvaluator {
             topNotInGSSums = new double[preds.length];
             found = new ArrayList<>();
             foundNotInGS = new ArrayList<>();
+            topFoundNotInGS = new ArrayList<>();
             notFound = new ArrayList<>();
 
             for (int p = 0; p < preds.length; p++) {
@@ -79,15 +83,20 @@ public class ModelEvaluator {
                     }
                 }
 
-                List<Double> topNotFound = new ArrayList<>(foundHereNotInGS.values());
-                Collections.sort(topNotFound);
                 topNotInGS[p] = Math.min(foundHere.size(), foundHereNotInGS.size());
+                List<Map.Entry<Tuple, Double>> topNotFound = foundHereNotInGS.entrySet()
+                        .stream()
+                        .sorted(new EntryValueComparator<>())
+                        .skip(foundHereNotInGS.size() - topNotInGS[p])
+                        .collect(Collectors.toList());
+                Collections.reverse(topNotFound);
                 topNotInGSSums[p] = topNotFound.stream()
-                        .skip(topNotFound.size() - topNotInGS[p])
+                        .mapToDouble(Map.Entry::getValue)
                         .reduce(0.0, Double::sum);
 
                 found.add(foundHere);
                 foundNotInGS.add(foundHereNotInGS);
+                topFoundNotInGS.add(topNotFound);
                 notFound.add(gs.missingAtoms(pred));
             }
 
@@ -135,6 +144,14 @@ public class ModelEvaluator {
                     pStream.println("\t\t" + args.toString(preds[p]));
                 }
 
+                pStream.println("\tFound top " + topFoundNotInGS.get(p).size() + " non-GS atoms:");
+                if (topFoundNotInGS.get(p).isEmpty())
+                    pStream.println("\t\tNone");
+                for (Map.Entry<Tuple, Double> entry : topFoundNotInGS.get(p)) {
+                    pStream.printf(Locale.ROOT, "\t\t%s(%s): %.3f\n",
+                            preds[p].getName(), entry.getKey().toString(), entry.getValue());
+                }
+
                 gs.additionalEvaluation(preds[p], new TreeMap<>(found.get(p)), new TreeMap<>(foundNotInGS.get(p)),
                         new TreeSet<>(notFound.get(p)), pslProblem, pStream);
             }
@@ -163,23 +180,28 @@ public class ModelEvaluator {
             printTabularEvaluation(logger.getLogStream());
         }
 
-        public void printTabularEvaluation(PrintStream pStream) {
+        public List<TabularEvaluationEntry> printTabularEvaluation(PrintStream pStream) {
             PredicateEvaluationTemplate[] preds = gs.getPredicates();
+            List<TabularEvaluationEntry> eval = new ArrayList<>();
 
             pStream.println("\nTABULAR EVALUATION RESULTS:");
             for (int p = 0; p < preds.length; p++) {
                 if (inGS[p] + notInGS[p] > 0) {
-                    printTabularEvaluation(pStream, preds[p].getTemplateLabel(), inGS[p], notFound.get(p).size(), notInGS[p],
-                            topNotInGS[p], inGSSums[p], notInGSSums[p], topNotInGSSums[p]);
-                    gs.additionalTabularEvaluation(preds[p], new TreeMap<>(found.get(p)), new TreeMap<>(foundNotInGS.get(p)),
-                            new TreeSet<>(notFound.get(p)), pslProblem, pStream);
+                    eval.addAll(printTabularEvaluation(pStream, preds[p].getTemplateLabel(),
+                            inGS[p], notFound.get(p).size(), notInGS[p],
+                            topNotInGS[p], inGSSums[p], notInGSSums[p], topNotInGSSums[p]));
+                    eval.addAll(gs.additionalTabularEvaluation(preds[p], new TreeMap<>(found.get(p)), new TreeMap<>(foundNotInGS.get(p)),
+                            new TreeSet<>(notFound.get(p)), pslProblem, pStream));
                 }
             }
+
+            return eval;
         }
 
-        public static void printTabularEvaluation(PrintStream pStream, String evalLabel,
-                                                  int nFound, int nMissing, int nFoundButNotInGS, int nTopFoundButNotInGS,
-                                                  double inGSSum, double notInGSSum, double topNotInGSSum) {
+        public static List<TabularEvaluationEntry> printTabularEvaluation(
+                PrintStream pStream, String evalLabel,
+                int nFound, int nMissing, int nFoundButNotInGS, int nTopFoundButNotInGS,
+                double inGSSum, double notInGSSum, double topNotInGSSum) {
             int totalGS = nFound + nMissing;
             int totalFound = nFound + nFoundButNotInGS;
             double precision = ((double) nFound) / totalFound;
@@ -191,18 +213,52 @@ public class ModelEvaluator {
             double normFound = nFound * fgsBelief;
             double normFoundButNotInGS = nFoundButNotInGS * ngsBelief;
             double normPrecision = normFound / (normFound + normFoundButNotInGS);
+            double normRecall = recall * fgsBelief;
 
-            pStream.println(evalLabel + "\tGS found\t" + nFound);
-            pStream.println(evalLabel + "\tGS missing\t" + nMissing);
-            pStream.println(evalLabel + "\tnon-GS found\t" + nFoundButNotInGS);
-            pStream.println(evalLabel + "\tprecision\t" + precision);
-            pStream.println(evalLabel + "\trecall\t" + recall);
-            pStream.println(evalLabel + "\tGS belief\t" + gsBelief);
-            pStream.println(evalLabel + "\tfound GS belief\t" + fgsBelief);
-            pStream.println(evalLabel + "\tnon-GS belief\t" + ngsBelief);
-            pStream.println(evalLabel + "\ttop " + nTopFoundButNotInGS + " non-GS belief\t" + tngsBelief);
-            pStream.println(evalLabel + "\tnorm. precision\t" + normPrecision);
+            List<TabularEvaluationEntry> eval = new ArrayList<>();
+            eval.add(new TabularEvaluationEntry(evalLabel, "GS found", nFound));
+            eval.add(new TabularEvaluationEntry(evalLabel, "GS missing", nMissing));
+            eval.add(new TabularEvaluationEntry(evalLabel, "non-GS found", nFoundButNotInGS));
+            eval.add(new TabularEvaluationEntry(evalLabel, "precision", precision));
+            eval.add(new TabularEvaluationEntry(evalLabel, "norm. precision", normPrecision));
+            eval.add(new TabularEvaluationEntry(evalLabel, "recall", recall));
+            eval.add(new TabularEvaluationEntry(evalLabel, "norm. recall", normRecall));
+            eval.add(new TabularEvaluationEntry(evalLabel, "GS belief", gsBelief));
+            eval.add(new TabularEvaluationEntry(evalLabel, "found GS belief", fgsBelief));
+            eval.add(new TabularEvaluationEntry(evalLabel, "non-GS belief", ngsBelief));
+            eval.add(new TabularEvaluationEntry(evalLabel, "top n non-GS belief", tngsBelief));
+
+            for (TabularEvaluationEntry entry : eval)
+                pStream.println(entry);
+
+            return eval;
         }
 
+    }
+
+    public static class TabularEvaluationEntry {
+
+        public final String evalLabel;
+        public final String evalMeasure;
+        public final double evalResult;
+
+        public TabularEvaluationEntry(String evalLabel, String evalMeasure, double evalResult) {
+            this.evalLabel = evalLabel;
+            this.evalMeasure = evalMeasure;
+            this.evalResult = evalResult;
+        }
+
+        @Override
+        public String toString() {
+            return evalLabel + "\t" + evalMeasure + "\t" + evalResult;
+        }
+    }
+
+    private static class EntryValueComparator<K, V extends Comparable<V>> implements Comparator<Map.Entry<K, V>> {
+
+        @Override
+        public int compare(Map.Entry<K, V> o1, Map.Entry<K, V> o2) {
+            return o1.getValue().compareTo(o2.getValue());
+        }
     }
 }

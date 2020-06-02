@@ -1,6 +1,7 @@
 package de.tuebingen.sfs.psl.eval;
 
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,9 +24,10 @@ public interface GoldStandard {
                               Map<Tuple, Double> foundNotInGSAtoms, Set<Arguments> missingAtoms,
                               PslProblem problem, PrintStream pStream);
 
-    void additionalTabularEvaluation(PredicateEvaluationTemplate predicate, Map<Tuple, Double> foundAtoms,
-                              Map<Tuple, Double> foundNotInGSAtoms, Set<Arguments> missingAtoms,
-                              PslProblem problem, PrintStream pStream);
+    List<ModelEvaluator.TabularEvaluationEntry> additionalTabularEvaluation(
+            PredicateEvaluationTemplate predicate, Map<Tuple, Double> foundAtoms,
+            Map<Tuple, Double> foundNotInGSAtoms, Set<Arguments> missingAtoms,
+            PslProblem problem, PrintStream pStream);
 
     void reset();
 }
