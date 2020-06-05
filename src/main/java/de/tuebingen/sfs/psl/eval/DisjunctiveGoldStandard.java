@@ -23,18 +23,20 @@ public class DisjunctiveGoldStandard implements GoldStandard {
             missingAtoms.put(pred, new TreeSet<>());
             matchedAtoms.put(pred, new TreeSet<>());
         }
-        Map<String, ArgumentSet> argsSets = new TreeMap<>();
+        Map<Tuple, ArgumentSet> argsSets = new TreeMap<>();
 
         while (iter.advance()) {
             TreeSet<Arguments> args = missingAtoms.get(iter.getPredicate());
             String setName = iter.getArgSet();
+            System.err.println("LUFI " + iter.getPredicate().getTemplateLabel() + " [" + setName + "]");
             if (setName.isEmpty())
                 args.add(new SingleArguments(iter.getArgs()));
             else {
-                ArgumentSet argSet = argsSets.get(setName);
+                Tuple setKey = new Tuple(iter.getPredicate().getTemplateLabel(), setName);
+                ArgumentSet argSet = argsSets.get(setKey);
                 if (argSet == null) {
                     argSet = new ArgumentSet(setName);
-                    argsSets.put(setName, argSet);
+                    argsSets.put(setKey, argSet);
                     args.add(argSet);
                 }
                 argSet.addArgs(iter.getArgs());

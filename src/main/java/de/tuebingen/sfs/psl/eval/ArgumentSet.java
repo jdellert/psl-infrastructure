@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import de.tuebingen.sfs.psl.util.data.StringUtils;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 
 public class ArgumentSet implements Arguments {
@@ -29,6 +30,17 @@ public class ArgumentSet implements Arguments {
     @Override
     public boolean matches(PredicateEvaluationTemplate template, Tuple args) {
         return argSet.stream().anyMatch(a -> Arguments.matchArgs(template, a, args));
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (String[] args : argSet)
+            sb.append("PRED?(")
+                    .append(StringUtils.join(args, ", "))
+                    .append(")")
+                    .append(" | ");
+        return sb.delete(sb.length() - 3, sb.length()).toString();
     }
 
     @Override

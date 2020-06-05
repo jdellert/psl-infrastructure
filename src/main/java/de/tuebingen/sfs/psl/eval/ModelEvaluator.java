@@ -254,7 +254,7 @@ public class ModelEvaluator {
         }
     }
 
-    private static class EntryValueComparator<K, V extends Comparable<V>> implements Comparator<Map.Entry<K, V>> {
+    public static class EntryValueComparator<K, V extends Comparable<V>> implements Comparator<Map.Entry<K, V>> {
 
         @Override
         public int compare(Map.Entry<K, V> o1, Map.Entry<K, V> o2) {

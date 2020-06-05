@@ -21,6 +21,11 @@ public class SingleArguments implements Arguments {
     }
 
     @Override
+    public String toString() {
+        return "PRED?(" + StringUtils.join(args, ", ") + ")";
+    }
+
+    @Override
     public String toString(PredicateEvaluationTemplate template) {
         return template.getName() + "(" + Arguments.argsToString(template, args) + ")";
     }
