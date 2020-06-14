@@ -2,9 +2,7 @@ package de.tuebingen.sfs.psl.engine;
 
 import java.awt.Color;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -21,26 +19,52 @@ import de.tuebingen.sfs.psl.util.data.StringUtils;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 
 public class RagFilter {
-	
+
 	public static HslColor BASECOLOR = new HslColor(new Color(255, 214, 51));
 
 	protected Map<String, String> groundPred2ActualNames;
 	protected Set<String> ignoreList;
 	protected Set<String> ignoreInGui;
 	protected Map<String, Double> transparencyMap;
+	
+	public RagFilter() {
+		this(null, null, null, null);
+	}
 
 	public RagFilter(Map<String, Double> toneMap) {
-		this(toneMap, null);
+		this(toneMap, null, null, null);
 	}
 
 	public RagFilter(Map<String, Double> toneMap, Map<String, String> groundPred2ActualNames) {
-		this.groundPred2ActualNames = groundPred2ActualNames;
-		this.ignoreList = new TreeSet<String>();
-		this.ignoreInGui = new TreeSet<String>();
+		this(toneMap, groundPred2ActualNames, null, null);
+	}
+
+	public RagFilter(Map<String, Double> toneMap, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
+			Set<String> ignoreInGui) {
+		setAll(toneMap, groundPred2ActualNames, ignoreList, ignoreInGui);
+	}
+	
+	public void setAll(Map<String, Double> toneMap, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
+			Set<String> ignoreInGui){
+		if (groundPred2ActualNames == null) {
+			this.groundPred2ActualNames = new TreeMap<>();
+		} else {
+			this.groundPred2ActualNames = groundPred2ActualNames;
+		}
 		if (toneMap == null) {
 			this.transparencyMap = new TreeMap<String, Double>();
 		} else {
 			this.transparencyMap = toneMap;
+		}
+		if (ignoreList == null) {
+			this.ignoreList = new TreeSet<String>();
+		} else {
+			this.ignoreList = ignoreList;
+		}
+		if (ignoreInGui == null) {
+			this.ignoreInGui = new TreeSet<String>();
+		} else {
+			this.ignoreInGui = ignoreInGui;
 		}
 	}
 
@@ -48,47 +72,59 @@ public class RagFilter {
 		return ignoreList;
 	}
 
+	public Map<String, String> getGroundPred2ActualNames() {
+		return groundPred2ActualNames;
+	}
+
+	public Set<String> getIgnoreInGui() {
+		return ignoreInGui;
+	}
+
+	public Map<String, Double> getTransparencyMap() {
+		return transparencyMap;
+	}
+
 	public double getValueForAtom(String atomRepresentation) {
 		if (transparencyMap == null) {
 			return -1.0;
-		}
-		else
+		} else
 			return transparencyMap.getOrDefault(atomRepresentation, -1.0);
 	}
 
 	public double getTransparencyForAtom(String atomRepresentation) {
 		if (transparencyMap == null) {
 			return -1.0;
-		}
-		else
+		} else
 			return transparencyMap.getOrDefault(atomRepresentation, 1.0);
 	}
-	
-	public Map<String, Double> getAtomsWithFirstArgument(String argument){
+
+	public Map<String, Double> getAtomsWithFirstArgument(String argument) {
 		Map<String, Double> atoms = new TreeMap<>();
-		for (String atom : transparencyMap.keySet()){
+		for (String atom : transparencyMap.keySet()) {
 			String[] predAndArgs = atom.split("\\(");
-			if (ignoreList.contains(predAndArgs[0]) || ignoreInGui.contains(predAndArgs[0])){
+			if (ignoreList.contains(predAndArgs[0]) || ignoreInGui.contains(predAndArgs[0])) {
 				continue;
 			}
-			if (argument.equals(predAndArgs[1].split(",")[0].trim())){
+			if (argument.equals(predAndArgs[1].split(",")[0].trim())) {
 				atoms.put(atom, transparencyMap.get(atom));
 			}
 		}
 		return atoms;
 	}
-	
+
 	public double getToneForAtom(String atomRepresentation) {
-		//System.err.println("getToneForAtom(" + atomRepresentation + ")");
+		// System.err.println("getToneForAtom(" + atomRepresentation + ")");
 		return 1.0 - getTransparencyForAtom(atomRepresentation);
 	}
 
 	public double updateToneForAtom(String atomRepresentation, double newTone) {
-		if (transparencyMap == null) return 0.0;
+		if (transparencyMap == null)
+			return 0.0;
 		else {
 			Double oldTone = transparencyMap.get(atomRepresentation);
 			transparencyMap.put(atomRepresentation, newTone);
-			if (oldTone == null) return 0.0;
+			if (oldTone == null)
+				return 0.0;
 			return 1.0 - oldTone;
 		}
 	}
@@ -105,11 +141,11 @@ public class RagFilter {
 	public String atomToColor(String name) {
 		return "#FFFFFF";
 	}
-	
+
 	public HslColor atomToBaseColor(String name) {
 		return BASECOLOR;
 	}
-	
+
 	public boolean isRendered(String predName) {
 		return !ignoreList.contains(predName);
 	}
@@ -120,9 +156,8 @@ public class RagFilter {
 
 	public String atomToSimplifiedString(GroundAtom atom) {
 		String predName = atom.getPredicate().getName();
-		//TODO: find out why this wasn't previously necessary
-		predName = (groundPred2ActualNames == null)
-				? TalkingPredicate.getPredNameFromAllCaps(predName)
+		// TODO: find out why this wasn't previously necessary
+		predName = (groundPred2ActualNames == null) ? TalkingPredicate.getPredNameFromAllCaps(predName)
 				: groundPred2ActualNames.get(predName);
 		Tuple argTuple = new Tuple();
 		for (Constant c : atom.getArguments()) {
@@ -130,16 +165,15 @@ public class RagFilter {
 			cStr = cStr.substring(1, cStr.length() - 1);
 			argTuple.addElement(cStr);
 		}
-		return predName + "(" + StringUtils.join(argTuple.toList(),", ") + ")";
+		return predName + "(" + StringUtils.join(argTuple.toList(), ", ") + ")";
 	}
-	
+
 	public void printInformativeValues(PrintStream out) {
 		transparencyMap.entrySet().stream()
-		.filter(entry -> isRenderedInGui(entry.getKey().split("\\(")[0]) && entry.getValue() > 0.0)
-	    .sorted(Comparator.comparing(Map.Entry::getValue, Comparator.reverseOrder()))
-	    .map(entry -> entry.getKey() + "\t" + entry.getValue())
-	    .collect(Collectors.toList())
-	    .forEach(out::println);
+				.filter(entry -> isRenderedInGui(entry.getKey().split("\\(")[0]) && entry.getValue() > 0.0)
+				.sorted(Comparator.comparing(Map.Entry::getValue, Comparator.reverseOrder()))
+				.map(entry -> entry.getKey() + "\t" + entry.getValue()).collect(Collectors.toList())
+				.forEach(out::println);
 	}
 
 	public void printHeader(PrintStream out) {
@@ -165,8 +199,8 @@ public class RagFilter {
 				out.println("      <data key=\"d6\">");
 				out.println("        <y:ShapeNode>");
 				out.println("          <y:Geometry height=\"25\" width=\"150\"/>");
-				out.println(
-						"          <y:Fill color=\"" + atomToColor(predName + "(" + tuple.toString() + ")") + "\" transparent=\"false\"/>");
+				out.println("          <y:Fill color=\"" + atomToColor(predName + "(" + tuple.toString() + ")")
+						+ "\" transparent=\"false\"/>");
 				out.println(
 						"          <y:NodeLabel alignment=\"center\" fontsize=\"15\" textColor=\"#000000\" visible=\"true\">"
 								+ (predName + "(" + tuple.toString() + ")") + "</y:NodeLabel>");
@@ -189,34 +223,34 @@ public class RagFilter {
 			String targetArrow = "delta";
 			String colorString = "#c0c0c0";
 			colorString = connectionColor.get(link);
-			
+
 			String reverseLink = node2 + "\t" + node1;
-			
+
 			if (connectionStrength.get(reverseLink) != null) {
-				String otherColor = connectionColor.get(reverseLink);			
+				String otherColor = connectionColor.get(reverseLink);
 				if (otherColor.equals(colorString)) {
-					if (node1.compareTo(node2) > 0) continue;
+					if (node1.compareTo(node2) > 0)
+						continue;
 					targetArrow = "none";
 					strength = Math.max(strength, connectionStrength.get(reverseLink));
 				} else {
-					if (colorString.equals("#c0c0c0")) continue;
+					if (colorString.equals("#c0c0c0"))
+						continue;
 				}
 			}
-			
-			//second version: single link per pair, more difficult to interpret?
-			/*String targetArrow = "none";
-			if (connectionStrength.get(node2 + "\t" + node1) == null) {
-				targetArrow = "delta";
-			}
-			else {
-				if (node1.compareTo(node2) > 0) continue;
-			}*/
-			
+
+			// second version: single link per pair, more difficult to
+			// interpret?
+			/*
+			 * String targetArrow = "none"; if (connectionStrength.get(node2 +
+			 * "\t" + node1) == null) { targetArrow = "delta"; } else { if
+			 * (node1.compareTo(node2) > 0) continue; }
+			 */
+
 			out.println("    <edge id=\"" + (edgeID++) + "\" source=\"" + node1 + "\" target=\"" + node2 + "\">");
 			out.println("      <data key=\"d9\">");
 			out.println("        <y:PolyLineEdge>");
-			out.println("          <y:LineStyle color=\"" + colorString + "\" type=\"line\" width=\""
-					+ width + "\"/>");
+			out.println("          <y:LineStyle color=\"" + colorString + "\" type=\"line\" width=\"" + width + "\"/>");
 			out.println("          <y:Arrows source=\"none\" target=\"" + targetArrow + "\"/>");
 			out.println("        </y:PolyLineEdge>");
 			out.println("      </data>");

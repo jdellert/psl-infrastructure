@@ -34,13 +34,14 @@ public class RuleAtomGraph {
 	public static boolean ATOM_VALUE_OUTPUT = false;
 	public static boolean GROUNDING_SCORE_OUTPUT = false;
 	
-	Set<String> atomNodes;
-	Map<String,String> atomStatus;
-	
+	// rule groundings
 	Set<String> groundingNodes;
 	Map<String,Double> groundingStatus;
 	Set<String> equalityGroundings;
-	
+
+	// atoms
+	Set<String> atomNodes;
+	Map<String,String> atomStatus;
 	Set<Tuple> links;
 	Map<Tuple,String> linkStatus;
 	Map<Tuple,Boolean> linkPressure;
@@ -72,6 +73,26 @@ public class RuleAtomGraph {
 		linkStrength = new TreeMap<Tuple, Double>();
 		outgoingLinks = new TreeMap<String,Set<Tuple>>();
 		incomingLinks = new TreeMap<String,List<Tuple>>();
+	}
+	
+	
+
+	public RuleAtomGraph(Set<String> groundingNodes, Map<String, Double> groundingStatus,
+			Set<String> equalityGroundings, Set<String> atomNodes, Map<String, String> atomStatus, Set<Tuple> links,
+			Map<Tuple, String> linkStatus, Map<Tuple, Boolean> linkPressure, Map<Tuple, Double> linkStrength,
+			Map<String, Set<Tuple>> outgoingLinks, Map<String, List<Tuple>> incomingLinks, RagFilter renderer) {
+		this.groundingNodes = groundingNodes;
+		this.groundingStatus = groundingStatus;
+		this.equalityGroundings = equalityGroundings;
+		this.atomNodes = atomNodes;
+		this.atomStatus = atomStatus;
+		this.links = links;
+		this.linkStatus = linkStatus;
+		this.linkPressure = linkPressure;
+		this.linkStrength = linkStrength;
+		this.outgoingLinks = outgoingLinks;
+		this.incomingLinks = incomingLinks;
+		this.renderer = renderer;
 	}
 
 	public RuleAtomGraph(PslProblem problem, RagFilter renderer) {
@@ -511,4 +532,40 @@ public class RuleAtomGraph {
 	public HslColor atomToBaseColor(String name) {
 		return renderer.atomToBaseColor(name);
 	}
+
+	public Set<String> getAtomNodes() {
+		return atomNodes;
+	}
+
+	public String getAtomStatus(String atom) {
+		return atomStatus.get(atom);
+	}
+
+	public Set<String> getGroundingNodes() {
+		return groundingNodes;
+	}
+
+	public Double getGroundingStatus(String grounding) {
+		return groundingStatus.get(grounding);
+	}
+
+	public Set<String> getEqualityGroundings() {
+		return equalityGroundings;
+	}
+
+	public String getLinkStatus(Tuple link) {
+		return linkStatus.get(link);
+	}
+
+	public Boolean getLinkPressure(Tuple link) {
+		return linkPressure.get(link);
+	}
+
+	public Double getLinkStrength(Tuple link) {
+		return linkStrength.get(link);
+	}
+
+	public List<Tuple> getIncomingLinks(String grounding) {
+		return incomingLinks.get(grounding);
+	}	
 }
