@@ -28,15 +28,15 @@ public class RagFilter {
 	protected Map<String, Double> transparencyMap;
 	
 	public RagFilter() {
-		this(null, null, null, null);
+		setAll(null, null, null, null);
 	}
 
 	public RagFilter(Map<String, Double> toneMap) {
-		this(toneMap, null, null, null);
+		setAll(toneMap, null, null, null);
 	}
 
 	public RagFilter(Map<String, Double> toneMap, Map<String, String> groundPred2ActualNames) {
-		this(toneMap, groundPred2ActualNames, null, null);
+		setAll(toneMap, groundPred2ActualNames, null, null);
 	}
 
 	public RagFilter(Map<String, Double> toneMap, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
@@ -46,15 +46,15 @@ public class RagFilter {
 	
 	public void setAll(Map<String, Double> toneMap, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
 			Set<String> ignoreInGui){
-		if (groundPred2ActualNames == null) {
-			this.groundPred2ActualNames = new TreeMap<>();
-		} else {
-			this.groundPred2ActualNames = groundPred2ActualNames;
-		}
 		if (toneMap == null) {
 			this.transparencyMap = new TreeMap<String, Double>();
 		} else {
 			this.transparencyMap = toneMap;
+		}
+		if (groundPred2ActualNames == null) {
+			this.groundPred2ActualNames = new TreeMap<>();
+		} else {
+			this.groundPred2ActualNames = groundPred2ActualNames;
 		}
 		if (ignoreList == null) {
 			this.ignoreList = new TreeSet<String>();
@@ -157,8 +157,8 @@ public class RagFilter {
 	public String atomToSimplifiedString(GroundAtom atom) {
 		String predName = atom.getPredicate().getName();
 		// TODO: find out why this wasn't previously necessary
-		predName = (groundPred2ActualNames == null) ? TalkingPredicate.getPredNameFromAllCaps(predName)
-				: groundPred2ActualNames.get(predName);
+		predName = (groundPred2ActualNames == null || !groundPred2ActualNames.containsKey(predName))
+				? TalkingPredicate.getPredNameFromAllCaps(predName) : groundPred2ActualNames.get(predName);
 		Tuple argTuple = new Tuple();
 		for (Constant c : atom.getArguments()) {
 			String cStr = c.toString();
