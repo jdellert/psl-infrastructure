@@ -25,31 +25,31 @@ public class RagFilter {
 	protected Map<String, String> groundPred2ActualNames;
 	protected Set<String> ignoreList;
 	protected Set<String> ignoreInGui;
-	protected Map<String, Double> transparencyMap;
+	protected Map<String, Double> beliefValues;
 	
 	public RagFilter() {
 		setAll(null, null, null, null);
 	}
 
-	public RagFilter(Map<String, Double> toneMap) {
-		setAll(toneMap, null, null, null);
+	public RagFilter(Map<String, Double> beliefValues) {
+		setAll(beliefValues, null, null, null);
 	}
 
-	public RagFilter(Map<String, Double> toneMap, Map<String, String> groundPred2ActualNames) {
-		setAll(toneMap, groundPred2ActualNames, null, null);
+	public RagFilter(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames) {
+		setAll(beliefValues, groundPred2ActualNames, null, null);
 	}
 
-	public RagFilter(Map<String, Double> toneMap, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
+	public RagFilter(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
 			Set<String> ignoreInGui) {
-		setAll(toneMap, groundPred2ActualNames, ignoreList, ignoreInGui);
+		setAll(beliefValues, groundPred2ActualNames, ignoreList, ignoreInGui);
 	}
 	
-	public void setAll(Map<String, Double> toneMap, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
+	public void setAll(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
 			Set<String> ignoreInGui){
-		if (toneMap == null) {
-			this.transparencyMap = new TreeMap<String, Double>();
+		if (beliefValues == null) {
+			this.beliefValues = new TreeMap<String, Double>();
 		} else {
-			this.transparencyMap = toneMap;
+			this.beliefValues = beliefValues;
 		}
 		if (groundPred2ActualNames == null) {
 			this.groundPred2ActualNames = new TreeMap<>();
@@ -80,33 +80,31 @@ public class RagFilter {
 		return ignoreInGui;
 	}
 
-	public Map<String, Double> getTransparencyMap() {
-		return transparencyMap;
+	public Map<String, Double> getBeliefValues() {
+		return beliefValues;
 	}
 
 	public double getValueForAtom(String atomRepresentation) {
-		if (transparencyMap == null) {
+		if (beliefValues == null)
 			return -1.0;
-		} else
-			return transparencyMap.getOrDefault(atomRepresentation, -1.0);
+		return beliefValues.getOrDefault(atomRepresentation, -1.0);
 	}
 
 	public double getTransparencyForAtom(String atomRepresentation) {
-		if (transparencyMap == null) {
+		if (beliefValues == null)
 			return -1.0;
-		} else
-			return transparencyMap.getOrDefault(atomRepresentation, 1.0);
+		return beliefValues.getOrDefault(atomRepresentation, 1.0);
 	}
 
 	public Map<String, Double> getAtomsWithFirstArgument(String argument) {
 		Map<String, Double> atoms = new TreeMap<>();
-		for (String atom : transparencyMap.keySet()) {
+		for (String atom : beliefValues.keySet()) {
 			String[] predAndArgs = atom.split("\\(");
 			if (ignoreList.contains(predAndArgs[0]) || ignoreInGui.contains(predAndArgs[0])) {
 				continue;
 			}
 			if (argument.equals(predAndArgs[1].split(",")[0].trim())) {
-				atoms.put(atom, transparencyMap.get(atom));
+				atoms.put(atom, beliefValues.get(atom));
 			}
 		}
 		return atoms;
@@ -118,11 +116,11 @@ public class RagFilter {
 	}
 
 	public double updateToneForAtom(String atomRepresentation, double newTone) {
-		if (transparencyMap == null)
+		if (beliefValues == null)
 			return 0.0;
 		else {
-			Double oldTone = transparencyMap.get(atomRepresentation);
-			transparencyMap.put(atomRepresentation, newTone);
+			Double oldTone = beliefValues.get(atomRepresentation);
+			beliefValues.put(atomRepresentation, newTone);
 			if (oldTone == null)
 				return 0.0;
 			return 1.0 - oldTone;
@@ -169,7 +167,7 @@ public class RagFilter {
 	}
 
 	public void printInformativeValues(PrintStream out) {
-		transparencyMap.entrySet().stream()
+		beliefValues.entrySet().stream()
 				.filter(entry -> isRenderedInGui(entry.getKey().split("\\(")[0]) && entry.getValue() > 0.0)
 				.sorted(Comparator.comparing(Map.Entry::getValue, Comparator.reverseOrder()))
 				.map(entry -> entry.getKey() + "\t" + entry.getValue()).collect(Collectors.toList())

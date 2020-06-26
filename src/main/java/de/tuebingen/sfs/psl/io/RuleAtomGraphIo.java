@@ -38,10 +38,16 @@ public class RuleAtomGraphIo {
 
 	public static void saveToFile(RuleAtomGraph rag, ObjectMapper mapper, File path) {
 		StringBuilder sb = new StringBuilder();
-		sb.append("RAG FILTER\n===============\nPATH\t");
-		sb.append(RAG_FILTER_PATH);
-		saveToJson(rag.getRagFilter(), mapper, new File(RAG_FILTER_PATH));
-		sb.append("\nCLASS\t").append(rag.getRagFilter().getClass());
+		RagFilter filter = rag.getRagFilter();
+		sb.append("RAG FILTER\n===============");
+//		sb.append("RAG FILTER\n===============\nPATH\t");
+//		sb.append(RAG_FILTER_PATH);
+//		saveToJson(filter, mapper, new File(RAG_FILTER_PATH));
+		sb.append("\nCLASS\t").append(filter.getClass());
+		sb.append("\nIGNORE LIST\t").append(filter.getIgnoreList());
+		sb.append("\nIGNORE IN GUI\t").append(filter.getIgnoreInGui());
+		sb.append("\nPRED TO NAME\t").append(filter.getGroundPred2ActualNames());
+		
 		sb.append("\n\n\nRULE GROUNDINGS\n===============\nGROUNDING\tSTATUS\tINCOMING\n");
 		for (String grounding : rag.getGroundingNodes()) {
 			sb.append(grounding).append("\t").append(rag.getGroundingStatus(grounding)).append("\t");
@@ -51,10 +57,10 @@ public class RuleAtomGraphIo {
 		}
 		sb.append("\n\nEQUALITY RULES\n===============\n").append(rag.getEqualityGroundings());
 		sb.append(
-				"\n\n\nATOM LINKS\n===============\nATOM\tATOM STATUS\tGROUNDING\tLINK STATUS\tLINK STRENGTH\tLINK PRESSURE\n");
+				"\n\n\nATOM LINKS\n===============\nATOM\tBELIEF VALUE\tATOM STATUS\tGROUNDING\tLINK STATUS\tLINK STRENGTH\tLINK PRESSURE\n");
 		for (String atom : rag.getAtomNodes()) {
 			for (Tuple link : rag.getOutgoingLinks(atom)) {
-				sb.append(atom).append("\t").append(rag.getAtomStatus(atom)).append("\t");
+				sb.append(atom).append("\t").append(filter.getValueForAtom(atom)).append("\t").append(rag.getAtomStatus(atom)).append("\t");
 				sb.append(link.get(1)).append("\t").append(rag.getLinkStatus(link)).append("\t");
 				sb.append(rag.getLinkStrength(link)).append("\t").append(rag.getLinkPressure(link)).append("\n");
 			}
@@ -81,20 +87,24 @@ public class RuleAtomGraphIo {
 	}
 
 	public static RuleAtomGraph ragFromFile(ObjectMapper mapper, InputStream is) {
-		String filterPath = null;
+//		String filterPath = null;
 		String filterClass = null;
+		Set<String> ignoreList = new TreeSet<>();
+		Set<String> ignoreInGui = new TreeSet<>();
+		Map<String, String> groundPreds2ActualNames = new TreeMap<>();
 
 		Set<String> groundingNodes = new TreeSet<String>();
-		Map<String, Double> groundingStatus = new TreeMap<String, Double>();
+		Map<String, Double> groundingStatus = new TreeMap<>();
 		Set<String> equalityGroundings = new TreeSet<>();
 		Set<String> atomNodes = new TreeSet<String>();
-		Map<String, String> atomStatus = new TreeMap<String, String>();
-		Set<Tuple> links = new TreeSet<Tuple>();
-		Map<Tuple, String> linkStatus = new TreeMap<Tuple, String>();
-		Map<Tuple, Boolean> linkPressure = new TreeMap<Tuple, Boolean>();
-		Map<Tuple, Double> linkStrength = new TreeMap<Tuple, Double>();
-		Map<String, Set<Tuple>> outgoingLinks = new TreeMap<String, Set<Tuple>>();
-		Map<String, List<Tuple>> incomingLinks = new TreeMap<String, List<Tuple>>();
+		Map<String, Double> beliefValues = new TreeMap<>();
+		Map<String, String> atomStatus = new TreeMap<>();
+		Set<Tuple> links = new TreeSet<>();
+		Map<Tuple, String> linkStatus = new TreeMap<>();
+		Map<Tuple, Boolean> linkPressure = new TreeMap<>();
+		Map<Tuple, Double> linkStrength = new TreeMap<>();
+		Map<String, Set<Tuple>> outgoingLinks = new TreeMap<>();
+		Map<String, List<Tuple>> incomingLinks = new TreeMap<>();
 
 		String line = "";
 		boolean readingAtoms = false;
@@ -107,29 +117,50 @@ public class RuleAtomGraphIo {
 				}
 				if (line.equalsIgnoreCase("RAG FILTER")) {
 					br.readLine();
-					for (int i = 0; i < 2; i++) {
+					for (int i = 0; i < 4; i++) {
 						line = br.readLine().trim();
-						if (line.startsWith("PATH")) {
-							filterPath = line.split("\t")[1];
-						} else if (line.startsWith("TYPE")) {
+						if (line.startsWith("TYPE")) {
 							filterClass = line.split("\t")[1];
+//						} else if (line.startsWith("PATH")) {
+//							filterPath = line.split("\t")[1];
+						} else if (line.startsWith("IGNORE LIST")) {
+							line = line.split("\t")[1].trim();
+							line = line.substring(1, line.length() - 1); // Remove [ ]
+							for (String item : line.split(",")){
+								ignoreList.add(item.trim());
+							}
+						} else if (line.startsWith("IGNORE IN GUI")) {
+							line = line.split("\t")[1];
+							line = line.substring(1, line.length() - 1); // Remove [ ]
+							for (String item : line.split(",")){
+								ignoreInGui.add(item.trim());
+							}
+						} else if (line.startsWith("PRED")) {
+							line = line.split("\t")[1];
+							line = line.substring(1, line.length() - 1); // Remove { }
+							for (String item : line.split(",")){
+								String[] entry = item.split("=");
+								groundPreds2ActualNames.put(entry[0].trim(), entry[1].trim());
+							}
 						}
 					}
 					continue;
 				}
 				if (line.equalsIgnoreCase("RULE GROUNDINGS")) {
-					br.readLine();
+					br.readLine(); // ====
+					br.readLine(); // table header
 					readingGroundings = true;
 					readingAtoms = false;
 					continue;
 				}
 				if (line.equalsIgnoreCase("ATOM LINKS")) {
-					br.readLine();
+					br.readLine(); // ====
+					br.readLine(); // table header
 					readingGroundings = false;
 					readingAtoms = true;
 					continue;
 				}
-				if (line.equalsIgnoreCase("EQUALITY GROUNDINGS")) {
+				if (line.equalsIgnoreCase("EQUALITY RULES")) {
 					br.readLine();
 					line = br.readLine().trim();
 					line.substring(1, line.length() - 1);
@@ -153,12 +184,17 @@ public class RuleAtomGraphIo {
 					String[] fields = line.split("\t");
 					String atom = fields[0].trim();
 					atomNodes.add(atom);
-					atomStatus.put(atom, fields[1].trim());
-					Tuple link = new Tuple(atom, fields[2].trim());
+					beliefValues.put(atom, Double.parseDouble(fields[1].trim()));
+					atomStatus.put(atom, fields[2].trim());
+					Tuple link = new Tuple(atom, fields[3].trim());
 					links.add(link);
-					linkStatus.put(link, fields[3].trim());
-					linkStrength.put(link, Double.parseDouble(fields[4].trim()));
-					linkPressure.put(link, Boolean.parseBoolean(fields[5].trim()));
+					linkStatus.put(link, fields[4].trim());
+					if (fields[5].trim().equals("null")){
+						linkStrength.put(link, null);
+					} else {
+						linkStrength.put(link, Double.parseDouble(fields[5].trim()));
+					}
+					linkPressure.put(link, Boolean.parseBoolean(fields[6].trim()));
 					if (!outgoingLinks.containsKey(atom)) {
 						outgoingLinks.put(atom, new TreeSet<>());
 					}
@@ -178,9 +214,25 @@ public class RuleAtomGraphIo {
 			e.printStackTrace();
 		}
 
-		RagFilter renderer = ragFilterFromJson(mapper, new File(filterPath), filterClass);
+//		RagFilter renderer = ragFilterFromJson(mapper, new File(filterPath), filterClass);
+		RagFilter ragFilter = null;
+		if (filterClass == null || filterClass.isEmpty()) {
+			ragFilter = new RagFilter();
+		} else {
+			try {
+				Class c = Class.forName(filterClass);
+				ragFilter = (RagFilter) c.newInstance();
+			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+				System.err.println("Could not create RagFilter of type " + filterClass);
+				System.err.println("Creating normal RagFilter instead.");
+				ragFilter = new RagFilter();
+				e.printStackTrace();
+			}
+		}
+		ragFilter.setAll(beliefValues, groundPreds2ActualNames, ignoreList, ignoreInGui);
+		
 		RuleAtomGraph rag = new RuleAtomGraph(groundingNodes, groundingStatus, equalityGroundings, atomNodes,
-				atomStatus, links, linkStatus, linkPressure, linkStrength, outgoingLinks, incomingLinks, renderer);
+				atomStatus, links, linkStatus, linkPressure, linkStrength, outgoingLinks, incomingLinks, ragFilter);
 		return rag;
 	}
 
@@ -195,8 +247,8 @@ public class RuleAtomGraphIo {
 					(ArrayNode) mapper.readTree(mapper.writeValueAsString(renderer.getIgnoreList())));
 			rootNode.set("ignoreInGui",
 					(ArrayNode) mapper.readTree(mapper.writeValueAsString(renderer.getIgnoreInGui())));
-			rootNode.set("transparencyMap",
-					(ObjectNode) mapper.readTree(mapper.writeValueAsString(renderer.getTransparencyMap())));
+			rootNode.set("beliefValues",
+					(ObjectNode) mapper.readTree(mapper.writeValueAsString(renderer.getBeliefValues())));
 			rootNode.set("groundPred2ActualNames",
 					(ObjectNode) mapper.readTree(mapper.writeValueAsString(renderer.getGroundPred2ActualNames())));
 			mapper.writerWithDefaultPrettyPrinter().writeValue(path, rootNode);
@@ -229,7 +281,7 @@ public class RuleAtomGraphIo {
 			ignoreList = mapper.treeToValue(rootNode.path("ignoreList"), TreeSet.class);
 			ignoreInGui = mapper.treeToValue(rootNode.path("ignoreInGui"), TreeSet.class);
 			groundPred2ActualNames = mapper.treeToValue(rootNode.path("groundPred2ActualNames"), TreeMap.class);
-			transparencyMap = mapper.treeToValue(rootNode.path("transparencyMap"), TreeMap.class);
+			transparencyMap = mapper.treeToValue(rootNode.path("beliefValues"), TreeMap.class);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
