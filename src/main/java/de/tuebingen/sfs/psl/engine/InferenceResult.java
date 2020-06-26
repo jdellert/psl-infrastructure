@@ -24,7 +24,7 @@ public class InferenceResult {
 	}
 
 	public InferenceResult(RuleAtomGraph rag) {
-		this(rag, null, null);
+		this(rag, rag.getRagFilter().getBeliefValues(), null);
 	}
 
 	public InferenceResult(Map<String, Double> inferenceValues) {
