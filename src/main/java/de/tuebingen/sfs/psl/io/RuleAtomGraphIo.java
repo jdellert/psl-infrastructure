@@ -18,10 +18,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import de.tuebingen.sfs.psl.engine.RagFilter;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
@@ -30,7 +27,6 @@ import de.tuebingen.sfs.psl.util.data.Tuple;
 public class RuleAtomGraphIo {
 
 	public static String RAG_PATH = "src/test/resources/serialization/rag.txt";
-	public static String RAG_FILTER_PATH = "src/test/resources/serialization/filter.json";
 
 	public static void saveToFile(RuleAtomGraph rag, ObjectMapper mapper) {
 		saveToFile(rag, mapper, new File(RAG_PATH));
@@ -40,9 +36,6 @@ public class RuleAtomGraphIo {
 		StringBuilder sb = new StringBuilder();
 		RagFilter filter = rag.getRagFilter();
 		sb.append("RAG FILTER\n===============");
-//		sb.append("RAG FILTER\n===============\nPATH\t");
-//		sb.append(RAG_FILTER_PATH);
-//		saveToJson(filter, mapper, new File(RAG_FILTER_PATH));
 		sb.append("\nCLASS\t").append(filter.getClass());
 		sb.append("\nIGNORE LIST\t").append(filter.getIgnoreList());
 		sb.append("\nIGNORE IN GUI\t").append(filter.getIgnoreInGui());
@@ -87,7 +80,6 @@ public class RuleAtomGraphIo {
 	}
 
 	public static RuleAtomGraph ragFromFile(ObjectMapper mapper, InputStream is) {
-//		String filterPath = null;
 		String filterClass = null;
 		Set<String> ignoreList = new TreeSet<>();
 		Set<String> ignoreInGui = new TreeSet<>();
@@ -121,8 +113,6 @@ public class RuleAtomGraphIo {
 						line = br.readLine().trim();
 						if (line.startsWith("TYPE")) {
 							filterClass = line.split("\t")[1];
-//						} else if (line.startsWith("PATH")) {
-//							filterPath = line.split("\t")[1];
 						} else if (line.startsWith("IGNORE LIST")) {
 							line = line.split("\t")[1].trim();
 							line = line.substring(1, line.length() - 1); // Remove [ ]
@@ -214,7 +204,6 @@ public class RuleAtomGraphIo {
 			e.printStackTrace();
 		}
 
-//		RagFilter renderer = ragFilterFromJson(mapper, new File(filterPath), filterClass);
 		RagFilter ragFilter = null;
 		if (filterClass == null || filterClass.isEmpty()) {
 			ragFilter = new RagFilter();
@@ -224,9 +213,8 @@ public class RuleAtomGraphIo {
 				ragFilter = (RagFilter) c.newInstance();
 			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
 				System.err.println("Could not create RagFilter of type " + filterClass);
-				System.err.println("Creating normal RagFilter instead.");
+				System.err.println("Creating standard RagFilter instead.");
 				ragFilter = new RagFilter();
-				e.printStackTrace();
 			}
 		}
 		ragFilter.setAll(beliefValues, groundPreds2ActualNames, ignoreList, ignoreInGui);
@@ -234,74 +222,6 @@ public class RuleAtomGraphIo {
 		RuleAtomGraph rag = new RuleAtomGraph(groundingNodes, groundingStatus, equalityGroundings, atomNodes,
 				atomStatus, links, linkStatus, linkPressure, linkStrength, outgoingLinks, incomingLinks, ragFilter);
 		return rag;
-	}
-
-	public static void saveToJson(RagFilter renderer, ObjectMapper mapper) {
-		saveToJson(renderer, mapper, new File(RAG_FILTER_PATH));
-	}
-
-	public static void saveToJson(RagFilter renderer, ObjectMapper mapper, File path) {
-		try {
-			ObjectNode rootNode = mapper.createObjectNode();
-			rootNode.set("ignoreList",
-					(ArrayNode) mapper.readTree(mapper.writeValueAsString(renderer.getIgnoreList())));
-			rootNode.set("ignoreInGui",
-					(ArrayNode) mapper.readTree(mapper.writeValueAsString(renderer.getIgnoreInGui())));
-			rootNode.set("beliefValues",
-					(ObjectNode) mapper.readTree(mapper.writeValueAsString(renderer.getBeliefValues())));
-			rootNode.set("groundPred2ActualNames",
-					(ObjectNode) mapper.readTree(mapper.writeValueAsString(renderer.getGroundPred2ActualNames())));
-			mapper.writerWithDefaultPrettyPrinter().writeValue(path, rootNode);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	public static RagFilter ragFilterFromJson(ObjectMapper mapper) {
-		return ragFilterFromJson(mapper, new File(RAG_FILTER_PATH), null);
-	}
-
-	public static RagFilter ragFilterFromJson(ObjectMapper mapper, String className) {
-		return ragFilterFromJson(mapper, new File(RAG_FILTER_PATH), className);
-	}
-
-	public static RagFilter ragFilterFromJson(ObjectMapper mapper, File path) {
-		return ragFilterFromJson(mapper, path, null);
-	}
-
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static RagFilter ragFilterFromJson(ObjectMapper mapper, File path, String className) {
-		Map<String, String> groundPred2ActualNames = null;
-		Set<String> ignoreList = null;
-		Set<String> ignoreInGui = null;
-		Map<String, Double> transparencyMap = null;
-		try {
-			// TODO (vbl) check if JAR-compatible (stream)
-			JsonNode rootNode = mapper.readTree(path);
-			ignoreList = mapper.treeToValue(rootNode.path("ignoreList"), TreeSet.class);
-			ignoreInGui = mapper.treeToValue(rootNode.path("ignoreInGui"), TreeSet.class);
-			groundPred2ActualNames = mapper.treeToValue(rootNode.path("groundPred2ActualNames"), TreeMap.class);
-			transparencyMap = mapper.treeToValue(rootNode.path("beliefValues"), TreeMap.class);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		RagFilter ragFilter = null;
-		if (className == null || className.isEmpty()) {
-			ragFilter = new RagFilter();
-		} else {
-			try {
-				Class c = Class.forName(className);
-				ragFilter = (RagFilter) c.newInstance();
-			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-				System.err.println("Could not create RagFilter of type " + className);
-				System.err.println("Creating normal RagFilter instead.");
-				ragFilter = new RagFilter();
-				e.printStackTrace();
-			}
-		}
-
-		ragFilter.setAll(transparencyMap, groundPred2ActualNames, ignoreList, ignoreInGui);
-		return ragFilter;
 	}
 
 }
