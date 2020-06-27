@@ -67,12 +67,12 @@ public class RuleAtomGraphIo {
 	}
 
 	public static RuleAtomGraph ragFromFile(ObjectMapper mapper) {
-		return ragFromFile(mapper, new File(RAG_PATH));
+		return ragFromFile(mapper, RAG_PATH);
 	}
 
-	public static RuleAtomGraph ragFromFile(ObjectMapper mapper, File file) {
+	public static RuleAtomGraph ragFromFile(ObjectMapper mapper, String path) {
 		try {
-			return ragFromFile(mapper, new FileInputStream(file));
+			return ragFromFile(mapper, new FileInputStream(path));
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
