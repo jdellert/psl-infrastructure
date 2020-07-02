@@ -53,6 +53,10 @@ public abstract class TalkingRule {
 	private String[] args;
 	private PslProblem pslProblem;
 	
+	TalkingRule(){
+		// For serialization.
+	}
+	
 	TalkingRule(String name, String ruleString, Rule rule, PslProblem pslProblem, String verbalization) {
 		this.name = name;
 		this.ruleString = ruleString;

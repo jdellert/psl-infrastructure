@@ -21,6 +21,10 @@ public class TalkingLogicalRule extends TalkingRule {
 	// rest is negative
 	private int positiveArgs = -1;
 	
+	public TalkingLogicalRule(){
+		// For serialization.
+	}
+	
 	public TalkingLogicalRule(String name, String ruleString, PslProblem pslProblem) {
 		this(name, ruleString, createRule(pslProblem.getDataStore(), ruleString), pslProblem, null);
 	}
@@ -69,6 +73,7 @@ public class TalkingLogicalRule extends TalkingRule {
 		// Number of positive literals in printableArgs
 		int positiveGroundArgs = -1;
 		
+		// TODO (vbl) workaround if psl problem is unspecified (deserialization)
 		Map<String, TalkingPredicate> nameToTalkingPredicate;
 		nameToTalkingPredicate = getPslProblem().getTalkingPredicates();
 		

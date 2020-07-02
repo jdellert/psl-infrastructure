@@ -19,6 +19,10 @@ public class TalkingArithmeticRule extends TalkingRule {
 	private boolean[] sum = null;
 	// Is this an equative rule?
 	private boolean equative = false;
+	
+	public TalkingArithmeticRule() {
+		// For serialization.
+	}
 
 	public TalkingArithmeticRule(String name, String ruleString, PslProblem pslProblem) {
 		this(name, ruleString, createRule(pslProblem.getDataStore(), ruleString), pslProblem, null);
