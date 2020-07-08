@@ -9,7 +9,7 @@ import org.linqs.psl.model.formula.FormulaAnalysis;
 import org.linqs.psl.model.rule.Rule;
 import org.linqs.psl.model.rule.logical.AbstractLogicalRule;
 
-import de.tuebingen.sfs.eie.talk.pred.NotEqualPred;
+import de.tuebingen.sfs.psl.talk.pred.NotEqualPred;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
 import de.tuebingen.sfs.psl.util.data.StringUtils;

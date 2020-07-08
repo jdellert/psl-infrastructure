@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-import de.tuebingen.sfs.util.InferenceLogger;
+import de.tuebingen.sfs.psl.util.log.InferenceLogger;
 import org.linqs.psl.config.Config;
 import org.linqs.psl.database.rdbms.RDBMSDataStore;
 import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver;

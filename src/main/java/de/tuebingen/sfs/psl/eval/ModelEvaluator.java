@@ -2,9 +2,7 @@ package de.tuebingen.sfs.psl.eval;
 
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.util.data.Tuple;
-import de.tuebingen.sfs.util.InferenceLogger;
-import javafx.scene.control.Tab;
-import org.linqs.psl.model.rule.arithmetic.expression.coefficient.Max;
+import de.tuebingen.sfs.psl.util.log.InferenceLogger;
 
 import java.io.PrintStream;
 import java.util.*;
