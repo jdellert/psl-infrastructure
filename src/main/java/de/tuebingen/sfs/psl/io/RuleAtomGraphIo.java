@@ -316,7 +316,6 @@ public class RuleAtomGraphIo {
 			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
 				System.err.println("Could not create RagFilter of type " + filterClass + ":");
 				e.printStackTrace();
-//				System.err.println(e.getClass().getName());
 				System.err.println("Creating standard RagFilter instead.");
 				ragFilter = new RagFilter();
 			}
@@ -325,6 +324,10 @@ public class RuleAtomGraphIo {
 		RuleAtomGraph rag = new RuleAtomGraph(groundingNodes, groundingStatus, equalityGroundings, atomNodes,
 				atomStatus, links, linkStatus, linkPressure, linkStrength, outgoingLinks, incomingLinks, ragFilter);
 
+		for (TalkingRule rule : talkingRules.values()){
+			rule.setTalkingPredicates(talkingPreds);
+		}
+		
 		// TODO del (vbl)
 		System.out.println("talkingPreds " + talkingPreds);
 		System.out.println("talkingRules " + talkingRules);

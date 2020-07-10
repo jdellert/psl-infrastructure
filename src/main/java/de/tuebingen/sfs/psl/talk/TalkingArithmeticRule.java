@@ -20,8 +20,9 @@ public class TalkingArithmeticRule extends TalkingRule {
 	// Is this an equative rule?
 	private boolean equative = false;
 	
-	public TalkingArithmeticRule() {
-		// For serialization.
+	// For serialization.
+	public TalkingArithmeticRule(String ruleString){
+		super(ruleString);
 	}
 
 	public TalkingArithmeticRule(String name, String ruleString, PslProblem pslProblem) {
