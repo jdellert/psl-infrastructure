@@ -260,26 +260,11 @@ public class RuleAtomGraphIo {
 					String predClass = fields[2].trim();
 					TalkingPredicate pred = null;
 					try {
-						Constructor c = Class.forName(predClass).getConstructor(String.class, Integer.TYPE);
-						pred = (TalkingPredicate) c.newInstance(predName, arity);
+						Class c = Class.forName(predClass);
+						pred = (TalkingPredicate) c.newInstance();
 					} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-							| NullPointerException | NoSuchMethodException | SecurityException
-							| IllegalArgumentException | InvocationTargetException e) {
-						System.err.println(
-								"Could not create predicate of type " + predClass + " with the constructor arguments ("
-										+ predName + ", " + arity + "). Calling the default constructor instead.");
-						try {
-							Class c = Class.forName(predClass);
-							pred = (TalkingPredicate) c.newInstance();
-						} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-								| NullPointerException | SecurityException | IllegalArgumentException e2) {
-							System.err.println("Could not create predicate of type " + predClass + " for "
-									+ predName + ": ");
-							e2.printStackTrace();
-							System.err.println("Creating a standard TalkingPredicate with the arguments (" + predName
-									+ ", " + arity + ") instead.");
-							pred = new TalkingPredicate(predName, arity);
-						}
+							| NullPointerException | SecurityException | IllegalArgumentException e) {
+						pred = new TalkingPredicate(predName, arity);
 					}
 					talkingPreds.put(predName, pred);
 					break;
