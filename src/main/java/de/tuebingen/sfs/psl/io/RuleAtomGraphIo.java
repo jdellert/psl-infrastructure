@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import de.tuebingen.sfs.eie.talk.pred.EinhPred;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RagFilter;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
@@ -35,6 +36,7 @@ import de.tuebingen.sfs.psl.util.data.Tuple;
 public class RuleAtomGraphIo {
 
 	public static String RAG_PATH = "src/test/resources/serialization/rag.txt";
+
 	private static enum TSV_SECTION {
 		ATOMS, GROUNDINGS, TALKING_PREDS, TALKING_RULES
 	}
@@ -118,7 +120,7 @@ public class RuleAtomGraphIo {
 			talkingPreds = new TreeMap<>();
 		if (talkingRules == null)
 			talkingRules = new TreeMap<>();
-		
+
 		Pattern atomPattern = Pattern.compile("\\w{4,}\\([^\\(]+\\)");
 
 		String filterClass = null;
@@ -229,7 +231,7 @@ public class RuleAtomGraphIo {
 					List<Tuple> incoming = new ArrayList<Tuple>();
 					Matcher matcher = atomPattern.matcher(fields[2].trim());
 					while (matcher.find()) {
-					    incoming.add(new Tuple(matcher.group(), grounding));
+						incoming.add(new Tuple(matcher.group(), grounding));
 					}
 					incomingLinks.put(grounding, incoming);
 					break;
@@ -264,10 +266,20 @@ public class RuleAtomGraphIo {
 							| NullPointerException | NoSuchMethodException | SecurityException
 							| IllegalArgumentException | InvocationTargetException e) {
 						System.err.println(
-								"Could not create TalkingPredicate of type " + predClass + " for " + predName + ": ");
-						e.printStackTrace();
-						System.err.println("Creating standard TalkingPredicate instead.");
-						pred = new TalkingPredicate(predName, arity);
+								"Could not create predicate of type " + predClass + " with the constructor arguments ("
+										+ predName + ", " + arity + "). Calling the default constructor instead.");
+						try {
+							Class c = Class.forName(predClass);
+							pred = (TalkingPredicate) c.newInstance();
+						} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+								| NullPointerException | SecurityException | IllegalArgumentException e2) {
+							System.err.println("Could not create predicate of type " + predClass + " for "
+									+ predName + ": ");
+							e2.printStackTrace();
+							System.err.println("Creating a standard TalkingPredicate with the arguments (" + predName
+									+ ", " + arity + ") instead.");
+							pred = new TalkingPredicate(predName, arity);
+						}
 					}
 					talkingPreds.put(predName, pred);
 					break;
@@ -276,7 +288,6 @@ public class RuleAtomGraphIo {
 					String ruleClass = fields[1].trim();
 					TalkingRule rule = null;
 					try {
-						// TODO constructor!!!
 						Class c = Class.forName(ruleClass);
 						rule = (TalkingRule) c.newInstance();
 						talkingRules.put(ruleName, rule);
@@ -324,26 +335,10 @@ public class RuleAtomGraphIo {
 		RuleAtomGraph rag = new RuleAtomGraph(groundingNodes, groundingStatus, equalityGroundings, atomNodes,
 				atomStatus, links, linkStatus, linkPressure, linkStrength, outgoingLinks, incomingLinks, ragFilter);
 
-		for (TalkingRule rule : talkingRules.values()){
+		for (TalkingRule rule : talkingRules.values()) {
 			rule.setTalkingPredicates(talkingPreds);
 		}
-		
-		// TODO del (vbl)
-		System.out.println("talkingPreds " + talkingPreds);
-		System.out.println("talkingRules " + talkingRules);
-//		System.out.println("incoming " + incomingLinks);
-//		System.out.println("outgoing " + outgoingLinks);
-//		System.out.println("groundingNodes " + groundingNodes);
-//		System.out.println("groundingStatus " + groundingStatus);
-//		System.out.println("equalityGroundings " + equalityGroundings);
-//		System.out.println("atomNodes " + atomNodes);
-//		System.out.println("atomStatus " + atomStatus);
-//		System.out.println("links " + links);
-//		System.out.println("linkStatus " + linkStatus);
-//		System.out.println("linkStrength " + linkStrength);
-		System.out.println("rag filter type " + ragFilter.getClass());
-//		System.exit(0);
-		
+
 		return rag;
 	}
 
