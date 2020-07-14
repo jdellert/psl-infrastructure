@@ -22,8 +22,13 @@ public class TalkingLogicalRule extends TalkingRule {
 	private int positiveArgs = -1;
 	
 	// For serialization.
-	public TalkingLogicalRule(String ruleString){
-		super(ruleString);
+	public TalkingLogicalRule(String name, String ruleString) {
+		super(name, ruleString);
+	}
+	
+	// For serialization.
+	public TalkingLogicalRule(String name, String ruleString, String verbalization){
+		super(name, ruleString, verbalization);
 	}
 	
 	public TalkingLogicalRule(String name, String ruleString, PslProblem pslProblem) {
@@ -75,13 +80,14 @@ public class TalkingLogicalRule extends TalkingRule {
 		int positiveGroundArgs = -1;
 		
 		Map<String, TalkingPredicate> nameToTalkingPredicate = getTalkingPredicates();
-		
+
 		for (int i = 0; i < args.length; i++) {
 			if (i == positiveArgs)
 				positiveGroundArgs = printableArgs.size();
 
-			if (rag.getIgnoredPredicates().contains(args[i].substring(0, args[i].indexOf('('))) || args[i].charAt(0) == '(') // Skip (X == 'x')
-																										  // TODO: Improve
+			if (rag.getIgnoredPredicates().contains(args[i].substring(0, args[i].indexOf('('))) || args[i].charAt(0) == '(')
+				// Skip (X == 'x')
+				// TODO: Improve
 				skip++;
 			else {
 				String groundAtom = atomToStatus.get(i - skip).get(0);

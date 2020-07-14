@@ -21,8 +21,13 @@ public class TalkingArithmeticRule extends TalkingRule {
 	private boolean equative = false;
 	
 	// For serialization.
-	public TalkingArithmeticRule(String ruleString){
-		super(ruleString);
+	public TalkingArithmeticRule(String name, String ruleString) {
+		super(name, ruleString);
+	}
+	
+	// For serialization.
+	public TalkingArithmeticRule(String name, String ruleString, String verbalization){
+		super(name, ruleString, verbalization);
 	}
 
 	public TalkingArithmeticRule(String name, String ruleString, PslProblem pslProblem) {

@@ -55,11 +55,19 @@ public abstract class TalkingRule {
 	private String[] args;
 	private PslProblem pslProblem = null;
 	private Map<String, TalkingPredicate> talkingPreds = null;
-	private static final Pattern ATOM_PATTERN = Pattern.compile("(?<=\\w\\()[^\\(]+(?=\\))");
+//	private static final Pattern ATOM_PATTERN = Pattern.compile("(?<=\\w\\()[^\\(]+(?=\\))");
+	private static final Pattern ATOM_PATTERN = Pattern.compile("\\w{4,}\\([^\\(]+\\)");
 
 	
 	// For serialization.
-	TalkingRule(String ruleString){
+	TalkingRule(String name, String ruleString) {
+		this(name, ruleString, null);
+	}
+	
+	// For serialization.
+	TalkingRule(String name, String ruleString, String verbalization){
+		this.name = name;
+		this.verbalization = (verbalization != null) ? verbalization : name;
 		List<String> args = new ArrayList<>();
 		Matcher matcher = ATOM_PATTERN.matcher(ruleString);
 		while (matcher.find()) {
