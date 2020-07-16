@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.linqs.psl.database.DataStore;
 import org.linqs.psl.model.atom.Atom;
@@ -51,10 +53,33 @@ public abstract class TalkingRule {
 	// Arguments of the rule as entered in the rule string
 	// (e.g. "Prec(Lang1, Lang2, Proto)")
 	private String[] args;
-	private PslProblem pslProblem;
+	private PslProblem pslProblem = null;
+	private Map<String, TalkingPredicate> talkingPreds = null;
+//	private static final Pattern ATOM_PATTERN = Pattern.compile("(?<=\\w\\()[^\\(]+(?=\\))");
+	private static final Pattern ATOM_PATTERN = Pattern.compile("\\w{4,}\\([^\\(]+\\)");
+
 	
-	TalkingRule(){
-		// For serialization.
+	// For serialization.
+	TalkingRule(String name, String ruleString) {
+		this(name, ruleString, null);
+	}
+	
+	// For serialization.
+	TalkingRule(String name, String ruleString, String verbalization){
+		this.name = name;
+		this.verbalization = (verbalization != null) ? verbalization : name;
+		List<String> args = new ArrayList<>();
+		Matcher matcher = ATOM_PATTERN.matcher(ruleString);
+		while (matcher.find()) {
+			String argSection = matcher.group();
+		    for (String arg : argSection.split(",")){
+		    	args.add(arg.trim());
+		    }
+		}
+		this.args = new String[args.size()];
+		for (int i = 0; i < args.size(); i++){
+			this.args[i] = args.get(i);
+		}
 	}
 	
 	TalkingRule(String name, String ruleString, Rule rule, PslProblem pslProblem, String verbalization) {
@@ -125,6 +150,16 @@ public abstract class TalkingRule {
 
 	protected PslProblem getPslProblem() {
 		return pslProblem;
+	}
+	
+	public void setTalkingPredicates (Map<String, TalkingPredicate> talkingPreds){
+		this.talkingPreds = talkingPreds;
+	}
+	
+	protected Map<String, TalkingPredicate> getTalkingPredicates(){
+		if (pslProblem != null)
+			return pslProblem.getTalkingPredicates();
+		return talkingPreds;
 	}
 
 	public String generateExplanation(String groundingName, String contextAtom, RuleAtomGraph rag,

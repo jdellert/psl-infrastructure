@@ -24,6 +24,7 @@ public class PartitionManagerTest extends TestCase {
 	protected void setUp() throws Exception {
 		problemManager = ProblemManager.defaultProblemManager();
 		partitionManager = problemManager.getPartitionManager();
+		dbManager = partitionManager.getDbManager();
 
 		prob1 = new DemoPslProblem(dbManager, "ProblemA", "OpenPredA", "ClosedPred");
 		prob1.declarePredicates();
@@ -40,6 +41,7 @@ public class PartitionManagerTest extends TestCase {
 		problems = new ArrayList<>();
 		problems.add(prob1);
 		problems.add(prob2);
+		
 	}
 
 	private void initialPartitions() {

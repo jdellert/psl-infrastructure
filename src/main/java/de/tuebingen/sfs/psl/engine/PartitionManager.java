@@ -4,14 +4,11 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import de.tuebingen.sfs.util.InferenceLogger;
+import de.tuebingen.sfs.psl.util.log.InferenceLogger;
 import org.linqs.psl.database.Partition;
-import org.linqs.psl.database.rdbms.PredicateInfo;
 
 import de.tuebingen.sfs.psl.util.data.Multimap;
 import de.tuebingen.sfs.psl.util.data.Multimap.CollectionType;
-import org.linqs.psl.model.predicate.Predicate;
-import org.linqs.psl.model.predicate.StandardPredicate;
 
 public class PartitionManager {
 

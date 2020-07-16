@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import de.tuebingen.sfs.eie.talk.pred.EinhPred;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RagFilter;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
@@ -35,6 +36,7 @@ import de.tuebingen.sfs.psl.util.data.Tuple;
 public class RuleAtomGraphIo {
 
 	public static String RAG_PATH = "src/test/resources/serialization/rag.txt";
+
 	private static enum TSV_SECTION {
 		ATOMS, GROUNDINGS, TALKING_PREDS, TALKING_RULES
 	}
@@ -118,7 +120,7 @@ public class RuleAtomGraphIo {
 			talkingPreds = new TreeMap<>();
 		if (talkingRules == null)
 			talkingRules = new TreeMap<>();
-		
+
 		Pattern atomPattern = Pattern.compile("\\w{4,}\\([^\\(]+\\)");
 
 		String filterClass = null;
@@ -229,7 +231,7 @@ public class RuleAtomGraphIo {
 					List<Tuple> incoming = new ArrayList<Tuple>();
 					Matcher matcher = atomPattern.matcher(fields[2].trim());
 					while (matcher.find()) {
-					    incoming.add(new Tuple(matcher.group(), grounding));
+						incoming.add(new Tuple(matcher.group(), grounding));
 					}
 					incomingLinks.put(grounding, incoming);
 					break;
@@ -258,15 +260,10 @@ public class RuleAtomGraphIo {
 					String predClass = fields[2].trim();
 					TalkingPredicate pred = null;
 					try {
-						Constructor c = Class.forName(predClass).getConstructor(String.class, Integer.TYPE);
-						pred = (TalkingPredicate) c.newInstance(predName, arity);
+						Class c = Class.forName(predClass);
+						pred = (TalkingPredicate) c.newInstance();
 					} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-							| NullPointerException | NoSuchMethodException | SecurityException
-							| IllegalArgumentException | InvocationTargetException e) {
-						System.err.println(
-								"Could not create TalkingPredicate of type " + predClass + " for " + predName + ": ");
-						e.printStackTrace();
-						System.err.println("Creating standard TalkingPredicate instead.");
+							| NullPointerException | SecurityException | IllegalArgumentException e) {
 						pred = new TalkingPredicate(predName, arity);
 					}
 					talkingPreds.put(predName, pred);
@@ -276,7 +273,6 @@ public class RuleAtomGraphIo {
 					String ruleClass = fields[1].trim();
 					TalkingRule rule = null;
 					try {
-						// TODO constructor!!!
 						Class c = Class.forName(ruleClass);
 						rule = (TalkingRule) c.newInstance();
 						talkingRules.put(ruleName, rule);
@@ -316,7 +312,6 @@ public class RuleAtomGraphIo {
 			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
 				System.err.println("Could not create RagFilter of type " + filterClass + ":");
 				e.printStackTrace();
-//				System.err.println(e.getClass().getName());
 				System.err.println("Creating standard RagFilter instead.");
 				ragFilter = new RagFilter();
 			}
@@ -325,22 +320,10 @@ public class RuleAtomGraphIo {
 		RuleAtomGraph rag = new RuleAtomGraph(groundingNodes, groundingStatus, equalityGroundings, atomNodes,
 				atomStatus, links, linkStatus, linkPressure, linkStrength, outgoingLinks, incomingLinks, ragFilter);
 
-		// TODO del (vbl)
-		System.out.println("talkingPreds " + talkingPreds);
-		System.out.println("talkingRules " + talkingRules);
-//		System.out.println("incoming " + incomingLinks);
-//		System.out.println("outgoing " + outgoingLinks);
-//		System.out.println("groundingNodes " + groundingNodes);
-//		System.out.println("groundingStatus " + groundingStatus);
-//		System.out.println("equalityGroundings " + equalityGroundings);
-//		System.out.println("atomNodes " + atomNodes);
-//		System.out.println("atomStatus " + atomStatus);
-//		System.out.println("links " + links);
-//		System.out.println("linkStatus " + linkStatus);
-//		System.out.println("linkStrength " + linkStrength);
-		System.out.println("rag filter type " + ragFilter.getClass());
-//		System.exit(0);
-		
+		for (TalkingRule rule : talkingRules.values()) {
+			rule.setTalkingPredicates(talkingPreds);
+		}
+
 		return rag;
 	}
 

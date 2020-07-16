@@ -15,8 +15,6 @@ import org.linqs.psl.parser.ModelLoader;
 import org.linqs.psl.parser.RulePartial;
 
 import de.tuebingen.sfs.psl.talk.TalkingRule;
-import de.tuebingen.sfs.util.bin.BufferedByteReader;
-import de.tuebingen.sfs.util.bin.IOUtils;
 
 public class RuleStore {
 
@@ -95,24 +93,6 @@ public class RuleStore {
 	
 	public Rule getRuleByName(String ruleName) {
 		return nameToRule.get(ruleName);
-	}
-
-	protected void saveToFile(OutputStream out) throws IOException {
-		for (Map.Entry<String, Rule> entry : nameToRule.entrySet()) {
-			IOUtils.writeAsBytes(entry.getKey(), out);
-			IOUtils.writeAsBytes(entry.getValue().toString(), out);
-		}
-		IOUtils.writeNewline(out);
-	}
-	
-	protected static RuleStore loadFromFile(PslProblem pslProblem, DataStore dataStore, PSLModel model, BufferedByteReader in) throws IOException {
-		RuleStore ruleStore = new RuleStore(pslProblem, dataStore, model);
-		while (!in.startsWithNewline()) {
-			String name = in.nextString();
-			String rule = in.nextString();
-			ruleStore.addRule(name, rule);
-		}
-		return ruleStore;
 	}
 	
 }

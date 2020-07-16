@@ -9,7 +9,7 @@ import org.linqs.psl.model.formula.FormulaAnalysis;
 import org.linqs.psl.model.rule.Rule;
 import org.linqs.psl.model.rule.logical.AbstractLogicalRule;
 
-import de.tuebingen.sfs.eie.talk.pred.NotEqualPred;
+import de.tuebingen.sfs.psl.talk.pred.NotEqualPred;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
 import de.tuebingen.sfs.psl.util.data.StringUtils;
@@ -21,8 +21,14 @@ public class TalkingLogicalRule extends TalkingRule {
 	// rest is negative
 	private int positiveArgs = -1;
 	
-	public TalkingLogicalRule(){
-		// For serialization.
+	// For serialization.
+	public TalkingLogicalRule(String name, String ruleString) {
+		super(name, ruleString);
+	}
+	
+	// For serialization.
+	public TalkingLogicalRule(String name, String ruleString, String verbalization){
+		super(name, ruleString, verbalization);
 	}
 	
 	public TalkingLogicalRule(String name, String ruleString, PslProblem pslProblem) {
@@ -73,16 +79,15 @@ public class TalkingLogicalRule extends TalkingRule {
 		// Number of positive literals in printableArgs
 		int positiveGroundArgs = -1;
 		
-		// TODO (vbl) workaround if psl problem is unspecified (deserialization)
-		Map<String, TalkingPredicate> nameToTalkingPredicate;
-		nameToTalkingPredicate = getPslProblem().getTalkingPredicates();
-		
+		Map<String, TalkingPredicate> nameToTalkingPredicate = getTalkingPredicates();
+
 		for (int i = 0; i < args.length; i++) {
 			if (i == positiveArgs)
 				positiveGroundArgs = printableArgs.size();
 
-			if (rag.getIgnoredPredicates().contains(args[i].substring(0, args[i].indexOf('('))) || args[i].charAt(0) == '(') // Skip (X == 'x')
-																										  // TODO: Improve
+			if (rag.getIgnoredPredicates().contains(args[i].substring(0, args[i].indexOf('('))) || args[i].charAt(0) == '(')
+				// Skip (X == 'x')
+				// TODO: Improve
 				skip++;
 			else {
 				String groundAtom = atomToStatus.get(i - skip).get(0);

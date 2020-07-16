@@ -3,8 +3,6 @@ package de.tuebingen.sfs.psl.talk;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.util.data.StringUtils;
 
-import static de.tuebingen.sfs.eie.components.soundlaws.ideas.SoundlawIdeaGenerator.CTXT;
-
 public class TalkingPredicate {
 	String predSymbol;
 	int arity;
