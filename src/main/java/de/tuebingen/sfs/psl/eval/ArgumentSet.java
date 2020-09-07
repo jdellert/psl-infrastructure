@@ -57,7 +57,7 @@ public class ArgumentSet implements Arguments {
 
     @Override
     public Set<String[]> getArgs() {
-        return argSet.stream().map(String[]::clone).collect(Collectors.toSet());
+    	return argSet.stream().map(x -> x.clone()).collect(Collectors.toSet());
     }
 
     @Override

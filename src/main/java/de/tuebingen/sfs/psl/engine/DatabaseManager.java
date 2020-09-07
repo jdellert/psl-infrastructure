@@ -365,6 +365,12 @@ public class DatabaseManager {
 		return getAllWhereOrderByWithValueAndPartition(
 				predName, new WhereStatement().matchAtoms(atoms), new OrderByStatement(), atoms);
 	}
+	
+	public List<RankingEntry<AtomTemplate>> getAtomsAboveThreshold(String predName, double threshold,
+			AtomTemplate... atoms) {
+		return getAllWhereOrderByWithValueAndPartition(predName,
+				new WhereStatement().matchAtoms(atoms).beliefAboveThreshold(threshold), new OrderByStatement(), atoms);
+	}
 
 	public List<RankingEntry<AtomTemplate>> getAllWhereOrderByWithValueAndPartition(
 			String predName, WhereStatement where, OrderByStatement orderBy, AtomTemplate... atoms) {
