@@ -339,9 +339,10 @@ public class DatabaseManager {
 			PredicateInfo predInfo = new PredicateInfo(pred);
 			String stmt = "SELECT " + PRED_SHORT + "."
 					+ StringUtils.join(predInfo.argumentColumns(), ", " + PRED_SHORT + ".")
-					+ " FROM " + predInfo.tableName() + " " + PRED_SHORT + ", "
-					+ PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT
-					+ where.toString() + " " + orderBy.toString() + ";";
+					+ " FROM " + predInfo.tableName() + " " + PRED_SHORT;
+			if (where.referencesProblem2AtomsTable())
+				stmt += ", " + PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT;
+			stmt += where.toString() + " " + orderBy.toString() + ";";
 
 			try (Connection conn = dataStore.getConnection()) {
 				ResultSet res = runQueryOn(conn, stmt, atoms);
@@ -360,12 +361,12 @@ public class DatabaseManager {
 		}
 		return tuples;
 	}
-	
+
 	public List<RankingEntry<AtomTemplate>> getAtoms(String predName, AtomTemplate... atoms) {
 		return getAllWhereOrderByWithValueAndPartition(
 				predName, new WhereStatement().matchAtoms(atoms), new OrderByStatement(), atoms);
 	}
-	
+
 	public List<RankingEntry<AtomTemplate>> getAtomsAboveThreshold(String predName, String problemId, double threshold,
 			AtomTemplate... atoms) {
 		return getAllWhereOrderByWithValueAndPartition(predName,
@@ -387,9 +388,10 @@ public class DatabaseManager {
 			String stmt = "SELECT " + PRED_SHORT + "." + PredicateInfo.PARTITION_COLUMN_NAME + ", "
 					+ PRED_SHORT + "." + PredicateInfo.VALUE_COLUMN_NAME + ", "
 					+ PRED_SHORT + "." + StringUtils.join(predInfo.argumentColumns(), ", " + PRED_SHORT + ".")
-					+ " FROM " + predInfo.tableName() + " " + PRED_SHORT + ", "
-					+ PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT
-					+ where.toString() + " " + orderBy.toString() + ";";
+					+ " FROM " + predInfo.tableName() + " " + PRED_SHORT;
+			if (where.referencesProblem2AtomsTable())
+				stmt += ", " + PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT;
+			stmt += where.toString() + " " + orderBy.toString() + ";";
 
 			try (Connection conn = dataStore.getConnection()) {
 				ResultSet res = runQueryOn(conn, stmt, atoms);
@@ -520,13 +522,17 @@ public class DatabaseManager {
 			if (id < 0) {
 				id = -(id + 1);
 				PredicateInfo predInfo = getPredicateInfo(predName);
+				String[] placeholders = new String[args.length];
+				Arrays.fill(placeholders, "?");
 				String insertAtomStmt = " INSERT INTO " + predInfo.tableName() + "("
 						+ ATOM_ID_COLUMN_NAME + ", " + PredicateInfo.PARTITION_COLUMN_NAME + ", "
 						+ PredicateInfo.VALUE_COLUMN_NAME + ", " + StringUtils.join(predInfo.argumentColumns(), ", ")
 						+ ") VALUES ("
-						+ id + ", " + partition + ", " + value + ", '" + StringUtils.join(args, "', '")
-						+ "');";
+						+ id + ", " + partition + ", " + value + ", " + StringUtils.join(placeholders, ", ")
+						+ ");";
 				PreparedStatement insertAtomPrepStmt = conn.prepareStatement(insertAtomStmt);
+				for (int i = 0; i < args.length; i++)
+					insertAtomPrepStmt.setString(i + 1, args[i]);
 				return insertAtomPrepStmt.executeUpdate();
 			}
 		} catch (SQLException e) {
@@ -538,7 +544,7 @@ public class DatabaseManager {
 	private int nextAtomId() {
 		return nextId++;
 	}
-	
+
 	public void associateAtomWithProblem(String problemId, boolean isTarget, AtomTemplate atom) {
 		try (Connection conn = dataStore.getConnection()) {
 			associateAtomWithProblem(conn, problemId, isTarget, atom.getPredicateName(), atom.getArgs());
@@ -775,7 +781,7 @@ public class DatabaseManager {
 			System.out.println(s);
 		}
 	}
-	
+
 	public void printTable(String predicate) {
 		printTable(new PredicateInfo(predicates.get(predicate)));
 	}
@@ -888,6 +894,10 @@ public class DatabaseManager {
 			beliefLessThan = DEFAULT_BELIEF_LESS_THAN;
 			atomsToMatch = new ArrayList<>();
 			auxToMatch = "";
+		}
+
+		public boolean referencesProblem2AtomsTable() {
+			return !problemId.isEmpty();
 		}
 
 		public WhereStatement problemMapTableKnown(boolean p2aTableKnown) {
