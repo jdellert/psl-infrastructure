@@ -366,10 +366,16 @@ public class DatabaseManager {
 				predName, new WhereStatement().matchAtoms(atoms), new OrderByStatement(), atoms);
 	}
 	
-	public List<RankingEntry<AtomTemplate>> getAtomsAboveThreshold(String predName, double threshold,
+	public List<RankingEntry<AtomTemplate>> getAtomsAboveThreshold(String predName, String problemId, double threshold,
 			AtomTemplate... atoms) {
 		return getAllWhereOrderByWithValueAndPartition(predName,
-				new WhereStatement().matchAtoms(atoms).beliefAboveThreshold(threshold), new OrderByStatement(), atoms);
+				new WhereStatement().matchAtoms(atoms).ownedByProblem(problemId).beliefAboveThreshold(threshold),
+				new OrderByStatement(), atoms);
+	}
+
+	public List<RankingEntry<AtomTemplate>> getAtomsForProblem(String predName, String problemId,
+			AtomTemplate... atoms) {
+		return getAtomsAboveThreshold(predName, problemId, WhereStatement.DEFAULT_BELIEF_GREATER_THAN, atoms);
 	}
 
 	public List<RankingEntry<AtomTemplate>> getAllWhereOrderByWithValueAndPartition(
@@ -387,6 +393,7 @@ public class DatabaseManager {
 
 			try (Connection conn = dataStore.getConnection()) {
 				ResultSet res = runQueryOn(conn, stmt, atoms);
+//				System.err.println(stmt);
 				while (res.next()) {
 					String partitionId = res.getString(1);
 					double value = res.getDouble(2);
@@ -395,7 +402,7 @@ public class DatabaseManager {
 //						System.err.print(res.getString(i + 3) + " ");
 						args[i] = res.getString(i + 3);
 					}
-//					System.err.println();
+//					System.err.println(value);
 					tuples.add(new RankingEntry<>(new AtomTemplate(predName, args), partitionId, value));
 				}
 			} catch (SQLException e) {
