@@ -367,16 +367,10 @@ public class DatabaseManager {
 				predName, new WhereStatement().matchAtoms(atoms), new OrderByStatement(), atoms);
 	}
 
-	public List<RankingEntry<AtomTemplate>> getAtomsAboveThreshold(String predName, String problemId, double threshold,
+	public List<RankingEntry<AtomTemplate>> getAtomsAboveThreshold(String predName, double threshold,
 			AtomTemplate... atoms) {
 		return getAllWhereOrderByWithValueAndPartition(predName,
-				new WhereStatement().matchAtoms(atoms).ownedByProblem(problemId).beliefAboveThreshold(threshold),
-				new OrderByStatement(), atoms);
-	}
-
-	public List<RankingEntry<AtomTemplate>> getAtomsForProblem(String predName, String problemId,
-			AtomTemplate... atoms) {
-		return getAtomsAboveThreshold(predName, problemId, WhereStatement.DEFAULT_BELIEF_GREATER_THAN, atoms);
+				new WhereStatement().matchAtoms(atoms).beliefAboveThreshold(threshold), new OrderByStatement(), atoms);
 	}
 
 	public List<RankingEntry<AtomTemplate>> getAllWhereOrderByWithValueAndPartition(
