@@ -70,6 +70,13 @@ public class Multimap<T1, T2> {
 	public Collection<T2> get(T1 key) {
 		return map.get(key);
 	}
+	
+	public Collection<T2> getOrDefault(T1 key, Collection<T2> defaultValue) {
+		Collection<T2> value = get(key);
+		if (value == null)
+			return defaultValue;
+		return value;
+	}
 
 	public List<T2> getList(T1 key) {
 		if (collectionType.equals(CollectionType.LIST)) {
