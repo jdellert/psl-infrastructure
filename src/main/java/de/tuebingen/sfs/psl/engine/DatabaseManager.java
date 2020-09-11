@@ -26,6 +26,8 @@ import de.tuebingen.sfs.psl.util.data.Trie;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.psl.util.data.Multimap.CollectionType;
 
+import static de.tuebingen.sfs.psl.engine.AtomTemplate.ANY_CONST;
+
 public class DatabaseManager {
 
 	// Table and columns names:
@@ -832,7 +834,7 @@ public class DatabaseManager {
 		int p = 1;
 		for (AtomTemplate atom : atoms) {
 			for (String arg : atom.getArgs())
-				if (!arg.equals("?"))
+				if (!arg.equals(ANY_CONST))
 					prepStmt.setString(p++, arg);
 		}
 		return prepStmt.executeQuery();
@@ -854,7 +856,7 @@ public class DatabaseManager {
 			int p = 1;
 			for (AtomTemplate atom : atoms) {
 				for (String arg : atom.getArgs())
-					if (!arg.equals("?"))
+					if (!arg.equals(ANY_CONST))
 						prepStmt.setString(p++, arg);
 			}
 			return prepStmt.executeUpdate();
@@ -1030,7 +1032,7 @@ public class DatabaseManager {
 					if (args != null && args.length > 0) {
 						cond.append("("); // **
 						for (int i = 0; i < args.length; i++) {
-							if (!args[i].equals("?")) {
+							if (!args[i].equals(ANY_CONST)) {
 								atomEmpty = false;
 								whereEmpty = false;
 								cond.append(PRED_SHORT).append(".").append(cols.get(i))

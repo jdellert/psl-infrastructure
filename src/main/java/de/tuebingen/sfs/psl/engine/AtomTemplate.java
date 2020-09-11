@@ -14,6 +14,8 @@ import de.tuebingen.sfs.psl.util.data.Multimap.CollectionType;
 
 public class AtomTemplate implements Comparable<AtomTemplate> {
 
+	public static final String ANY_CONST = "<<?>>";
+
 	private String predicate;
 	private String[] args;
 
@@ -61,7 +63,7 @@ public class AtomTemplate implements Comparable<AtomTemplate> {
 
 	public boolean containsWildcards() {
 		for (int i = 0; i < args.length; i++) {
-			if (args[i].equals("?")) {
+			if (args[i].equals(ANY_CONST)) {
 				return true;
 			}
 		}
@@ -149,8 +151,8 @@ public class AtomTemplate implements Comparable<AtomTemplate> {
 		}
 		for (int i = 0; i < args.length; i++) {
 			if ((!args[i].equals(other[i])) &&
-			// Wildcard argument: "?"
-					(!args[i].equals("?")) && (!other[i].equals("?"))) {
+			// Wildcard argument: ANY_CONST
+					(!args[i].equals(ANY_CONST)) && (!other[i].equals(ANY_CONST))) {
 				return false;
 			}
 		}
