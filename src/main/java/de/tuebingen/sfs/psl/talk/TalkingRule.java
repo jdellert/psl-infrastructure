@@ -2,7 +2,6 @@ package de.tuebingen.sfs.psl.talk;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +25,16 @@ import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 
+// To use a custom class for properly rendering the PSL constants (atom arguments), create the following classes:
+// - `class YourConstantRenderer`, a class that assigns human-understandable strings to PSL constants
+// - `interface YourTalkingRule` 
+// - `class YourTalkingLogicalRule extends TalkingLogicalRule implements YourTalkingRule`
+// - `class YourTalkingArithmeticRule extends TalkingArithmeticRule implements YourTalkingRule`
+// - `class YourTalkingPredicate extends TalkingPredicate`
+// `YourTalkingPredicate` and `YourTalkingRule` can extend their explanation/verbalization
+// methods by an additional argument: YourConstantRenderer.
+// An example implementation of this will be available at
+// https://github.com/jdellert/etinen-shared/tree/master/src/main/java/de/tuebingen/sfs/eie/talk
 public abstract class TalkingRule {
 
 	public static TalkingRule createTalkingRule(String name, String ruleString, Rule rule, PslProblem pslProblem) {
