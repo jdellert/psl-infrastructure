@@ -62,7 +62,7 @@ public class DemoPslProblem extends PslProblem {
 //		this.atoms.closeDatabase();
 		RuleAtomGraph.GROUNDING_OUTPUT = true;
 		RuleAtomGraph.ATOM_VALUE_OUTPUT = true;
-		Map<String, Double> valueMap = extractResult();
+		Map<String, Double> valueMap = extractResultsForAllPredicates();
 		RuleAtomGraph rag = new RuleAtomGraph(this, new RagFilter(valueMap), groundRules);
 		return new InferenceResult(rag, valueMap);
 	}

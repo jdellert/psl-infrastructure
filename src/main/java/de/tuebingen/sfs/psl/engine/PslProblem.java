@@ -18,8 +18,12 @@ import org.linqs.psl.database.rdbms.RDBMSDataStore;
 import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver;
 import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver.Type;
 import org.linqs.psl.groovy.PSLModel;
+import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.rule.GroundRule;
 import org.linqs.psl.model.rule.Rule;
+import org.linqs.psl.model.rule.arithmetic.AbstractGroundArithmeticRule;
+import org.linqs.psl.model.rule.logical.AbstractGroundLogicalRule;
+import org.linqs.psl.model.term.Constant;
 import org.linqs.psl.parser.ModelLoader;
 import org.linqs.psl.parser.RulePartial;
 
@@ -27,6 +31,7 @@ import de.tuebingen.sfs.psl.talk.TalkingPredicate;
 import de.tuebingen.sfs.psl.talk.TalkingRule;
 import de.tuebingen.sfs.psl.util.data.Multimap;
 import de.tuebingen.sfs.psl.util.data.RankingEntry;
+import de.tuebingen.sfs.psl.util.data.StringUtils;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.psl.util.data.Multimap.CollectionType;
 
@@ -134,7 +139,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 		RuleAtomGraph.GROUNDING_OUTPUT = true;
 		RuleAtomGraph.ATOM_VALUE_OUTPUT = true;
 		RuleAtomGraph.GROUNDING_SCORE_OUTPUT = true;
-		Map<String, Double> valueMap = extractResult();
+		Map<String, Double> valueMap = extractResultsForAllPredicates();
 		RuleAtomGraph rag = new RuleAtomGraph(this, new RagFilter(valueMap), groundRules);
 		return new InferenceResult(rag, valueMap);
 	}
@@ -512,32 +517,72 @@ public abstract class PslProblem implements Callable<InferenceResult> {
         return nameToRule.get(ruleName);
     }
 
-	public Map<String, Double> extractResult() {
-		return extractResult(null);
+	protected Map<String, Double> extractResultsForAllPredicates() {
+		return extractResultsForAllPredicates(null);
 	}
 
-	public Map<String, Double> extractResult(PrintStream print) {
-		return extractResult(print, true);
+	protected Map<String, Double> extractResultsForAllPredicates(PrintStream print) {
+		return extractResultsForAllPredicates(print, false);
 	}
 
-	public Map<String, Double> extractResult(boolean onlyOpen) {
-		return extractResult(null, onlyOpen);
+	protected Map<String, Double> extractResultsForAllPredicates(boolean onlyOpen) {
+		return extractResultsForAllPredicates(null, onlyOpen);
 	}
 
-	// TODO make these methods protected. should only be used in call(), later on you can use the InferenceResult (vbl)
-	public Map<String, Double> extractResult(PrintStream print, boolean onlyOpen) {
+	protected Map<String, Double> extractResultsForAllPredicates(PrintStream print, boolean onlyOpen) {
 		Set<String> predicates = new HashSet<>();
 		predicates.addAll(talkingPredicates.keySet());
 		if (onlyOpen)
 			predicates.removeAll(closedPredicates);
-		Multimap<String, RankingEntry<AtomTemplate>> predicatesToAtoms = dbManager.getAtomValuesByPredicate(getName(), predicates);
+		Multimap<String, RankingEntry<AtomTemplate>> predicatesToAtoms = dbManager.getAtomValuesByPredicate(getName(),
+				predicates);
 		Map<String, Double> atomToValue = new TreeMap<>();
-		for (String predicate : predicatesToAtoms.keySet()){
-			for (RankingEntry<AtomTemplate> rankingEntry : predicatesToAtoms.getList(predicate)){
+		for (String predicate : predicatesToAtoms.keySet()) {
+			for (RankingEntry<AtomTemplate> rankingEntry : predicatesToAtoms.getList(predicate)) {
 				atomToValue.put(rankingEntry.key.toString(), rankingEntry.value);
+				if (print != null)
+					print.println("Extracted " + rankingEntry.key + " " + rankingEntry.value);
 			}
 		}
 		return atomToValue;
+	}
+	
+	protected Map<String, Double> extractResultsForGroundRules(List<List<GroundRule>> groundRules, PrintStream print) {
+		Multimap<String, AtomTemplate> predsToAtoms = new Multimap<>(CollectionType.SET);
+		for (int i = 0; i < groundRules.size(); i++) {
+			for (GroundRule groundRule : groundRules.get(i)) {
+				List<GroundAtom> groundAtoms = new LinkedList<GroundAtom>();
+				if (groundRule instanceof AbstractGroundArithmeticRule) {
+					groundAtoms = AbstractGroundArithmeticRuleAccess
+							.extractAtoms((AbstractGroundArithmeticRule) groundRule);
+				} else if (groundRule instanceof AbstractGroundLogicalRule) {
+					groundAtoms = AbstractGroundLogicalRuleAccess.extractAtoms((AbstractGroundLogicalRule) groundRule);
+				}
+				for (GroundAtom atom : groundAtoms) {
+					String pred = TalkingPredicate.getPredNameFromAllCaps(atom.getPredicate().getName());
+					Constant[] args = atom.getArguments();
+					String[] stringArgs = new String[args.length];
+					for (int c = 0; c < args.length; c++) {
+						String arg = args[c].toString();
+						// Each Constant is surrounded by '...'
+						arg = arg.substring(1, arg.length() - 1);
+						stringArgs[c] = arg;
+					}
+					predsToAtoms.put(pred, new AtomTemplate(pred, stringArgs));
+				}
+			}
+		}
+		Map<String, Double> results = new TreeMap<>();
+		for (Entry<String, Collection<AtomTemplate>> pred : predsToAtoms.entrySet()) {
+			List<RankingEntry<AtomTemplate>> atoms = dbManager.getAtoms(pred.getKey(),
+					pred.getValue().toArray(new AtomTemplate[pred.getValue().size()]));
+			for (RankingEntry<AtomTemplate> atom : atoms) {
+				results.put(atom.key.toString(), atom.value);
+				if (print != null)
+					print.println("Extracted " + atom.key + " " + atom.value);
+			}
+		}
+		return results;
 	}
 
 	public Map<Tuple, Double> extractTableForPredicate(String pred) {

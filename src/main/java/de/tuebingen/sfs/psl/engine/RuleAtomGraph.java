@@ -170,7 +170,7 @@ public class RuleAtomGraph {
 			coefficients = AbstractGroundLogicalRuleAccess.extractSigns(logicalRule);
 			groundAtoms = AbstractGroundLogicalRuleAccess.extractAtoms(logicalRule);
 		}
-
+		
 		double[] values = extractValueVector(groundAtoms, coefficients, renderer);
 
 		double bodyScore = computeBodyScore(coefficients, values);
@@ -320,7 +320,6 @@ public class RuleAtomGraph {
 	}
 	
 	public boolean renderAtomInGui(String atomName) {
-		System.out.println(atomName);
 		return renderer.isRenderedInGui(atomName.split("\\(")[0]);
 	}
 	
