@@ -178,6 +178,20 @@ public class DatabaseManager {
 		return false;
 	}
 
+	public boolean isAtomOwnedByAnyProblem(String predName, String... args) {
+		Predicate pred = getPredicateByName(predName);
+		if (pred != null) {
+			PredicateInfo predInfo = new PredicateInfo(pred);
+			AtomTemplate atom = new AtomTemplate(predName, args);
+
+			String stmt = "SELECT 1 FROM " + PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT + ", "
+					+ predInfo.tableName() + " " + PRED_SHORT
+					+ new WhereStatement().matchAtoms(atom).matchAtomId() + ";";
+			return runQueryResultNotEmpty(stmt, atom);
+		}
+		return false;
+	}
+
 	public boolean isAtomOwnedByProblem(String problemId, String predName, String... args) {
 		Predicate pred = getPredicateByName(predName);
 		if (pred != null) {
@@ -188,6 +202,27 @@ public class DatabaseManager {
 					+ predInfo.tableName() + " " + PRED_SHORT
 					+ new WhereStatement().ownedByProblem(problemId).matchAtoms(atom) + ";";
 			return runQueryResultNotEmpty(stmt, atom);
+		}
+		return false;
+	}
+
+	public boolean isAtomTargetForProblem(String problemId, String predName, String... args) {
+		Predicate pred = getPredicateByName(predName);
+		if (pred != null) {
+			PredicateInfo predInfo = new PredicateInfo(pred);
+			AtomTemplate atom = new AtomTemplate(predName, args);
+
+			try (Connection conn = dataStore.getConnection()) {
+				String stmt = "SELECT " + IS_TARGET_COLUMN_NAME
+						+ " FROM " + PROBLEMS2ATOMS_TABLE + " " + P2A_SHORT + ", "
+						+ predInfo.tableName() + " " + PRED_SHORT
+						+ new WhereStatement().ownedByProblem(problemId).matchAtoms(atom) + ";";
+				ResultSet resultSet = runQueryOn(conn, stmt, atom);
+				if (resultSet.next())
+					return resultSet.getBoolean(1);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 		return false;
 	}
@@ -875,6 +910,7 @@ public class DatabaseManager {
 
 		private String problemId;
 		private Boolean isTarget;
+		private boolean matchAtomId;
 		private Set<Integer> inPartitions;
 		private double beliefGreaterThan;
 		private double beliefLessThan;
@@ -885,6 +921,7 @@ public class DatabaseManager {
 		public WhereStatement() {
 			p2aTableKnown = true;
 			problemId = "";
+			matchAtomId = false;
 			inPartitions = new HashSet<>();
 			beliefGreaterThan = DEFAULT_BELIEF_GREATER_THAN;
 			beliefLessThan = DEFAULT_BELIEF_LESS_THAN;
@@ -893,11 +930,17 @@ public class DatabaseManager {
 		}
 
 		public boolean referencesProblem2AtomsTable() {
-			return !problemId.isEmpty();
+			return !problemId.isEmpty() || matchAtomId;
 		}
 
 		public WhereStatement problemMapTableKnown(boolean p2aTableKnown) {
 			this.p2aTableKnown = p2aTableKnown;
+			return this;
+		}
+
+		public WhereStatement matchAtomId() {
+			this.p2aTableKnown = true;
+			this.matchAtomId = true;
 			return this;
 		}
 
@@ -966,6 +1009,13 @@ public class DatabaseManager {
 		public String getConditions() {
 			StringBuilder cond = new StringBuilder();
 
+			if (matchAtomId) {
+				cond.append("(")
+						.append(PRED_SHORT).append(".").append(ATOM_ID_COLUMN_NAME)
+						.append(" = ")
+						.append(P2A_SHORT).append(".").append(ATOM_ID_COLUMN_NAME)
+						.append(") AND ");
+			}
 			if (!problemId.isEmpty()) {
 				if (p2aTableKnown) {
 					cond.append("(")
