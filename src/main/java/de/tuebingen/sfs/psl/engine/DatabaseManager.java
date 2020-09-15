@@ -622,8 +622,8 @@ public class DatabaseManager {
 		Predicate pred = predicates.get(predName);
 		if (pred != null) {
 			PredicateInfo predInfo = new PredicateInfo(pred);
-			WhereStatement where = new WhereStatement().ownedByProblem(problemId).matchAtoms(atomMatch);
-			String stmt = "UPDATE " + predInfo.tableName()
+			WhereStatement where = new WhereStatement().ownedByProblem(problemId, false).matchAtoms(atomMatch);
+			String stmt = "UPDATE " + predInfo.tableName() + " " + PRED_SHORT
 					+ " SET " + PredicateInfo.VALUE_COLUMN_NAME + " = " + value
 					+ where;
 			return runUpdateOn(stmt, atomMatch);
