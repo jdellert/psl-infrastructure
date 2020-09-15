@@ -80,10 +80,6 @@ public class ProblemManager {
 	public Map<String, Double> getLastValueMap(String problemId) {
 		return inferenceStore.getLastResult(problemId).getInferenceValues();
 	}
-
-	public void delete(PslProblem problem, String predName, String... args) {
-		dbManager.deleteAtomsForProblem(predName, problem.getName(), new AtomTemplate(predName, args));
-	}
 	
 	// For tests/demos that only work with individual problems.
 	public InferenceResult registerAndRunProblem(PslProblem problem){
