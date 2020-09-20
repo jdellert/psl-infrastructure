@@ -529,7 +529,11 @@ public class RuleAtomGraph {
 	}
 	
 	public HslColor atomToBaseColor(String name) {
-		return renderer.atomToBaseColor(name);
+		return atomToBaseColor(name, false);
+	}
+
+	public HslColor atomToBaseColor(String name, boolean deleted) {
+		return renderer.atomToBaseColor(name, deleted);
 	}
 
 	public Set<String> getAtomNodes() {
