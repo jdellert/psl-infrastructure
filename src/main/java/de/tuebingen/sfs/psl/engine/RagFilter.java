@@ -21,6 +21,7 @@ import de.tuebingen.sfs.psl.util.data.Tuple;
 public class RagFilter {
 
 	public static HslColor BASECOLOR = new HslColor(new Color(255, 214, 51));
+	public static HslColor DELETECOLOR = new HslColor(new Color(180, 180, 180));
 
 	protected Map<String, String> groundPred2ActualNames;
 	protected Set<String> ignoreList;
@@ -141,7 +142,11 @@ public class RagFilter {
 	}
 
 	public HslColor atomToBaseColor(String name) {
-		return BASECOLOR;
+		return atomToBaseColor(name, false);
+	}
+
+	public HslColor atomToBaseColor(String name, boolean deleted) {
+		return (deleted) ? DELETECOLOR : BASECOLOR;
 	}
 
 	public boolean isRendered(String predName) {
