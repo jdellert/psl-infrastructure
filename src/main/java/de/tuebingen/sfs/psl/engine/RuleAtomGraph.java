@@ -38,6 +38,7 @@ public class RuleAtomGraph {
 	Set<String> groundingNodes;
 	Map<String,Double> groundingStatus;
 	Set<String> equalityGroundings;
+	Map<String, String> groundingToRuleString;
 
 	// atoms
 	Set<String> atomNodes;
@@ -66,6 +67,7 @@ public class RuleAtomGraph {
 		groundingNodes = new TreeSet<String>();
 		groundingStatus = new TreeMap<String,Double>();
 		equalityGroundings = new TreeSet<String>();
+		groundingToRuleString = new TreeMap<String, String>();
 
 		links = new TreeSet<Tuple>();
 		linkStatus = new TreeMap<Tuple, String>();
@@ -127,7 +129,6 @@ public class RuleAtomGraph {
 	public RuleAtomGraph(PslProblem problem, RagFilter renderer, List<List<GroundRule>> grs,
 			InferenceLogger logger) {
 		this(renderer, logger);
-
 		List<Rule> rules = problem.listRules();
 		if (rules.size() != grs.size())
 			logger.logln("WARNING: You seem to have added/removed atoms since the last inference. "
@@ -154,6 +155,7 @@ public class RuleAtomGraph {
 
 	private void add(String groundingName, GroundRule groundRule) {
 		groundingNodes.add(groundingName);
+		groundingToRuleString.put(groundingName, groundRule.toString());
 
 		if (GROUNDING_OUTPUT) logger.logln("  " + groundingName + "\t" + groundRule.toString());
 
@@ -329,6 +331,10 @@ public class RuleAtomGraph {
 			outgoingLinksForAtom = new TreeSet<Tuple>();
 		}
 		return outgoingLinksForAtom;
+	}
+	
+	public String getRuleStringForGrounding(String groundingName){
+		return groundingToRuleString.get(groundingName);
 	}
 
 	public  Map<String,String> getLinkedAtomsForGroundingWithLinkStatus(String groundingName) {
