@@ -325,6 +325,10 @@ public class RuleAtomGraph {
 		return renderer.isRenderedInGui(atomName.split("\\(")[0]);
 	}
 	
+	public boolean preventUserInteraction(String pred) {
+		return renderer.getPreventUserInteraction().contains(pred);
+	}
+	
 	public Set<Tuple> getOutgoingLinks(String atomName) {
 		Set<Tuple> outgoingLinksForAtom = outgoingLinks.get(atomName);
 		if (outgoingLinksForAtom == null) {

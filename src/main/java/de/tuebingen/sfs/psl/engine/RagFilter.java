@@ -26,27 +26,23 @@ public class RagFilter {
 	protected Map<String, String> groundPred2ActualNames;
 	protected Set<String> ignoreList;
 	protected Set<String> ignoreInGui;
+	protected Set<String> preventUserInteraction;
 	protected Map<String, Double> beliefValues;
 	
 	public RagFilter() {
-		setAll(null, null, null, null);
+		setAll(null, null, null, null, null);
 	}
 
 	public RagFilter(Map<String, Double> beliefValues) {
-		setAll(beliefValues, null, null, null);
+		setAll(beliefValues, null, null, null, null);
 	}
 
 	public RagFilter(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames) {
-		setAll(beliefValues, groundPred2ActualNames, null, null);
+		setAll(beliefValues, groundPred2ActualNames, null, null, null);
 	}
 
-	public RagFilter(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
-			Set<String> ignoreInGui) {
-		setAll(beliefValues, groundPred2ActualNames, ignoreList, ignoreInGui);
-	}
-	
 	public void setAll(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
-			Set<String> ignoreInGui){
+			Set<String> ignoreInGui, Set<String> preventUserInteraction){
 		if (beliefValues == null) {
 			this.beliefValues = new TreeMap<String, Double>();
 		} else {
@@ -67,18 +63,27 @@ public class RagFilter {
 		} else {
 			this.ignoreInGui = ignoreInGui;
 		}
+		if (preventUserInteraction == null) {
+			this.preventUserInteraction = new TreeSet<String>();
+		} else {
+			this.preventUserInteraction = preventUserInteraction;
+		}
+	}
+	
+	public Map<String, String> getGroundPred2ActualNames() {
+		return groundPred2ActualNames;
 	}
 
 	public Set<String> getIgnoreList() {
 		return ignoreList;
 	}
 
-	public Map<String, String> getGroundPred2ActualNames() {
-		return groundPred2ActualNames;
-	}
-
 	public Set<String> getIgnoreInGui() {
 		return ignoreInGui;
+	}
+
+	public Set<String> getPreventUserInteraction() {
+		return preventUserInteraction;
 	}
 
 	public Map<String, Double> getBeliefValues() {
