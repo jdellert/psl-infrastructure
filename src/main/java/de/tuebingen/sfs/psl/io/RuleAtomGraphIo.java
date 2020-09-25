@@ -61,6 +61,7 @@ public class RuleAtomGraphIo {
 		sb.append("\nCLASS\t").append(filter.getClass().getName());
 		sb.append("\nIGNORE LIST\t").append(filter.getIgnoreList());
 		sb.append("\nIGNORE IN GUI\t").append(filter.getIgnoreInGui());
+		sb.append("\nPREVENT USER INTERACTION\t").append(filter.getPreventUserInteraction());
 		sb.append("\nPRED TO NAME\t").append(filter.getGroundPred2ActualNames());
 
 		sb.append("\n\n\nRULE GROUNDINGS\n===============\nGROUNDING\tSTATUS\tINCOMING\n");
@@ -125,6 +126,7 @@ public class RuleAtomGraphIo {
 		String filterClass = null;
 		Set<String> ignoreList = new TreeSet<>();
 		Set<String> ignoreInGui = new TreeSet<>();
+		Set<String> preventUserInteraction = new TreeSet<>();
 		Map<String, String> groundPreds2ActualNames = new TreeMap<>();
 
 		Set<String> groundingNodes = new TreeSet<String>();
@@ -173,6 +175,16 @@ public class RuleAtomGraphIo {
 							}
 							for (String item : line.split(",")) {
 								ignoreInGui.add(item.trim());
+							}
+						} else if (line.startsWith("PREVENT USER INTERACTION")) {
+							line = line.split("\t")[1];
+							// Remove [ ]
+							line = line.substring(1, line.length() - 1);
+							if (line.isEmpty()) {
+								continue;
+							}
+							for (String item : line.split(",")) {
+								preventUserInteraction.add(item.trim());
 							}
 						} else if (line.startsWith("PRED")) {
 							line = line.split("\t")[1];
@@ -315,7 +327,7 @@ public class RuleAtomGraphIo {
 				ragFilter = new RagFilter();
 			}
 		}
-		ragFilter.setAll(beliefValues, groundPreds2ActualNames, ignoreList, ignoreInGui);
+		ragFilter.setAll(beliefValues, groundPreds2ActualNames, ignoreList, ignoreInGui, preventUserInteraction);
 		RuleAtomGraph rag = new RuleAtomGraph(groundingNodes, groundingStatus, equalityGroundings, atomNodes,
 				atomStatus, links, linkStatus, linkPressure, linkStrength, outgoingLinks, incomingLinks, ragFilter);
 
