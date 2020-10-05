@@ -12,6 +12,8 @@ public class InferenceResult {
 	// Inference configuration:
 	private Set<String> languages;
 	// TODO which other details to save? (vbl)
+	// the other information (incl. languages) still needs to be included in the
+	// InferenceResultIo class
 
 	public InferenceResult(RuleAtomGraph rag, Map<String, Double> inferenceValues, Set<String> languages) {
 		this.rag = rag;
@@ -59,9 +61,9 @@ public class InferenceResult {
 		return "InferenceResult[RAG: " + rag + ", inferenceValues: " + inferenceValues + " | CONFIG: languages: "
 				+ languages + "]";
 	}
-	
-	public void printInferenceValues(){
-		for (Entry<String, Double> entry : inferenceValues.entrySet()){
+
+	public void printInferenceValues() {
+		for (Entry<String, Double> entry : inferenceValues.entrySet()) {
 			System.out.println(entry.getKey() + "\t" + entry.getValue());
 		}
 	}

@@ -10,7 +10,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +24,7 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import de.tuebingen.sfs.psl.engine.InferenceResult;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RagFilter;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
@@ -32,30 +32,39 @@ import de.tuebingen.sfs.psl.talk.TalkingPredicate;
 import de.tuebingen.sfs.psl.talk.TalkingRule;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 
-public class RuleAtomGraphIo {
+public class InferenceResultIo {
 
-	public static String RAG_PATH = "src/test/resources/serialization/rag.txt";
+	public static String INFERENCE_RESULT_PATH = "src/test/resources/serialization/inference-result.txt";
 
 	private static enum TSV_SECTION {
-		ATOMS, GROUNDINGS, TALKING_PREDS, TALKING_RULES
+		ATOMS, GROUNDINGS, TALKING_PREDS, TALKING_RULES, SCORES
 	}
 
-	public static void saveToFile(RuleAtomGraph rag, PslProblem problem, ObjectMapper mapper) {
-		saveToFile(rag, problem.getTalkingPredicates(), problem.getTalkingRules(), mapper);
+	public static void saveToFile(InferenceResult inferenceResult, PslProblem problem, ObjectMapper mapper) {
+		saveToFile(inferenceResult, problem.getTalkingPredicates(), problem.getTalkingRules(), mapper);
 	}
 
-	public static void saveToFile(RuleAtomGraph rag, PslProblem problem, ObjectMapper mapper, File path) {
-		saveToFile(rag, problem.getTalkingPredicates(), problem.getTalkingRules(), mapper, path);
+	public static void saveToFile(InferenceResult inferenceResult, PslProblem problem, ObjectMapper mapper, File path) {
+		saveToFile(inferenceResult, problem.getTalkingPredicates(), problem.getTalkingRules(), mapper, path);
 	}
 
-	public static void saveToFile(RuleAtomGraph rag, Map<String, TalkingPredicate> talkingPreds,
+	public static void saveToFile(InferenceResult inferenceResult, Map<String, TalkingPredicate> talkingPreds,
 			Map<String, TalkingRule> talkingRules, ObjectMapper mapper) {
-		saveToFile(rag, talkingPreds, talkingRules, mapper, new File(RAG_PATH));
+		saveToFile(inferenceResult, talkingPreds, talkingRules, mapper, new File(INFERENCE_RESULT_PATH));
 	}
 
-	public static void saveToFile(RuleAtomGraph rag, Map<String, TalkingPredicate> talkingPreds,
+	public static void saveToFile(InferenceResult inferenceResult, Map<String, TalkingPredicate> talkingPreds,
 			Map<String, TalkingRule> talkingRules, ObjectMapper mapper, File path) {
+		System.out.println("PATH");
+		System.out.println(path);
+		System.out.println(path.exists());
+	    if (! path.exists()){
+	        path.getParentFile().mkdirs();
+	    }
+		
+		
 		StringBuilder sb = new StringBuilder();
+		RuleAtomGraph rag = inferenceResult.getRag();
 		RagFilter filter = rag.getRagFilter();
 		sb.append("RAG FILTER\n===============");
 		sb.append("\nCLASS\t").append(filter.getClass().getName());
@@ -85,6 +94,11 @@ public class RuleAtomGraphIo {
 				sb.append(rag.getLinkStrength(link)).append("\t").append(rag.getLinkPressure(link)).append("\n");
 			}
 		}
+		sb.append("\n\nINFERENCE VALUES\n===============\n");
+		sb.append("ATOM\tBELIEF VALUE\n");
+		for (Entry<String, Double> entry : inferenceResult.getInferenceValues().entrySet()) {
+			sb.append(entry.getKey()).append("\t").append(entry.getValue()).append("\n");
+		}
 		sb.append("\n\nTALKING PREDICATE CLASSES\n===============\nNAME\tARITY\tCLASS\n");
 		for (Entry<String, TalkingPredicate> entry : talkingPreds.entrySet()) {
 			sb.append(entry.getKey()).append("\t").append(entry.getValue().getArity()).append("\t")
@@ -98,15 +112,15 @@ public class RuleAtomGraphIo {
 		}
 	}
 
-	public static RuleAtomGraph ragFromFile(ObjectMapper mapper, Map<String, TalkingPredicate> talkingPreds,
+	public static InferenceResult fromFile(ObjectMapper mapper, Map<String, TalkingPredicate> talkingPreds,
 			Map<String, TalkingRule> talkingRules) {
-		return ragFromFile(mapper, RAG_PATH, talkingPreds, talkingRules);
+		return fromFile(mapper, INFERENCE_RESULT_PATH, talkingPreds, talkingRules);
 	}
 
-	public static RuleAtomGraph ragFromFile(ObjectMapper mapper, String path,
-			Map<String, TalkingPredicate> talkingPreds, Map<String, TalkingRule> talkingRules) {
+	public static InferenceResult fromFile(ObjectMapper mapper, String path, Map<String, TalkingPredicate> talkingPreds,
+			Map<String, TalkingRule> talkingRules) {
 		try {
-			return ragFromFile(mapper, new FileInputStream(path), talkingPreds, talkingRules);
+			return fromFile(mapper, new FileInputStream(path), talkingPreds, talkingRules);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -114,7 +128,7 @@ public class RuleAtomGraphIo {
 	}
 
 	@SuppressWarnings("rawtypes")
-	public static RuleAtomGraph ragFromFile(ObjectMapper mapper, InputStream is,
+	public static InferenceResult fromFile(ObjectMapper mapper, InputStream is,
 			Map<String, TalkingPredicate> talkingPreds, Map<String, TalkingRule> talkingRules) {
 		if (talkingPreds == null)
 			talkingPreds = new TreeMap<>();
@@ -141,6 +155,7 @@ public class RuleAtomGraphIo {
 		Map<Tuple, Double> linkStrength = new TreeMap<>();
 		Map<String, Set<Tuple>> outgoingLinks = new TreeMap<>();
 		Map<String, List<Tuple>> incomingLinks = new TreeMap<>();
+		Map<String, Double> scoreMap = new TreeMap<>();
 
 		String line = "";
 		TSV_SECTION current = null;
@@ -152,7 +167,7 @@ public class RuleAtomGraphIo {
 				}
 				if (line.equalsIgnoreCase("RAG FILTER")) {
 					br.readLine(); // ====
-					for (int i = 0; i < 4; i++) {
+					for (int i = 0; i < 5; i++) {
 						line = br.readLine().trim();
 						if (line.startsWith("CLASS")) {
 							filterClass = line.split("\t")[1];
@@ -218,6 +233,12 @@ public class RuleAtomGraphIo {
 					current = TSV_SECTION.ATOMS;
 					continue;
 				}
+				if (line.equalsIgnoreCase("INFERENCE VALUES")) {
+					br.readLine(); // ====
+					br.readLine(); // table header
+					current = TSV_SECTION.SCORES;
+					continue;
+				}
 				if (line.equalsIgnoreCase("TALKING PREDICATE CLASSES")) {
 					br.readLine(); // ====
 					br.readLine(); // table header
@@ -265,6 +286,9 @@ public class RuleAtomGraphIo {
 					}
 					outgoingLinks.get(atom).add(link);
 					break;
+				case SCORES:
+					scoreMap.put(fields[0].trim(), Double.parseDouble(fields[1].trim()));
+					break;
 				case TALKING_PREDS:
 					String predName = fields[0].trim();
 					Integer arity = Integer.parseInt(fields[1].trim());
@@ -272,9 +296,10 @@ public class RuleAtomGraphIo {
 					TalkingPredicate pred = null;
 					try {
 						Class c = Class.forName(predClass);
-						pred = (TalkingPredicate) c.newInstance();
+						pred = (TalkingPredicate) c.getDeclaredConstructor().newInstance();
 					} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-							| NullPointerException | SecurityException | IllegalArgumentException e) {
+							| NullPointerException | SecurityException | IllegalArgumentException
+							| InvocationTargetException | NoSuchMethodException e) {
 						pred = new TalkingPredicate(predName, arity);
 					}
 					talkingPreds.put(predName, pred);
@@ -285,10 +310,11 @@ public class RuleAtomGraphIo {
 					TalkingRule rule = null;
 					try {
 						Class c = Class.forName(ruleClass);
-						rule = (TalkingRule) c.newInstance();
+						rule = (TalkingRule) c.getDeclaredConstructor().newInstance();
 						talkingRules.put(ruleName, rule);
 					} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-							| NullPointerException e) {
+							| NullPointerException | IllegalArgumentException | InvocationTargetException
+							| NoSuchMethodException | SecurityException e) {
 						System.err.println(
 								"Could not create TalkingRule of type " + ruleClass + " for " + ruleName + ":");
 						e.printStackTrace();
@@ -319,8 +345,9 @@ public class RuleAtomGraphIo {
 		} else {
 			try {
 				Class c = Class.forName(filterClass);
-				ragFilter = (RagFilter) c.newInstance();
-			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+				ragFilter = (RagFilter) c.getDeclaredConstructor().newInstance();
+			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException | NoSuchMethodException | SecurityException e) {
 				System.err.println("Could not create RagFilter of type " + filterClass + ":");
 				e.printStackTrace();
 				System.err.println("Creating standard RagFilter instead.");
@@ -335,7 +362,11 @@ public class RuleAtomGraphIo {
 			rule.setTalkingPredicates(talkingPreds);
 		}
 
-		return rag;
+		if (scoreMap.isEmpty())
+			return new InferenceResult(rag);
+		if (groundingNodes.isEmpty())
+			return new InferenceResult(scoreMap);
+		return new InferenceResult(rag, scoreMap);
 	}
 
 }
