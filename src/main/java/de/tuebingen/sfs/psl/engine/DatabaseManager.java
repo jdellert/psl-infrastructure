@@ -330,6 +330,18 @@ public class DatabaseManager {
 		}
 		return results;
 	}
+	
+	// Note:
+	// the result can be sorted after the method call, but isn't sorted yet
+	public Multimap<String, RankingEntry<AtomTemplate>> getAtomValuesByPredicateAboveThreshold(String problemId,
+			Set<String> predicates, double threshold) {
+		Multimap<String, RankingEntry<AtomTemplate>> results = new Multimap<>(CollectionType.LIST);
+		for (String predName : predicates) {
+			results.putAll(predName, getAllWhereOrderByWithValueAndPartition(predName,
+					new WhereStatement().ownedByProblem(problemId).beliefAboveThreshold(threshold), new OrderByStatement()));
+		}
+		return results;
+	}
 
 	public List<Tuple> getAllMatching(String predName, AtomTemplate match) {
 		return getAllMatchingForProblem(predName, "", match);
