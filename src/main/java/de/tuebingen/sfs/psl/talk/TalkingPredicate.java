@@ -62,6 +62,10 @@ public class TalkingPredicate {
 		// Override me!
 		return verbalizeIdea(args);
 	}
+	
+	public String toAtomString(String... args) {
+		return predSymbol + "(" + StringUtils.join(args, ", ") + ")";
+	}
 
 	@Override
 	public String toString() {
