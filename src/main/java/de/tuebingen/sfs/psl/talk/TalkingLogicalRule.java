@@ -118,4 +118,10 @@ public class TalkingLogicalRule extends TalkingRule {
 				printableArgs, printableTalkingPredicates, printablePredicateArgs, printableBeliefValues,
 				positiveGroundArgs, directFormulation, whyExplanation);
 	}
+
+	// Override if necessary for the (de)serialization of your talking rule.
+	@Override
+	public String getSerializedParameters() {
+		return "";
+	}
 }

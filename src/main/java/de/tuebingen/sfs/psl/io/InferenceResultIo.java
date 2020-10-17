@@ -37,7 +37,7 @@ public class InferenceResultIo {
 	public static String INFERENCE_RESULT_PATH = "src/test/resources/serialization/inference-result.txt";
 
 	private static enum TSV_SECTION {
-		ATOMS, GROUNDINGS, TALKING_PREDS, TALKING_RULES, SCORES
+		ATOMS, GROUNDINGS, TALKING_PREDS, SCORES
 	}
 
 	public static void saveToFile(InferenceResult inferenceResult, PslProblem problem, ObjectMapper mapper) {
@@ -58,11 +58,10 @@ public class InferenceResultIo {
 		System.out.println("PATH");
 		System.out.println(path);
 		System.out.println(path.exists());
-	    if (! path.exists()){
-	        path.getParentFile().mkdirs();
-	    }
-		
-		
+		if (!path.exists()) {
+			path.getParentFile().mkdirs();
+		}
+
 		StringBuilder sb = new StringBuilder();
 		RuleAtomGraph rag = inferenceResult.getRag();
 		RagFilter filter = rag.getRagFilter();
@@ -73,17 +72,15 @@ public class InferenceResultIo {
 		sb.append("\nPREVENT USER INTERACTION\t").append(filter.getPreventUserInteraction());
 		sb.append("\nPRED TO NAME\t").append(filter.getGroundPred2ActualNames());
 
-		sb.append("\n\n\nRULE GROUNDINGS\n===============\nGROUNDING\tSTATUS\tINCOMING\n");
+		sb.append("\n\n\nRULE GROUNDINGS\n===============\nGROUNDING\tSTATUS\tINCOMING\tCLASS\tPARAMETERS\n");
 		for (String grounding : rag.getGroundingNodes()) {
 			sb.append(grounding).append("\t").append(rag.getGroundingStatus(grounding)).append("\t");
-			sb.append(rag.getIncomingLinks(grounding).stream().map(x -> x.get(0)).collect(Collectors.toList()))
+			sb.append(rag.getIncomingLinks(grounding).stream().map(x -> x.get(0)).collect(Collectors.toList()));
+			TalkingRule rule = talkingRules.get(grounding.substring(0, grounding.indexOf('[')));
+			sb.append("\t").append(rule.getClass().getName()).append("\t").append(rule.getSerializedParameters())
 					.append("\n");
 		}
 		sb.append("\n\nEQUALITY RULES\n===============\n").append(rag.getEqualityGroundings());
-		sb.append("\n\n\nTALKING RULE CLASSES\n===============\n");
-		for (Entry<String, TalkingRule> entry : talkingRules.entrySet()) {
-			sb.append(entry.getKey()).append("\t").append(entry.getValue().getClass().getName()).append("\n");
-		}
 		sb.append("\n\nATOM LINKS\n===============\n");
 		sb.append("ATOM\tBELIEF VALUE\tATOM STATUS\tGROUNDING\tLINK STATUS\tLINK STRENGTH\tLINK PRESSURE\n");
 		for (String atom : rag.getAtomNodes()) {
@@ -222,11 +219,6 @@ public class InferenceResultIo {
 					current = TSV_SECTION.GROUNDINGS;
 					continue;
 				}
-				if (line.equalsIgnoreCase("TALKING RULE CLASSES")) {
-					br.readLine(); // ====
-					current = TSV_SECTION.TALKING_RULES;
-					continue;
-				}
 				if (line.equalsIgnoreCase("ATOM LINKS")) {
 					br.readLine(); // ====
 					br.readLine(); // table header
@@ -266,6 +258,23 @@ public class InferenceResultIo {
 						incoming.add(new Tuple(matcher.group(), grounding));
 					}
 					incomingLinks.put(grounding, incoming);
+					String ruleClass = fields[3].trim();
+					String parameters = "";
+					if (fields.length > 4)
+						parameters = fields[4].trim();
+					TalkingRule rule = null;
+					try {
+						Class c = Class.forName(ruleClass);
+						rule = (TalkingRule) c.getDeclaredConstructor(String.class).newInstance(parameters);
+						talkingRules.put(rule.getName(), rule);
+					} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+							| NullPointerException | IllegalArgumentException | InvocationTargetException
+							| NoSuchMethodException | SecurityException e) {
+						System.err.println("Could not create TalkingRule of type " + ruleClass + ". Tried to call `new "
+								+ ruleClass.substring(ruleClass.lastIndexOf('.')) + "(" + parameters + ")`:");
+						e.printStackTrace();
+						System.err.println("Skipping this entry.");
+					}
 					break;
 				case ATOMS:
 					String atom = fields[0].trim();
@@ -304,23 +313,6 @@ public class InferenceResultIo {
 					}
 					talkingPreds.put(predName, pred);
 					break;
-				case TALKING_RULES:
-					String ruleName = fields[0].trim();
-					String ruleClass = fields[1].trim();
-					TalkingRule rule = null;
-					try {
-						Class c = Class.forName(ruleClass);
-						rule = (TalkingRule) c.getDeclaredConstructor().newInstance();
-						talkingRules.put(ruleName, rule);
-					} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-							| NullPointerException | IllegalArgumentException | InvocationTargetException
-							| NoSuchMethodException | SecurityException e) {
-						System.err.println(
-								"Could not create TalkingRule of type " + ruleClass + " for " + ruleName + ":");
-						e.printStackTrace();
-						System.err.println("Skipping this entry.");
-					}
-					break;
 				default:
 					break;
 				}
@@ -330,10 +322,10 @@ public class InferenceResultIo {
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (NullPointerException e) {
-			System.err.println("Reached unexpected end of file while trying to deserialize RuleAtomGraph instance.");
+			System.err.println("Reached unexpected end of file while trying to deserialize InferenceResult instance.");
 			e.printStackTrace();
 		} catch (ArrayIndexOutOfBoundsException e) {
-			System.err.println("Reached too-short TSV line while trying to deserialize RuleAtomGraph instance:");
+			System.err.println("Reached too-short TSV line while trying to deserialize InferenceResult instance:");
 			System.err.println("\"" + line + "\"");
 			e.printStackTrace();
 		}

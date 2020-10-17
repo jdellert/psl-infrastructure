@@ -97,5 +97,11 @@ public class TalkingArithmeticRule extends TalkingRule {
 					printableArgs, null, positiveArgs, true, whyExplanation);
 		}
 	}
+	
+	// Override if necessary for the (de)serialization of your talking rule.
+	@Override
+	public String getSerializedParameters() {
+		return "";
+	}
 
 }

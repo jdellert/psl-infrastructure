@@ -66,63 +66,15 @@ public abstract class TalkingRule {
 	private Map<String, TalkingPredicate> talkingPreds = null;
 //	private static final Pattern ATOM_PATTERN = Pattern.compile("(?<=\\w\\()[^\\(]+(?=\\))");
 	private static final Pattern ATOM_PATTERN = Pattern.compile("\\w{4,}\\([^\\(]+\\)");
-
-	
-	// For serialization.
-	TalkingRule(String name, String ruleString) {
-		this(name, ruleString, null);
-	}
-	
-	// For serialization.
-	TalkingRule(String name, String ruleString, String verbalization){
-		this.name = name;
-		this.verbalization = (verbalization != null) ? verbalization : name;
-		List<String> args = new ArrayList<>();
-		Matcher matcher = ATOM_PATTERN.matcher(ruleString);
-		while (matcher.find()) {
-			String argSection = matcher.group();
-		    for (String arg : argSection.split(",")){
-		    	args.add(arg.trim());
-		    }
-		}
-		this.args = new String[args.size()];
-		for (int i = 0; i < args.size(); i++){
-			this.args[i] = args.get(i);
-		}
-	}
 	
 	TalkingRule(String name, String ruleString, Rule rule, PslProblem pslProblem, String verbalization) {
 		this.name = name;
-		this.ruleString = ruleString;
-		this.rule = rule;
 		if (verbalization == null) {
 			this.verbalization = name;
 		} else {
 			this.verbalization = verbalization;
 		}
-
-		List<SummationAtomOrAtom> atoms;
-		if (rule instanceof AbstractLogicalRule) {
-			AbstractLogicalRule logRule = (AbstractLogicalRule) rule;
-			FormulaAnalysis.DNFClause dnf = logRule.getDNF();
-			atoms = new ArrayList<>(dnf.getPosLiterals());
-			atoms.addAll(dnf.getNegLiterals());
-		} else if (rule instanceof AbstractArithmeticRule) {
-			AbstractArithmeticRule ariRule = (AbstractArithmeticRule) rule;
-			FunctionComparator comparator = ariRule.getExpression().getComparator();
-			atoms = ariRule.getExpression().getAtoms();
-		} else {
-			atoms = new ArrayList<>();
-		}
-
-		args = new String[atoms.size()];
-		for (int i = 0; i < atoms.size(); i++) {
-			SummationAtomOrAtom atom = atoms.get(i);
-			Predicate pred = (atom instanceof SummationAtom) ? ((SummationAtom) atom).getPredicate()
-					: ((Atom) atom).getPredicate();
-			args[i] = atom.toString();
-		}
-
+		setRule(ruleString, rule);
 		this.pslProblem = pslProblem;
 	}
 
@@ -137,6 +89,75 @@ public abstract class TalkingRule {
 		return rule;
 	}
 
+	// For serialization.
+	TalkingRule(String name, String ruleString) {
+		this(name, ruleString, null);
+	}
+	
+	// For serialization.
+	TalkingRule(String name, String ruleString, String verbalization){
+		this.pslProblem = null;
+		this.rule = null;
+		setName(name);
+		setVerbalization(verbalization);
+		setRuleString(ruleString);
+	}
+	
+	protected void setName(String name) {
+		this.name = name;
+	}
+	
+	protected void setVerbalization(String verbalization) {
+		this.verbalization = (verbalization != null) ? verbalization : name;
+	}
+	
+	protected void setRuleString(String ruleString) {
+		setRule(ruleString, null);
+	}
+	
+	protected void setRule(String ruleString, Rule rule) {
+		this.rule = rule;
+		this.ruleString = ruleString;
+		
+		if (rule != null) {
+			List<SummationAtomOrAtom> atoms;
+			if (rule instanceof AbstractLogicalRule) {
+				AbstractLogicalRule logRule = (AbstractLogicalRule) rule;
+				FormulaAnalysis.DNFClause dnf = logRule.getDNF();
+				atoms = new ArrayList<>(dnf.getPosLiterals());
+				atoms.addAll(dnf.getNegLiterals());
+			} else if (rule instanceof AbstractArithmeticRule) {
+				AbstractArithmeticRule ariRule = (AbstractArithmeticRule) rule;
+				FunctionComparator comparator = ariRule.getExpression().getComparator();
+				atoms = ariRule.getExpression().getAtoms();
+			} else {
+				atoms = new ArrayList<>();
+			}
+
+			args = new String[atoms.size()];
+			for (int i = 0; i < atoms.size(); i++) {
+				SummationAtomOrAtom atom = atoms.get(i);
+				Predicate pred = (atom instanceof SummationAtom) ? ((SummationAtom) atom).getPredicate()
+						: ((Atom) atom).getPredicate();
+				args[i] = atom.toString();
+			}
+			return;
+		}
+		
+		List<String> args = new ArrayList<>();
+		Matcher matcher = ATOM_PATTERN.matcher(ruleString);
+		while (matcher.find()) {
+			String argSection = matcher.group();
+		    for (String arg : argSection.split(",")){
+		    	args.add(arg.trim());
+		    }
+		}
+		this.args = new String[args.size()];
+		for (int i = 0; i < args.size(); i++){
+			this.args[i] = args.get(i);
+		}
+	}
+	
 	public String getName() {
 		return name;
 	}
@@ -468,5 +489,8 @@ public abstract class TalkingRule {
 		}
 		return new HashMap[] { atomsLite, beliefValues, beliefValuesLite, argumentsLite };
 	}
+	
+	// This should not contain '\t'!
+	public abstract String getSerializedParameters();
 
 }
