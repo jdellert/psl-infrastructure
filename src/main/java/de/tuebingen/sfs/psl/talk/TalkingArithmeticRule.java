@@ -19,16 +19,6 @@ public class TalkingArithmeticRule extends TalkingRule {
 	private boolean[] sum = null;
 	// Is this an equative rule?
 	private boolean equative = false;
-	
-	// For serialization.
-	public TalkingArithmeticRule(String name, String ruleString) {
-		super(name, ruleString);
-	}
-	
-	// For serialization.
-	public TalkingArithmeticRule(String name, String ruleString, String verbalization){
-		super(name, ruleString, verbalization);
-	}
 
 	public TalkingArithmeticRule(String name, String ruleString, PslProblem pslProblem) {
 		this(name, ruleString, createRule(pslProblem.getDataStore(), ruleString), pslProblem, null);
@@ -55,6 +45,33 @@ public class TalkingArithmeticRule extends TalkingRule {
 			for (int i = 0; i < sum.length; i++)
 				sum[i] = atoms.get(i) instanceof SummationAtom;
 		}
+	}
+	
+	// For serialization.
+	public TalkingArithmeticRule(String name, String ruleString) {
+		super(name, ruleString);
+	}
+	
+	// For serialization.
+	public TalkingArithmeticRule(String name, String ruleString, String verbalization){
+		super(name, ruleString, verbalization);
+	}
+	
+	// For serialization. 
+	// Override me!
+	public TalkingArithmeticRule(String serializedParameters) {
+		super("", "");
+		String[] parameters = serializedParameters.split("-");
+		setName(parameters[0]);
+		setRuleString(parameters[1]);
+		if (parameters.length > 2)
+			setVerbalization(parameters[2]);
+	}
+	
+	// Override me! Can just return "" if your talking rule doesn't need serialized parameters.
+	@Override
+	public String getSerializedParameters() {
+		return getName() + "-" + getRuleString() + getVerbalization() != null ? "-" + getVerbalization() : "";
 	}
 
 	@Override
@@ -96,12 +113,6 @@ public class TalkingArithmeticRule extends TalkingRule {
 			return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
 					printableArgs, null, positiveArgs, true, whyExplanation);
 		}
-	}
-	
-	// Override if necessary for the (de)serialization of your talking rule.
-	@Override
-	public String getSerializedParameters() {
-		return "";
 	}
 
 }

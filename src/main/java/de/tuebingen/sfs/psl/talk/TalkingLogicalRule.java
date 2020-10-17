@@ -21,16 +21,6 @@ public class TalkingLogicalRule extends TalkingRule {
 	// rest is negative
 	private int positiveArgs = -1;
 	
-	// For serialization.
-	public TalkingLogicalRule(String name, String ruleString) {
-		super(name, ruleString);
-	}
-	
-	// For serialization.
-	public TalkingLogicalRule(String name, String ruleString, String verbalization){
-		super(name, ruleString, verbalization);
-	}
-	
 	public TalkingLogicalRule(String name, String ruleString, PslProblem pslProblem) {
 		this(name, ruleString, createRule(pslProblem.getDataStore(), ruleString), pslProblem, null);
 	}
@@ -52,6 +42,33 @@ public class TalkingLogicalRule extends TalkingRule {
 			List<Atom> posLit = dnf.getPosLiterals();
 			positiveArgs = posLit.size();
 		}
+	}
+	
+	// For serialization.
+	public TalkingLogicalRule(String name, String ruleString) {
+		super(name, ruleString);
+	}
+	
+	// For serialization.
+	public TalkingLogicalRule(String name, String ruleString, String verbalization){
+		super(name, ruleString, verbalization);
+	}
+	
+	// For serialization. 
+	// Override me!
+	public TalkingLogicalRule(String serializedParameters) {
+		super("", "");
+		String[] parameters = serializedParameters.split("-");
+		setName(parameters[0]);
+		setRuleString(parameters[1]);
+		if (parameters.length > 2)
+			setVerbalization(parameters[2]);
+	}
+	
+	// Override me! Can just return "" if your talking rule doesn't need serialized parameters.
+	@Override
+	public String getSerializedParameters() {
+		return getName() + "-" + getRuleString() + getVerbalization() != null ? "-" + getVerbalization() : "";
 	}
 
 	@Override
@@ -117,11 +134,5 @@ public class TalkingLogicalRule extends TalkingRule {
 		return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
 				printableArgs, printableTalkingPredicates, printablePredicateArgs, printableBeliefValues,
 				positiveGroundArgs, directFormulation, whyExplanation);
-	}
-
-	// Override if necessary for the (de)serialization of your talking rule.
-	@Override
-	public String getSerializedParameters() {
-		return "";
 	}
 }
