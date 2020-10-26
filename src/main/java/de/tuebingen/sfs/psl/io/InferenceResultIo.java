@@ -54,7 +54,7 @@ public class InferenceResultIo {
 	}
 
 	public static void saveToFile(InferenceResult inferenceResult, Map<String, TalkingPredicate> talkingPreds,
-			Map<String, TalkingRule> talkingRules, ObjectMapper mapper, File path) {
+								  Map<String, TalkingRule> talkingRules, ObjectMapper mapper, File path) {
 		System.out.println("PATH");
 		System.out.println(path);
 		System.out.println(path.exists());
@@ -62,6 +62,15 @@ public class InferenceResultIo {
 			path.getParentFile().mkdirs();
 		}
 
+		try {
+			saveToFile(inferenceResult, talkingPreds, talkingRules, mapper, new FileOutputStream(path));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void saveToFile(InferenceResult inferenceResult, Map<String, TalkingPredicate> talkingPreds,
+			Map<String, TalkingRule> talkingRules, ObjectMapper mapper, OutputStream out) throws IOException {
 		StringBuilder sb = new StringBuilder();
 		RuleAtomGraph rag = inferenceResult.getRag();
 		RagFilter filter = rag.getRagFilter();
@@ -102,11 +111,7 @@ public class InferenceResultIo {
 					.append(entry.getValue().getClass().getName()).append("\n");
 		}
 
-		try (OutputStream out = new FileOutputStream(path)) {
-			out.write(sb.toString().getBytes());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		out.write(sb.toString().getBytes());
 	}
 
 	public static InferenceResult fromFile(ObjectMapper mapper, Map<String, TalkingPredicate> talkingPreds,
