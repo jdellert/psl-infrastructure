@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -131,7 +132,13 @@ public class InferenceResultIo {
 
 	@SuppressWarnings("rawtypes")
 	public static InferenceResult fromFile(ObjectMapper mapper, InputStream is,
-			Map<String, TalkingPredicate> talkingPreds, Map<String, TalkingRule> talkingRules) {
+										   Map<String, TalkingPredicate> talkingPreds, Map<String, TalkingRule> talkingRules) {
+		return fromFile(mapper, is, talkingPreds, talkingRules, true);
+	}
+
+	@SuppressWarnings("rawtypes")
+	public static InferenceResult fromFile(ObjectMapper mapper, InputStream is,
+			Map<String, TalkingPredicate> talkingPreds, Map<String, TalkingRule> talkingRules, boolean closeStream) {
 		if (talkingPreds == null)
 			talkingPreds = new TreeMap<>();
 		if (talkingRules == null)
@@ -159,9 +166,12 @@ public class InferenceResultIo {
 		Map<String, List<Tuple>> incomingLinks = new TreeMap<>();
 		Map<String, Double> scoreMap = new TreeMap<>();
 
+		BufferedReader br = null;
 		String line = "";
 		TSV_SECTION current = null;
-		try (InputStreamReader isr = new InputStreamReader(is, "UTF-8"); BufferedReader br = new BufferedReader(isr)) {
+		try {
+			InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
+			br = new BufferedReader(isr);
 			while ((line = br.readLine()) != null) {
 				line = line.trim();
 				if (line.isEmpty()) {
@@ -322,8 +332,6 @@ public class InferenceResultIo {
 					break;
 				}
 			}
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (NullPointerException e) {
@@ -333,6 +341,14 @@ public class InferenceResultIo {
 			System.err.println("Reached too-short TSV line while trying to deserialize InferenceResult instance:");
 			System.err.println("\"" + line + "\"");
 			e.printStackTrace();
+		} finally {
+			if (closeStream && (br != null)) {
+				try {
+					br.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
 		RagFilter ragFilter = null;
