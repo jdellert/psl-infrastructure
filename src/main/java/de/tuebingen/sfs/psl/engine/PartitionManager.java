@@ -207,6 +207,11 @@ public class PartitionManager {
 		System.err.println("Moving atoms reserved for " + problem.getName() + " back to standard partition");
 		logger.display("Returning reserved atoms to shared database...");
 		changeWritePartition(problem, stdPartition);
+		if (! problemsToReadPartitions.containsKey(problem)) {
+			// Can happen if there running the inference caused an exception.
+			logger.display("The problem " + problem.getName() + " was not registered with any read partition.");
+			return;
+		}
 		List<PslProblem> problems = new ArrayList<>();
 		problems.add(problem);
 		Set<Partition> originalSources = new HashSet<>(problemsToReadPartitions.get(problem));
