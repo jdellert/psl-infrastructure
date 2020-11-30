@@ -2,6 +2,7 @@ package de.tuebingen.sfs.psl.util.data;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Faster String split() and join() implementations.
@@ -181,6 +182,16 @@ public class StringUtils {
         for (int i = from; i < to; i++)
             s.append(a[i]).append(c);
         if (s.length() > 0) s.deleteCharAt(s.length()-1);
+        return s.toString();
+    }
+    public static String joinMap(Map<String, String> map, char c){
+        StringBuilder s = new StringBuilder();
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            s.append(entry.getKey()).append("=").append(entry.getValue()).append(c);
+        }
+        if (s.length() > 0) s.deleteCharAt(s.length() - 1); // remove the last slash
+        // should the last slash be removed?
+        // String.split("/") would not mind a dangling slash.
         return s.toString();
     }
 
