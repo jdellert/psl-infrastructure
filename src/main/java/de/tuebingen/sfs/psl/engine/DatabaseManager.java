@@ -342,6 +342,16 @@ public class DatabaseManager {
 		}
 		return results;
 	}
+	
+	public int getNumberOfAtomsByPredicateBelowThreshold(String problemId,
+			Set<String> predicates, double threshold) {
+		Set<RankingEntry<AtomTemplate>> results = new HashSet<>();
+		for (String predName : predicates) {
+			results.addAll(getAllWhereOrderByWithValueAndPartition(predName,
+					new WhereStatement().ownedByProblem(problemId).beliefBelowThreshold(threshold), new OrderByStatement()));
+		}
+		return results.size();
+	}
 
 	public List<Tuple> getAllMatching(String predName, AtomTemplate match) {
 		return getAllMatchingForProblem(predName, "", match);
