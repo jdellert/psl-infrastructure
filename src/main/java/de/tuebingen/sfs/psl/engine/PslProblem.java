@@ -41,6 +41,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	public boolean VERBOSE = false;
 
 	private final String name;
+	private PslProblemConfig config;
 
 	// Shared with the other PslProblems and the PartitionManager:
 	private DatabaseManager dbManager;
@@ -71,9 +72,14 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	}
 
 	public PslProblem(DatabaseManager dbManager, String name, boolean declareUserPrior) {
-		this.dbManager = dbManager;
-		this.name = name;
-		this.declareUserPrior = declareUserPrior;
+		this(new PslProblemConfig(name, declareUserPrior, dbManager));
+	}
+
+	public PslProblem(PslProblemConfig config) {
+		this.config = config;
+		this.dbManager = config.getDbManager();
+		this.name = config.getName();
+		this.declareUserPrior = config.isDeclareUserPrior();
 
 		String suffix = System.getProperty("user.name") + "@" + getHostname();
 		String baseDBPath = Config.getString("dbpath", System.getProperty("java.io.tmpdir"));
@@ -82,10 +88,10 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 		System.err.println("Basic setup...");
 		basicSetup(true);
 
-        System.err.println("Creating rule store...");
-        ruleToName = new HashMap<>();
-        nameToRule = new TreeMap<>();
-        nameToTalkingRule = new TreeMap<>();
+		System.err.println("Creating rule store...");
+		ruleToName = new HashMap<>();
+		nameToRule = new TreeMap<>();
+		nameToTalkingRule = new TreeMap<>();
 
 		System.err.println("Declaring predicates...");
 		talkingPredicates = new TreeMap<>();
@@ -194,6 +200,10 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 	/*
 	 * Getters
 	 */
+
+	public PslProblemConfig getConfig() {
+		return config;
+	}
 
 	public String getName() {
 		return name;
