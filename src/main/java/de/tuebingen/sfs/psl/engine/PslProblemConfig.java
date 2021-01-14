@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class PslProblemConfig {
 
@@ -53,6 +54,29 @@ public class PslProblemConfig {
         this.dbManager = dbManager;
     }
 
+    protected void copyFields(PslProblemConfig newConfig) {
+        newConfig.setName(name);
+        newConfig.setDeclareUserPrior(declareUserPrior);
+        newConfig.setDbManager(dbManager);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof PslProblemConfig)) return false;
+
+        PslProblemConfig that = (PslProblemConfig) o;
+
+        if (declareUserPrior != that.declareUserPrior) return false;
+        return Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name != null ? name.hashCode() : 0;
+        result = 31 * result + (declareUserPrior ? 1 : 0);
+        return result;
+    }
 
     private static final String NAME_FIELD = "name";
     private static final String USER_PRIOR_FIELD = "declareUserPrior";

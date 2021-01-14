@@ -2,7 +2,6 @@ package de.tuebingen.sfs.psl.engine;
 
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 public class InferenceResult {
 
@@ -10,15 +9,12 @@ public class InferenceResult {
 	private RuleAtomGraph rag;
 	private Map<String, Double> inferenceValues;
 	// Inference configuration:
-	private Set<String> languages;
-	// TODO which other details to save? (vbl)
-	// the other information (incl. languages) still needs to be included in the
-	// InferenceResultIo class
+	private PslProblemConfig config;
 
-	public InferenceResult(RuleAtomGraph rag, Map<String, Double> inferenceValues, Set<String> languages) {
+	public InferenceResult(RuleAtomGraph rag, Map<String, Double> inferenceValues, PslProblemConfig config) {
 		this.rag = rag;
 		this.inferenceValues = inferenceValues;
-		this.languages = languages;
+		this.config = config;
 	}
 
 	public InferenceResult(RuleAtomGraph rag, Map<String, Double> inferenceValues) {
@@ -49,17 +45,17 @@ public class InferenceResult {
 		this.inferenceValues = inferenceValues;
 	}
 
-	public Set<String> getLanguages() {
-		return languages;
+	public PslProblemConfig getConfig() {
+		return config;
 	}
 
-	public void setLanguages(Set<String> languages) {
-		this.languages = languages;
+	public void setConfig(PslProblemConfig config) {
+		this.config = config;
 	}
 
 	public String toString() {
-		return "InferenceResult[RAG: " + rag + ", inferenceValues: " + inferenceValues + " | CONFIG: languages: "
-				+ languages + "]";
+		return "InferenceResult[RAG: " + rag + ", inferenceValues: " + inferenceValues + " | CONFIG: "
+				+ config + "]";
 	}
 
 	public void printInferenceValues() {
@@ -73,7 +69,7 @@ public class InferenceResult {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((inferenceValues == null) ? 0 : inferenceValues.hashCode());
-		result = prime * result + ((languages == null) ? 0 : languages.hashCode());
+		result = prime * result + ((config == null) ? 0 : config.hashCode());
 		result = prime * result + ((rag == null) ? 0 : rag.hashCode());
 		return result;
 	}
@@ -97,11 +93,11 @@ public class InferenceResult {
 		} else if (!inferenceValues.equals(other.inferenceValues)) {
 			return false;
 		}
-		if (languages == null) {
-			if (other.languages != null) {
+		if (config == null) {
+			if (other.config != null) {
 				return false;
 			}
-		} else if (!languages.equals(other.languages)) {
+		} else if (!config.equals(other.config)) {
 			return false;
 		}
 		if (rag == null) {
