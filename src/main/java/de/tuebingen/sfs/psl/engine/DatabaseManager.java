@@ -49,7 +49,6 @@ public class DatabaseManager {
 	private final RDBMSDataStore dataStore;
 	private Map<String, TalkingPredicate> talkingPredicates;
 	private Map<String, StandardPredicate> predicates;
-	private Multimap<String, AtomTemplate> problemsToAtoms; // TODO: Remove once unused
 
 	private Map<String, Database> problemsToDatabases;
 	private int nextId = 0;
@@ -65,7 +64,6 @@ public class DatabaseManager {
 		this.dataStore = dataStore;
 		predicates = new TreeMap<>();
 		talkingPredicates = new TreeMap<>();
-		problemsToAtoms = new Multimap<>(CollectionType.SET);
 		problemsToDatabases = new HashMap<>();
 		stdPartition = dataStore.getPartition(PartitionManager.STD_PARTITION_ID);
 		atomsTotal = 0;
@@ -539,7 +537,6 @@ public class DatabaseManager {
 				System.err.println("#atoms: " + atomsTotal
 						+ ", expansion of memory footprint since starting to add atoms: " + addedMemory + " MB");
 			}
-			problemsToAtoms.put(problemId, new AtomTemplate(predName, tuple));
 		}
 	}
 
