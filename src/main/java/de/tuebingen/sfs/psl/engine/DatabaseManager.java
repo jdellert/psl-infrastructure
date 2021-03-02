@@ -89,31 +89,6 @@ public class DatabaseManager {
 	}
 
 
-	////////////////
-	// DEPRECATED //
-	////////////////
-
-	// Method body contains new idioms, so replace calls to these methods by method body!
-
-	// TODO: Remove once unused
-	@Deprecated
-	public Set<Tuple> getTuplesForPredicateAboveThreshold(String problemId, String predName, double threshold) {
-		return new HashSet<>(getAllAboveThresholdForProblem(predName, problemId, threshold));
-	}
-
-	// TODO: Remove once unused
-	@Deprecated
-	public Set<Tuple> getTuplesForPredicateBelowThreshold(String problemId, String predName, double threshold) {
-		return new HashSet<>(getAllBelowThresholdForProblem(predName, problemId, threshold));
-	}
-
-	// TODO: Remove once unused
-	@Deprecated
-	public Set<Tuple> getTuplesForPredicate(String problemId, String predName) {
-		return new HashSet<>(getAllForProblem(predName, problemId));
-	}
-
-
 	////////////////////
 	// SIMPLE GETTERS //
 	////////////////////
