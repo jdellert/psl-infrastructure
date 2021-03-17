@@ -280,11 +280,14 @@ public class InferenceResultIo {
 					TalkingRule rule = null;
 					try {
 						Class c = Class.forName(ruleClass);
-						rule = (TalkingRule) c.getDeclaredConstructor(String.class).newInstance(parameters);
+						// NOTE: We're not using the newer version
+						// c.getDeclaredConstructor(String.class).newInstance(parameters)
+						// since it was introduced after Java 8.
+						rule = (TalkingRule) c.getConstructor(String.class).newInstance(parameters);
 						talkingRules.put(rule.getName(), rule);
 					} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
 							| NullPointerException | IllegalArgumentException | InvocationTargetException
-							| NoSuchMethodException | SecurityException e) {
+							 | NoSuchMethodException | SecurityException e) {
 						System.err.println("Could not create TalkingRule of type " + ruleClass + ". Tried to call `new "
 								+ ruleClass.substring(ruleClass.lastIndexOf('.')) + "(" + parameters + ")`:");
 						e.printStackTrace();
@@ -320,10 +323,11 @@ public class InferenceResultIo {
 					TalkingPredicate pred = null;
 					try {
 						Class c = Class.forName(predClass);
-						pred = (TalkingPredicate) c.getDeclaredConstructor().newInstance();
-					} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-							| NullPointerException | SecurityException | IllegalArgumentException
-							| InvocationTargetException | NoSuchMethodException e) {
+						// NOTE: We're not using the newer version
+						// c.getDeclaredConstructor().newInstance();
+						// since it was introduced after Java 8.
+						pred = (TalkingPredicate) c.newInstance();
+					} catch (Exception e) {
 						pred = new TalkingPredicate(predName, arity);
 					}
 					talkingPreds.put(predName, pred);
@@ -358,9 +362,13 @@ public class InferenceResultIo {
 		} else {
 			try {
 				Class c = Class.forName(filterClass);
-				ragFilter = (RagFilter) c.getDeclaredConstructor().newInstance();
-			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IllegalArgumentException
-					| InvocationTargetException | NoSuchMethodException | SecurityException e) {
+				// NOTE: We're not using the newer version
+				// c.getDeclaredConstructor().newInstance();
+				// since it was introduced after Java 8.
+				ragFilter = (RagFilter) c.newInstance();
+//			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IllegalArgumentException
+//					| InvocationTargetException | NoSuchMethodException | SecurityException e) {
+			} catch (Exception e) {
 				System.err.println("Could not create RagFilter of type " + filterClass + ":");
 				e.printStackTrace();
 				System.err.println("Creating standard RagFilter instead.");
