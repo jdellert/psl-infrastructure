@@ -3,9 +3,14 @@ package de.tuebingen.sfs.psl.engine;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import de.tuebingen.sfs.psl.util.log.InferenceLogger;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class PslProblemConfig {
 
@@ -13,6 +18,9 @@ public class PslProblemConfig {
     private boolean declareUserPrior;
 
     private DatabaseManager dbManager;
+
+    private String logfilePath;
+    private InferenceLogger logger;
 
     public PslProblemConfig() {
         resetToDefaults();
@@ -28,6 +36,9 @@ public class PslProblemConfig {
         name = null;
         declareUserPrior = false;
         dbManager = null;
+
+        logger = new InferenceLogger();
+        setLogfile("src/test/resources/inf-log.txt");
     }
 
     public String getName() {
@@ -117,6 +128,38 @@ public class PslProblemConfig {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void setGuiMessager(Consumer<String> messager) {
+        logger.setGuiStream(messager);
+    }
+
+    public Consumer<String> getGuiMessager() {
+        return logger.getGuiStream();
+    }
+
+    public boolean setLogfile(String logfilePath) {
+        this.logfilePath = logfilePath;
+        if (logfilePath.isEmpty())
+            logger.setLogStream(System.err);
+        else {
+            try {
+                PrintStream logStream = new PrintStream(logfilePath, "UTF-8");
+                logger.setLogStream(logStream);
+            } catch (FileNotFoundException | UnsupportedEncodingException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public String getLogfilePath() {
+        return logfilePath;
+    }
+
+    public InferenceLogger getLogger() {
+        return logger;
     }
 
 }
