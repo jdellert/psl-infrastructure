@@ -43,7 +43,7 @@ public class Trie<T extends Comparable<? super T>> {
 
         public void add(int i, T[] syms) {
             if (i < syms.length) {
-                addChild(syms[i]).add(i+1, syms);
+                addChild(syms[i]).add(i + 1, syms);
             }
         }
 
@@ -53,13 +53,13 @@ public class Trie<T extends Comparable<? super T>> {
             TrieNode child = getChild(syms[i]);
             if (child == null)
                 return false;
-            return child.contains(i+1, syms);
+            return child.contains(i + 1, syms);
         }
 
         public TrieNode addChild(T sym) {
             int c = Collections.binarySearch(childSyms, sym);
             if (c < 0) {
-                c = -(c+1);
+                c = -(c + 1);
                 childSyms.add(c, sym);
                 childNodes.add(c, new TrieNode());
             }

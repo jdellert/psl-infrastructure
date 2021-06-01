@@ -14,77 +14,77 @@ import de.tuebingen.sfs.psl.util.data.StringUtils;
 //An example implementation of this will be available at
 //https://github.com/jdellert/etinen-shared/tree/master/src/main/java/de/tuebingen/sfs/eie/talk
 public class TalkingPredicate {
-	String predSymbol;
-	int arity;
-	boolean verbalizeOnHighLowScale;
+    String predSymbol;
+    int arity;
+    boolean verbalizeOnHighLowScale;
 
-	public TalkingPredicate(String predSymbol, int arity) {
-		this(predSymbol, arity, false);
-	}
+    public TalkingPredicate(String predSymbol, int arity) {
+        this(predSymbol, arity, false);
+    }
 
-	public TalkingPredicate(String predSymbol, int arity, boolean verbalizeOnHighLowScale) {
-		this.predSymbol = predSymbol;
-		this.arity = arity;
-		this.verbalizeOnHighLowScale = verbalizeOnHighLowScale;
-	}
+    public TalkingPredicate(String predSymbol, int arity, boolean verbalizeOnHighLowScale) {
+        this.predSymbol = predSymbol;
+        this.arity = arity;
+        this.verbalizeOnHighLowScale = verbalizeOnHighLowScale;
+    }
 
-	public String getSymbol() {
-		return predSymbol;
-	}
+    public static final String getPredNameFromAllCaps(String predName) {
+        String prefix = "";
+        if (predName.length() > 4) {
+            prefix = PslProblem.predicatePrefix(predName);
+        }
+        return predName.substring(0, prefix.length() + 1) + predName.toLowerCase().substring(prefix.length() + 1);
+    }
 
-	public int getArity() {
-		return arity;
-	}
+    public static String[] extractArgs(String atomString) {
+        if (atomString == null)
+            return null;
+        String argString = atomString.substring(atomString.indexOf('(') + 1, atomString.length() - 1);
+        return StringUtils.split(argString, ", ");
+    }
 
-	public boolean verbalizeOnHighLowScale() {
-		return verbalizeOnHighLowScale;
-	}
+    public String getSymbol() {
+        return predSymbol;
+    }
 
-	public String verbalizeIdea(String... args) {
-		return predSymbol + "(" + StringUtils.join(args, ", ") + ")";
-	}
+    public int getArity() {
+        return arity;
+    }
 
-	public String verbalizeIdeaWithBelief(double belief, String... args) {
-		return verbalizeIdea(args) + " " + BeliefScale.verbalizeBeliefAsPredicate(belief);
-	}
+    public boolean verbalizeOnHighLowScale() {
+        return verbalizeOnHighLowScale;
+    }
 
-	public String verbalizeIdeaAsSentence(String... args) {
-		// Override me!
-		return verbalizeIdea(args);
-	}
-	
-	public String verbalizeIdeaAsSentence(double belief, String... args) {
-		// Override me!
-		return verbalizeIdeaWithBelief(belief, args);
-	}
+    public String verbalizeIdea(String... args) {
+        return predSymbol + "(" + StringUtils.join(args, ", ") + ")";
+    }
 
-	public String verbalizeIdeaAsNP(String... args) {
-		// Override me!
-		return verbalizeIdea(args);
-	}
-	
-	public String toAtomString(String... args) {
-		return predSymbol + "(" + StringUtils.join(args, ", ") + ")";
-	}
+    public String verbalizeIdeaWithBelief(double belief, String... args) {
+        return verbalizeIdea(args) + " " + BeliefScale.verbalizeBeliefAsPredicate(belief);
+    }
 
-	@Override
-	public String toString() {
-		return predSymbol + "<" + arity + ">";
-	}
+    public String verbalizeIdeaAsSentence(String... args) {
+        // Override me!
+        return verbalizeIdea(args);
+    }
 
-	public static final String getPredNameFromAllCaps(String predName) {
-		String prefix = "";
-		if (predName.length() > 4) {
-			prefix = PslProblem.predicatePrefix(predName);
-		}
-		return predName.substring(0, prefix.length() + 1) + predName.toLowerCase().substring(prefix.length() + 1);
-	}
+    public String verbalizeIdeaAsSentence(double belief, String... args) {
+        // Override me!
+        return verbalizeIdeaWithBelief(belief, args);
+    }
 
-	public static String[] extractArgs(String atomString) {
-		if (atomString == null)
-			return null;
-		String argString = atomString.substring(atomString.indexOf('(') + 1, atomString.length() - 1);
-		return StringUtils.split(argString, ", ");
-	}
+    public String verbalizeIdeaAsNP(String... args) {
+        // Override me!
+        return verbalizeIdea(args);
+    }
+
+    public String toAtomString(String... args) {
+        return predSymbol + "(" + StringUtils.join(args, ", ") + ")";
+    }
+
+    @Override
+    public String toString() {
+        return predSymbol + "<" + arity + ">";
+    }
 
 }

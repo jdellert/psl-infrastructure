@@ -5,7 +5,15 @@ import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.psl.util.log.InferenceLogger;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 public class ModelEvaluator {
@@ -13,10 +21,10 @@ public class ModelEvaluator {
     private PslProblem pslProblem;
     private GoldStandard gs;
 
-    
-    public ModelEvaluator(PslProblem pslProblem, GoldStandard gs){
-    	this.pslProblem = pslProblem;
-    	this.gs = gs;
+
+    public ModelEvaluator(PslProblem pslProblem, GoldStandard gs) {
+        this.pslProblem = pslProblem;
+        this.gs = gs;
     }
 
     public Evaluation evaluate() {
@@ -73,8 +81,7 @@ public class ModelEvaluator {
                         inGS[p]++;
                         inGSSums[p] += belief;
                         foundHere.put(args, belief);
-                    }
-                    else if (!pred.isIgnoredAtom(args) && !gs.alreadyFound(pred, args)){
+                    } else if (!pred.isIgnoredAtom(args) && !gs.alreadyFound(pred, args)) {
                         notInGS[p]++;
                         notInGSSums[p] += belief;
                         foundHereNotInGS.put(args, belief);
@@ -101,6 +108,59 @@ public class ModelEvaluator {
             gs.reset();
         }
 
+        public static void printNumericEvaluation(PrintStream pStream,
+                                                  int nFound, int nMissing, int nFoundButNotInGS, int nTopFoundButNotInGS,
+                                                  double inGSSum, double notInGSSum, double topNotInGSSum) {
+            int total = nFound + nMissing;
+            pStream.printf(Locale.ROOT, "\tFound %d/%d GS atoms (%.3f%%).\n",
+                    nFound, total, ((((double) nFound) / total) * 100));
+            pStream.printf(Locale.ROOT, "\tFound %d atoms not in GS.\n",
+                    nFoundButNotInGS);
+            pStream.printf(Locale.ROOT, "\tAverage belief value of found GS atoms: %.3f\n",
+                    (inGSSum / nFound));
+            pStream.printf(Locale.ROOT, "\tAverage belief value of GS atoms: %.3f\n",
+                    (inGSSum / total));
+            pStream.printf(Locale.ROOT, "\tAverage belief value of found non-GS atoms: %.3f\n",
+                    (notInGSSum / nFoundButNotInGS));
+            pStream.printf(Locale.ROOT, "\tAverage belief value of top %d found non-GS atoms: %.3f\n",
+                    nTopFoundButNotInGS, (topNotInGSSum / nTopFoundButNotInGS));
+        }
+
+        public static List<TabularEvaluationEntry> printTabularEvaluation(
+                PrintStream pStream, String evalLabel,
+                int nFound, int nMissing, int nFoundButNotInGS, int nTopFoundButNotInGS,
+                double inGSSum, double notInGSSum, double topNotInGSSum) {
+            int totalGS = nFound + nMissing;
+            int totalFound = nFound + nFoundButNotInGS;
+            double precision = ((double) nFound) / totalFound;
+            double recall = ((double) nFound) / totalGS;
+            double gsBelief = inGSSum / totalFound;
+            double fgsBelief = inGSSum / nFound;
+            double ngsBelief = notInGSSum / nFoundButNotInGS;
+            double tngsBelief = topNotInGSSum / nTopFoundButNotInGS;
+            double normFound = nFound * fgsBelief;
+            double normFoundButNotInGS = nFoundButNotInGS * ngsBelief;
+            double normPrecision = normFound / (normFound + normFoundButNotInGS);
+            double normRecall = recall * fgsBelief;
+
+            List<TabularEvaluationEntry> eval = new ArrayList<>();
+            eval.add(new TabularEvaluationEntry(evalLabel, "GS found", nFound));
+            eval.add(new TabularEvaluationEntry(evalLabel, "GS missing", nMissing));
+            eval.add(new TabularEvaluationEntry(evalLabel, "non-GS found", nFoundButNotInGS));
+            eval.add(new TabularEvaluationEntry(evalLabel, "precision", precision));
+            eval.add(new TabularEvaluationEntry(evalLabel, "norm. precision", normPrecision));
+            eval.add(new TabularEvaluationEntry(evalLabel, "recall", recall));
+            eval.add(new TabularEvaluationEntry(evalLabel, "norm. recall", normRecall));
+            eval.add(new TabularEvaluationEntry(evalLabel, "GS belief", gsBelief));
+            eval.add(new TabularEvaluationEntry(evalLabel, "found GS belief", fgsBelief));
+            eval.add(new TabularEvaluationEntry(evalLabel, "non-GS belief", ngsBelief));
+            eval.add(new TabularEvaluationEntry(evalLabel, "top n non-GS belief", tngsBelief));
+
+            for (TabularEvaluationEntry entry : eval)
+                pStream.println(entry);
+
+            return eval;
+        }
 
         public void printEvaluation(InferenceLogger logger) {
             printEvaluation(logger.getLogStream());
@@ -155,25 +215,6 @@ public class ModelEvaluator {
             }
         }
 
-        public static void printNumericEvaluation(PrintStream pStream,
-                                                  int nFound, int nMissing, int nFoundButNotInGS, int nTopFoundButNotInGS,
-                                                  double inGSSum, double notInGSSum, double topNotInGSSum) {
-            int total = nFound + nMissing;
-            pStream.printf(Locale.ROOT, "\tFound %d/%d GS atoms (%.3f%%).\n",
-                    nFound, total, ((((double) nFound) / total) * 100));
-            pStream.printf(Locale.ROOT, "\tFound %d atoms not in GS.\n",
-                    nFoundButNotInGS);
-            pStream.printf(Locale.ROOT, "\tAverage belief value of found GS atoms: %.3f\n",
-                    (inGSSum / nFound));
-            pStream.printf(Locale.ROOT, "\tAverage belief value of GS atoms: %.3f\n",
-                    (inGSSum / total));
-            pStream.printf(Locale.ROOT, "\tAverage belief value of found non-GS atoms: %.3f\n",
-                    (notInGSSum / nFoundButNotInGS));
-            pStream.printf(Locale.ROOT, "\tAverage belief value of top %d found non-GS atoms: %.3f\n",
-                    nTopFoundButNotInGS, (topNotInGSSum / nTopFoundButNotInGS));
-        }
-
-
         public void printTabularEvaluation(InferenceLogger logger) {
             printTabularEvaluation(logger.getLogStream());
         }
@@ -192,42 +233,6 @@ public class ModelEvaluator {
                             new TreeSet<>(notFound.get(p)), pslProblem, pStream));
                 }
             }
-
-            return eval;
-        }
-
-        public static List<TabularEvaluationEntry> printTabularEvaluation(
-                PrintStream pStream, String evalLabel,
-                int nFound, int nMissing, int nFoundButNotInGS, int nTopFoundButNotInGS,
-                double inGSSum, double notInGSSum, double topNotInGSSum) {
-            int totalGS = nFound + nMissing;
-            int totalFound = nFound + nFoundButNotInGS;
-            double precision = ((double) nFound) / totalFound;
-            double recall = ((double) nFound) / totalGS;
-            double gsBelief = inGSSum / totalFound;
-            double fgsBelief = inGSSum / nFound;
-            double ngsBelief = notInGSSum / nFoundButNotInGS;
-            double tngsBelief = topNotInGSSum / nTopFoundButNotInGS;
-            double normFound = nFound * fgsBelief;
-            double normFoundButNotInGS = nFoundButNotInGS * ngsBelief;
-            double normPrecision = normFound / (normFound + normFoundButNotInGS);
-            double normRecall = recall * fgsBelief;
-
-            List<TabularEvaluationEntry> eval = new ArrayList<>();
-            eval.add(new TabularEvaluationEntry(evalLabel, "GS found", nFound));
-            eval.add(new TabularEvaluationEntry(evalLabel, "GS missing", nMissing));
-            eval.add(new TabularEvaluationEntry(evalLabel, "non-GS found", nFoundButNotInGS));
-            eval.add(new TabularEvaluationEntry(evalLabel, "precision", precision));
-            eval.add(new TabularEvaluationEntry(evalLabel, "norm. precision", normPrecision));
-            eval.add(new TabularEvaluationEntry(evalLabel, "recall", recall));
-            eval.add(new TabularEvaluationEntry(evalLabel, "norm. recall", normRecall));
-            eval.add(new TabularEvaluationEntry(evalLabel, "GS belief", gsBelief));
-            eval.add(new TabularEvaluationEntry(evalLabel, "found GS belief", fgsBelief));
-            eval.add(new TabularEvaluationEntry(evalLabel, "non-GS belief", ngsBelief));
-            eval.add(new TabularEvaluationEntry(evalLabel, "top n non-GS belief", tngsBelief));
-
-            for (TabularEvaluationEntry entry : eval)
-                pStream.println(entry);
 
             return eval;
         }

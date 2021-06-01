@@ -1,11 +1,16 @@
 package de.tuebingen.sfs.psl.eval;
 
-import java.io.PrintStream;
-import java.util.*;
-import java.util.stream.Collectors;
-
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.util.data.Tuple;
+
+import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 public class DisjunctiveGoldStandard implements GoldStandard {
 

@@ -1,6 +1,5 @@
 package de.tuebingen.sfs.psl.util.data;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -12,19 +11,19 @@ public class StringUtils {
     public static String[] split(String s, char c) {
         return split(s, c, 0);
     }
-	
+
     public static String[] split(String s, char c, int minLen) {
         String[] res = new String[count(s, c, minLen) + 1];
         int i = s.indexOf(c, minLen);
         int j = -1;
         int n = 0;
         while (i >= 0) {
-            res[n] = s.substring(j+1, i);
+            res[n] = s.substring(j + 1, i);
             n++;
             j = i;
-            i = s.indexOf(c, j+minLen+1);
+            i = s.indexOf(c, j + minLen + 1);
         }
-        res[n] = s.substring(j+1);
+        res[n] = s.substring(j + 1);
 
         return res;
     }
@@ -58,7 +57,7 @@ public class StringUtils {
     }
 
     public static String lastSubstringSep(String s, char c) {
-        return lastSubstringSep(s, c, s.length()-1);
+        return lastSubstringSep(s, c, s.length() - 1);
     }
 
     public static String lastSubstringSep(String s, char c, int end) {
@@ -66,7 +65,7 @@ public class StringUtils {
         if (i < 0)
             return "";
         else
-            return s.substring(i+1, end+1);
+            return s.substring(i + 1, end + 1);
     }
 
     public static int count(String s, char c) {
@@ -78,7 +77,7 @@ public class StringUtils {
         int i = s.indexOf(c);
         while (i >= 0) {
             n++;
-            i = s.indexOf(c, i+minDist+1);
+            i = s.indexOf(c, i + minDist + 1);
         }
         return n;
     }
@@ -88,7 +87,7 @@ public class StringUtils {
         int i = s.indexOf(c);
         while (i >= 0) {
             n++;
-            i = s.indexOf(c, i+1);
+            i = s.indexOf(c, i + 1);
         }
         return n;
     }
@@ -101,7 +100,7 @@ public class StringUtils {
         StringBuilder s = new StringBuilder();
         for (int i = from; i < to; i++)
             s.append(a[i]).append(c);
-        if (s.length() > 0) s.deleteCharAt(s.length()-1);
+        if (s.length() > 0) s.deleteCharAt(s.length() - 1);
         return s.toString();
     }
 
@@ -113,14 +112,14 @@ public class StringUtils {
         StringBuilder s = new StringBuilder();
         for (Object p : a)
             s.append((p == null) ? nullReplacement : p.toString()).append(c);
-        if (s.length() > 0) s.deleteCharAt(s.length()-1);
+        if (s.length() > 0) s.deleteCharAt(s.length() - 1);
         return s.toString();
     }
 
     public static String join(Iterable<?> a, String c) {
         return join(a, c, "null");
     }
-    
+
     public static String join(Iterable<?> a, String c, String nullReplacement) {
         StringBuilder s = new StringBuilder();
         for (Object p : a)
@@ -128,7 +127,7 @@ public class StringUtils {
         if (s.length() > 0) s.delete(s.length() - c.length(), s.length());
         return s.toString();
     }
-    
+
     public static String join(String[] a, String c) {
         return join(a, c, 0, a.length);
     }
@@ -139,7 +138,7 @@ public class StringUtils {
         StringBuilder s = new StringBuilder();
         for (int i = from; i < to; i++)
             s.append(a[i]).append(c);
-        return s.delete(s.length()-c.length(), s.length()).toString();
+        return s.delete(s.length() - c.length(), s.length()).toString();
     }
 
     public static String join(List<String> a, char c, int from, int to) {
@@ -148,7 +147,7 @@ public class StringUtils {
         StringBuilder s = new StringBuilder();
         for (int i = from; i < to; i++)
             s.append(a.get(i)).append(c);
-        return s.delete(s.length()-1, s.length()).toString();
+        return s.delete(s.length() - 1, s.length()).toString();
     }
 
     public static String join(List<String> a, String c, int from, int to) {
@@ -157,7 +156,7 @@ public class StringUtils {
         StringBuilder s = new StringBuilder();
         for (int i = from; i < to; i++)
             s.append(a.get(i)).append(c);
-        return s.delete(s.length()-c.length(), s.length()).toString();
+        return s.delete(s.length() - c.length(), s.length()).toString();
     }
 
     public static String join(int[] a, char c) {
@@ -170,7 +169,7 @@ public class StringUtils {
         StringBuilder s = new StringBuilder();
         for (int i = from; i < to; i++)
             s.append(a[i]).append(c);
-        return s.deleteCharAt(s.length()-1).toString();
+        return s.deleteCharAt(s.length() - 1).toString();
     }
 
     public static String join(char[] a, char c) {
@@ -181,10 +180,11 @@ public class StringUtils {
         StringBuilder s = new StringBuilder();
         for (int i = from; i < to; i++)
             s.append(a[i]).append(c);
-        if (s.length() > 0) s.deleteCharAt(s.length()-1);
+        if (s.length() > 0) s.deleteCharAt(s.length() - 1);
         return s.toString();
     }
-    public static String joinMap(Map<String, String> map, char c){
+
+    public static String joinMap(Map<String, String> map, char c) {
         StringBuilder s = new StringBuilder();
         for (Map.Entry<String, String> entry : map.entrySet()) {
             s.append(entry.getKey()).append("=").append(entry.getValue()).append(c);

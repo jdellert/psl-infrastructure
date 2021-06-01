@@ -1,12 +1,11 @@
 package de.tuebingen.sfs.psl.eval;
 
-import java.util.Arrays;
+import de.tuebingen.sfs.psl.util.data.StringUtils;
+import de.tuebingen.sfs.psl.util.data.Tuple;
+
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-
-import de.tuebingen.sfs.psl.util.data.StringUtils;
-import de.tuebingen.sfs.psl.util.data.Tuple;
 
 public class ArgumentSet implements Arguments {
 
@@ -57,7 +56,7 @@ public class ArgumentSet implements Arguments {
 
     @Override
     public Set<String[]> getArgs() {
-    	return argSet.stream().map(x -> x.clone()).collect(Collectors.toSet());
+        return argSet.stream().map(x -> x.clone()).collect(Collectors.toSet());
     }
 
     @Override
