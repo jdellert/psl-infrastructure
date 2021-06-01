@@ -3,7 +3,6 @@ package de.tuebingen.sfs.psl.talk;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
 import de.tuebingen.sfs.psl.util.data.Tuple;
-
 import org.linqs.psl.model.rule.Rule;
 import org.linqs.psl.model.rule.arithmetic.AbstractArithmeticRule;
 import org.linqs.psl.model.rule.arithmetic.expression.SummationAtom;
@@ -15,90 +14,90 @@ import java.util.List;
 
 public class TalkingArithmeticRule extends TalkingRule {
 
-	// sum[i] == super.args[i] is a SummationAtom
-	private boolean[] sum = null;
-	// Is this an equative rule?
-	private boolean equative = false;
+    // sum[i] == super.args[i] is a SummationAtom
+    private boolean[] sum = null;
+    // Is this an equative rule?
+    private boolean equative = false;
 
-	public TalkingArithmeticRule(String name, String ruleString, PslProblem pslProblem) {
-		this(name, ruleString, createRule(pslProblem.getDataStore(), ruleString), pslProblem, null);
-	}
+    public TalkingArithmeticRule(String name, String ruleString, PslProblem pslProblem) {
+        this(name, ruleString, createRule(pslProblem.getDataStore(), ruleString), pslProblem, null);
+    }
 
-	public TalkingArithmeticRule(String name, String ruleString, PslProblem pslProblem, String verbalization) {
-		this(name, ruleString, createRule(pslProblem.getDataStore(), ruleString), pslProblem, verbalization);
-	}
-	
-	public TalkingArithmeticRule(String name, String ruleString, Rule rule, PslProblem pslProblem) {
-		this(name, ruleString, rule, pslProblem, null);
-	}
+    public TalkingArithmeticRule(String name, String ruleString, PslProblem pslProblem, String verbalization) {
+        this(name, ruleString, createRule(pslProblem.getDataStore(), ruleString), pslProblem, verbalization);
+    }
 
-	public TalkingArithmeticRule(String name, String ruleString, Rule rule, PslProblem pslProblem,
-			String verbalization) {
-		super(name, ruleString, rule, pslProblem, verbalization);
-		if (rule instanceof AbstractArithmeticRule) {
-			AbstractArithmeticRule ariRule = (AbstractArithmeticRule) rule;
-			FunctionComparator comp = ariRule.getExpression().getComparator();
-			equative = comp.equals(FunctionComparator.Equality);
+    public TalkingArithmeticRule(String name, String ruleString, Rule rule, PslProblem pslProblem) {
+        this(name, ruleString, rule, pslProblem, null);
+    }
 
-			List<SummationAtomOrAtom> atoms = ariRule.getExpression().getAtoms();
-			sum = new boolean[atoms.size()];
-			for (int i = 0; i < sum.length; i++)
-				sum[i] = atoms.get(i) instanceof SummationAtom;
-		}
-	}
-	
-	// For serialization.
-	public TalkingArithmeticRule(String name, String ruleString) {
-		super(name, ruleString);
-	}
-	
-	// For serialization.
-	public TalkingArithmeticRule(String name, String ruleString, String verbalization){
-		super(name, ruleString, verbalization);
-	}
-	
-	// For serialization. 
-	// Override me!
-	public TalkingArithmeticRule(String serializedParameters) {
-		super("", "");
-		String[] parameters = serializedParameters.split("-");
-		setName(parameters[0]);
-		setRuleString(parameters[1]);
-		if (parameters.length > 2)
-			setVerbalization(parameters[2]);
-	}
-	
-	// Override me! Can just return "" if your talking rule doesn't need serialized parameters.
-	@Override
-	public String getSerializedParameters() {
-		return getName() + "-" + getRuleString() + getVerbalization() != null ? "-" + getVerbalization() : "";
-	}
+    public TalkingArithmeticRule(String name, String ruleString, Rule rule, PslProblem pslProblem,
+                                 String verbalization) {
+        super(name, ruleString, rule, pslProblem, verbalization);
+        if (rule instanceof AbstractArithmeticRule) {
+            AbstractArithmeticRule ariRule = (AbstractArithmeticRule) rule;
+            FunctionComparator comp = ariRule.getExpression().getComparator();
+            equative = comp.equals(FunctionComparator.Equality);
 
-	@Override
-	public String getDefaultExplanation(String groundingName, String contextAtom, RuleAtomGraph rag,
-			boolean whyExplanation) {
-		List<Tuple> atomToStatus = rag.getLinkedAtomsForGroundingWithLinkStatusAsList(groundingName);
-		if (equative) {
-			StringBuilder sb = new StringBuilder();
-			List<String> printableArgs = new ArrayList<>();
-			for (Tuple tuple : atomToStatus) {
-				String atom = tuple.get(0);
-				if (!atom.equals(contextAtom))
-					printableArgs.add(atom);
-			}
-			if (printableArgs.size() == 0)
-				sb.append(contextAtom).append(" has no competitors");
-			else {
-				sb.append(contextAtom).append(" competes with ");
-				appendAnd(printableArgs, sb);
-			}
-			return sb.append(" in rule '").append(getName()).append("'.").toString();
-		} else {
-			int positiveArgs = 0;
-			List<String> printableArgs = new ArrayList<>();
-			boolean contextFound = false;
-			boolean contextPositive = false;
-			for (Tuple tuple : atomToStatus) {
+            List<SummationAtomOrAtom> atoms = ariRule.getExpression().getAtoms();
+            sum = new boolean[atoms.size()];
+            for (int i = 0; i < sum.length; i++)
+                sum[i] = atoms.get(i) instanceof SummationAtom;
+        }
+    }
+
+    // For serialization.
+    public TalkingArithmeticRule(String name, String ruleString) {
+        super(name, ruleString);
+    }
+
+    // For serialization.
+    public TalkingArithmeticRule(String name, String ruleString, String verbalization) {
+        super(name, ruleString, verbalization);
+    }
+
+    // For serialization.
+    // Override me!
+    public TalkingArithmeticRule(String serializedParameters) {
+        super("", "");
+        String[] parameters = serializedParameters.split("-");
+        setName(parameters[0]);
+        setRuleString(parameters[1]);
+        if (parameters.length > 2)
+            setVerbalization(parameters[2]);
+    }
+
+    // Override me! Can just return "" if your talking rule doesn't need serialized parameters.
+    @Override
+    public String getSerializedParameters() {
+        return getName() + "-" + getRuleString() + getVerbalization() != null ? "-" + getVerbalization() : "";
+    }
+
+    @Override
+    public String getDefaultExplanation(String groundingName, String contextAtom, RuleAtomGraph rag,
+                                        boolean whyExplanation) {
+        List<Tuple> atomToStatus = rag.getLinkedAtomsForGroundingWithLinkStatusAsList(groundingName);
+        if (equative) {
+            StringBuilder sb = new StringBuilder();
+            List<String> printableArgs = new ArrayList<>();
+            for (Tuple tuple : atomToStatus) {
+                String atom = tuple.get(0);
+                if (!atom.equals(contextAtom))
+                    printableArgs.add(atom);
+            }
+            if (printableArgs.size() == 0)
+                sb.append(contextAtom).append(" has no competitors");
+            else {
+                sb.append(contextAtom).append(" competes with ");
+                appendAnd(printableArgs, sb);
+            }
+            return sb.append(" in rule '").append(getName()).append("'.").toString();
+        } else {
+            int positiveArgs = 0;
+            List<String> printableArgs = new ArrayList<>();
+            boolean contextFound = false;
+            boolean contextPositive = false;
+            for (Tuple tuple : atomToStatus) {
                 String atom = tuple.get(0);
                 if (atom.equals(contextAtom)) {
                     contextFound = true;
@@ -108,11 +107,11 @@ public class TalkingArithmeticRule extends TalkingRule {
                     positiveArgs++;
                 } else
                     printableArgs.add(atom);
-			}
+            }
 
-			return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
-					printableArgs, null, positiveArgs, true, whyExplanation);
-		}
-	}
+            return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
+                    printableArgs, null, positiveArgs, true, whyExplanation);
+        }
+    }
 
 }

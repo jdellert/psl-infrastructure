@@ -1,8 +1,7 @@
 package de.tuebingen.sfs.psl.eval;
 
-import org.linqs.psl.model.predicate.Predicate;
-
 import de.tuebingen.sfs.psl.util.data.Tuple;
+import org.linqs.psl.model.predicate.Predicate;
 
 public class PredicateEvaluationTemplate implements Comparable<PredicateEvaluationTemplate> {
 

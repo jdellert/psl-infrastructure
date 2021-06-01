@@ -6,8 +6,6 @@ import java.util.Set;
 
 public interface Arguments extends Comparable<Arguments> {
 
-    boolean matches(PredicateEvaluationTemplate template, Tuple args);
-
     static boolean matchArgs(PredicateEvaluationTemplate template, String[] args1, Tuple args2) {
         for (int i = 0; i < args1.length; i++) {
             if (!template.isIgnoredArgument(i) && !args1[i].equals(args2.get(i)))
@@ -15,8 +13,6 @@ public interface Arguments extends Comparable<Arguments> {
         }
         return true;
     }
-
-    String toString(PredicateEvaluationTemplate template);
 
     static String argsToString(PredicateEvaluationTemplate template, String[] args) {
         StringBuilder sb = new StringBuilder();
@@ -26,8 +22,12 @@ public interface Arguments extends Comparable<Arguments> {
             else
                 sb.append(args[i]).append(",");
         }
-        return sb.deleteCharAt(sb.length()-1).toString();
+        return sb.deleteCharAt(sb.length() - 1).toString();
     }
+
+    boolean matches(PredicateEvaluationTemplate template, Tuple args);
+
+    String toString(PredicateEvaluationTemplate template);
 
     Set<String[]> getArgs();
 

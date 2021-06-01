@@ -1,11 +1,10 @@
 package de.tuebingen.sfs.psl.eval;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Set;
-
 import de.tuebingen.sfs.psl.util.data.StringUtils;
 import de.tuebingen.sfs.psl.util.data.Tuple;
+
+import java.util.Collections;
+import java.util.Set;
 
 public class SingleArguments implements Arguments {
 
@@ -40,8 +39,7 @@ public class SingleArguments implements Arguments {
         if (o instanceof SingleArguments) {
             SingleArguments os = (SingleArguments) o;
             return StringArrayComparator.compareStatic(this.args, os.args);
-        }
-        else if (o instanceof ArgumentSet)
+        } else if (o instanceof ArgumentSet)
             return -1;
         return -1;
     }

@@ -14,11 +14,11 @@ import java.util.function.Consumer;
 
 public class PslProblemConfig {
 
+    private static final String NAME_FIELD = "name";
+    private static final String USER_PRIOR_FIELD = "declareUserPrior";
     private String name;
     private boolean declareUserPrior;
-
     private DatabaseManager dbManager;
-
     private String logfilePath;
     private InferenceLogger logger;
 
@@ -89,16 +89,13 @@ public class PslProblemConfig {
         return result;
     }
 
-    private static final String NAME_FIELD = "name";
-    private static final String USER_PRIOR_FIELD = "declareUserPrior";
-
     public ObjectNode toJson() {
         return toJson(new ObjectMapper());
     }
 
     /**
      * Convert all persistable fields into a flat Json node.
-     *
+     * <p>
      * !! Override in subclass with:
      * {@code
      * ObjectNode rootNode = super.toJson(mapper);
@@ -118,7 +115,7 @@ public class PslProblemConfig {
 
     /**
      * Set all persistable fields from flat Json node.
-     *
+     * <p>
      * !! Override in subclass to parse additional fields!
      */
     public void setFromJson(ObjectMapper mapper, JsonNode rootNode) {
@@ -130,12 +127,12 @@ public class PslProblemConfig {
         }
     }
 
-    public void setGuiMessager(Consumer<String> messager) {
-        logger.setGuiStream(messager);
-    }
-
     public Consumer<String> getGuiMessager() {
         return logger.getGuiStream();
+    }
+
+    public void setGuiMessager(Consumer<String> messager) {
+        logger.setGuiStream(messager);
     }
 
     public boolean setLogfile(String logfilePath) {

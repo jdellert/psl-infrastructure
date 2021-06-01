@@ -1,12 +1,12 @@
 package de.tuebingen.sfs.psl.eval;
 
+import de.tuebingen.sfs.psl.engine.PslProblem;
+import de.tuebingen.sfs.psl.util.data.Tuple;
+
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import de.tuebingen.sfs.psl.engine.PslProblem;
-import de.tuebingen.sfs.psl.util.data.Tuple;
 
 public interface GoldStandard {
 
