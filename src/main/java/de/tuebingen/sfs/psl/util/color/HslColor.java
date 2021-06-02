@@ -1,6 +1,6 @@
 package de.tuebingen.sfs.psl.util.color;
 
-import java.awt.*;
+import java.awt.Color;
 
 /**
  * The HslColor class provides methods to manipulate HSL (Hue, Saturation

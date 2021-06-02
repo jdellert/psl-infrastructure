@@ -8,7 +8,7 @@ import de.tuebingen.sfs.psl.util.data.Tuple;
 import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.term.Constant;
 
-import java.awt.*;
+import java.awt.Color;
 import java.io.PrintStream;
 import java.util.Comparator;
 import java.util.Map;
