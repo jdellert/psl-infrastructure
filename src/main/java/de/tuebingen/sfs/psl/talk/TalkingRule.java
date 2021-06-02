@@ -51,6 +51,7 @@ public abstract class TalkingRule {
     private String[] args;
     private PslProblem pslProblem = null;
     private Map<String, TalkingPredicate> talkingPreds = null;
+
     TalkingRule(String name, String ruleString, Rule rule, PslProblem pslProblem, String verbalization) {
         this.name = name;
         if (verbalization == null) {
@@ -61,6 +62,7 @@ public abstract class TalkingRule {
         setRule(ruleString, rule);
         this.pslProblem = pslProblem;
     }
+
     // For serialization.
     TalkingRule(String name, String ruleString) {
         this(name, ruleString, null);

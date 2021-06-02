@@ -1,6 +1,6 @@
 package de.tuebingen.sfs.psl.util.color;
 
-import java.awt.Color;
+import java.awt.*;
 
 public class ColorUtils {
     public static String hsvToRgb(double hue, double saturation, double value) {

@@ -13,6 +13,7 @@ public class Multimap<T1, T2> {
 
     private Map<T1, Collection<T2>> map;
     private CollectionType collectionType;
+
     public Multimap(CollectionType collectionType) {
         map = new HashMap<>();
         this.collectionType = collectionType;

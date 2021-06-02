@@ -901,6 +901,7 @@ public class DatabaseManager {
 
         private List<String> colOrder;
         private List<CastType> castCols;
+
         public OrderByStatement() {
             colOrder = new ArrayList<>();
             castCols = new ArrayList<>();
