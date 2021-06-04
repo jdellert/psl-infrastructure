@@ -15,6 +15,7 @@ public class InferenceStore {
 
     public void add(String problemId, InferenceResult inferenceResult) {
         map.put(problemId, inferenceResult);
+        System.err.println("Added inference result for " + problemId);
     }
 
     public List<InferenceResult> get(String problemId) {
@@ -22,6 +23,7 @@ public class InferenceStore {
     }
 
     public InferenceResult getLastResult(String problemId) {
+    	System.err.println("Retrieving result for " + problemId);
         List<InferenceResult> results = get(problemId);
         if (results == null || results.isEmpty())
             return null;

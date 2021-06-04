@@ -92,7 +92,7 @@ public class ProblemManager {
             System.err.println("Starting inference.");
             result = problem.call();
             System.err.println("Inference finished (" + problem.getName() + ")");
-//			inferenceStore.add(problem.getName(), result);
+            inferenceStore.add(problem.getName(), result);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
