@@ -14,8 +14,8 @@ import java.util.function.Consumer;
 
 public class PslProblemConfig {
 
-	private static final String NAME_FIELD = "name";
-	private static final String USER_PRIOR_FIELD = "declareUserPrior";
+	public static final String NAME_FIELD = "name";
+	public static final String USER_PRIOR_FIELD = "declareUserPrior";
 	private String name;
 	private boolean declareUserPrior;
 	private DatabaseManager dbManager;
