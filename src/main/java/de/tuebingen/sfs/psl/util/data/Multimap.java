@@ -99,6 +99,10 @@ public class Multimap<T1, T2> {
     public Set<Entry<T1, Collection<T2>>> entrySet() {
         return map.entrySet();
     }
+    
+    public void removeKey(T1 key) {
+    	map.remove(key);
+    }
 
     public void removeFromOrDeleteCollection(T1 key, T2 value) {
         Collection<T2> values = map.get(key);
