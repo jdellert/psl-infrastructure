@@ -9,9 +9,7 @@ import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver;
 import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver.Type;
 
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
@@ -147,6 +145,79 @@ public class ProblemManager {
             }
             dbManager.closeDatabase(problem.getName());
         }
+    }
+
+    public InferenceResult runAndGetAverageResult(PslProblem problem, int numRepetitions){
+        List<InferenceResult> inferenceResults = runRepeatedly(problem, numRepetitions);
+        Map<String, Double> averageValues = new TreeMap<>();
+        Map<String, List<Double>> records = new TreeMap<>();
+
+//        List<Double> scores = new ArrayList<>();
+        //rag: first problem
+        for(InferenceResult inferenceResult: inferenceResults){
+//            System.out.println("Get new result: ");
+            inferenceResult.getInferenceValues().entrySet().forEach(entry -> {
+//                if(entry.getKey().contains("x(")) {
+//                    System.out.println(entry.getKey() + " " + entry.getValue());
+//                }
+                double value;
+                if(!averageValues.containsKey(entry.getKey())){
+                    List<Double> newRecord = new ArrayList<>();
+                    newRecord.add(entry.getValue());
+                    records.put(entry.getKey(), newRecord);
+                    value = entry.getValue();
+                } else {
+                    value = averageValues.get(entry.getKey()) + entry.getValue();
+                    // need another map with atom key and value list as value,
+                    records.get(entry.getKey()).add(entry.getValue());
+                }
+                averageValues.put(entry.getKey(), value);
+            });
+//            System.out.println("End of result");
+//            System.out.println("Score check:" + inferenceResult.getScore());
+//            scores.add(inferenceResult.getScore());
+        }
+//        int i = scores.indexOf(Collections.min(scores));
+//        System.out.println(i);
+        averageValues.entrySet().forEach(entry -> {
+            if(entry.getKey().contains("fx(")) {
+                System.out.println(entry.getKey() ); //+ " replace old value " + entry.getValue()
+//                Collections.sort(records.get(entry.getKey()));
+//                System.out.println();
+                System.out.println(records.get(entry.getKey()));
+                System.out.println(Collections.min(records.get(entry.getKey())));
+                System.out.println(Collections.max(records.get(entry.getKey())));
+
+            }
+            entry.setValue(entry.getValue()/numRepetitions);
+            if(entry.getKey().contains("fx(")) System.out.println("new value: " + entry.getValue());
+        });
+//        Map<String, Double> inferenceValue = inferenceResults.get(0).getInferenceValues();
+
+        return new InferenceResult(inferenceResults.get(0).getRag(), averageValues);
+    }
+
+    public InferenceResult runAndGetBestResult(PslProblem problem, int numRepetitions){
+        List<InferenceResult> inferenceResults = runRepeatedly(problem, numRepetitions);
+        List<Double> scores = new ArrayList<>();
+        for(InferenceResult inferenceResult: inferenceResults){
+//            System.out.println("Score check:" + inferenceResult.getScore());
+            scores.add(inferenceResult.getScore());
+        }
+        int i = scores.indexOf(Collections.min(scores));
+//        System.out.println(i);
+        return inferenceResults.get(i);
+    }
+
+    private List<InferenceResult> runRepeatedly(PslProblem problem, int numRepetitions){
+        List<InferenceResult> inferenceResults = new ArrayList<>();
+        if(numRepetitions <= 0){
+            numRepetitions = 1;
+        }
+        for(int i = 0; i < numRepetitions; i++){
+            inferenceResults.add(registerAndRunProblem(problem));
+        }
+        return inferenceResults;
     }
 
     public PartitionManager getPartitionManager() {

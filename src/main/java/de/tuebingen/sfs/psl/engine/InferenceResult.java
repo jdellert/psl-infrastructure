@@ -10,11 +10,13 @@ public class InferenceResult {
     private Map<String, Double> inferenceValues;
     // Inference configuration:
     private PslProblemConfig config;
+    private double score;
 
     public InferenceResult(RuleAtomGraph rag, Map<String, Double> inferenceValues, PslProblemConfig config) {
         this.rag = rag;
         this.inferenceValues = inferenceValues;
         this.config = config;
+        this.score = distanceToSatisfaction();
     }
 
     public InferenceResult(RuleAtomGraph rag, Map<String, Double> inferenceValues) {
@@ -52,6 +54,16 @@ public class InferenceResult {
     public void setConfig(PslProblemConfig config) {
         this.config = config;
     }
+
+    private Double distanceToSatisfaction(){
+        Double score = 0.0;
+        for(String groudingName: rag.getGroundingNodes()){
+            score += rag.distanceToSatisfaction(groudingName);
+        }
+        return score;
+    }
+
+    public Double getScore(){ return score;}
 
     public String toString() {
         return "InferenceResult[RAG: " + rag + ", inferenceValues: " + inferenceValues + " | CONFIG: "
