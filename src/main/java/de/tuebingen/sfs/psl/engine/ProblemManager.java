@@ -201,11 +201,11 @@ public class ProblemManager {
         List<InferenceResult> inferenceResults = runRepeatedly(problem, numRepetitions);
         List<Double> scores = new ArrayList<>();
         for(InferenceResult inferenceResult: inferenceResults){
-//            System.out.println("Score check:" + inferenceResult.getScore());
+            System.out.println("Score check:" + inferenceResult.getScore());
             scores.add(inferenceResult.getScore());
         }
         int i = scores.indexOf(Collections.min(scores));
-//        System.out.println(i);
+        System.out.println(i);
         return inferenceResults.get(i);
     }
 
