@@ -180,17 +180,23 @@ public class ProblemManager {
 //        int i = scores.indexOf(Collections.min(scores));
 //        System.out.println(i);
         averageValues.entrySet().forEach(entry -> {
-            if(entry.getKey().contains("fx(")) {
-                System.out.println(entry.getKey() ); //+ " replace old value " + entry.getValue()
+
+            if(entry.getKey().contains("dr(") || entry.getKey().contains("fx(")) { //
+                System.out.println(entry.getKey()); //+ " replace old value " + entry.getValue()
 //                Collections.sort(records.get(entry.getKey()));
-//                System.out.println();
                 System.out.println(records.get(entry.getKey()));
                 System.out.println(Collections.min(records.get(entry.getKey())));
                 System.out.println(Collections.max(records.get(entry.getKey())));
 
             }
+            // print all atoms
+//            System.out.println(entry.getKey());
+//            System.out.println(records.get(entry.getKey()));
+//            System.out.println(Collections.min(records.get(entry.getKey())));
+//            System.out.println(Collections.max(records.get(entry.getKey())));
+
             entry.setValue(entry.getValue()/numRepetitions);
-            if(entry.getKey().contains("fx(")) System.out.println("new value: " + entry.getValue());
+            if(entry.getKey().contains("dr(") || entry.getKey().contains("fx(")) System.out.println("new value: " + entry.getValue());
         });
 //        Map<String, Double> inferenceValue = inferenceResults.get(0).getInferenceValues();
 
