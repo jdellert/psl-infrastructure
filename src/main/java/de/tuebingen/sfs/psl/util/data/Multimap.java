@@ -117,6 +117,10 @@ public class Multimap<T1, T2> {
             map.remove(key);
         }
     }
+    
+    public boolean isEmpty() {
+    	return map.isEmpty();
+    }
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
