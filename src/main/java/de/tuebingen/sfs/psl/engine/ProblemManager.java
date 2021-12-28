@@ -50,6 +50,17 @@ public class ProblemManager {
         return (nextId++) + "-" + idSuffix;
     }
 
+    public void cleanUpProblem(String problemId){
+        PslProblem problem = problems.get(problemId);
+        if(problem!=null){
+            Set<AtomTemplate> atomsToDelete = problem.declareAtomsForCleanUp();
+            if(atomsToDelete.size() > 0){
+                for(AtomTemplate at : atomsToDelete){
+                    dbManager.deleteAtomsForProblem(at.getPredicateName(), problemId, at);
+                }
+            }
+        }
+    }
     public String registerProblem(PslProblem problem) {
         String problemId = getNewId();
         registerProblem(problemId, problem);
