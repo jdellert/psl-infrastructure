@@ -134,4 +134,5 @@ public class TalkingLogicalRule extends TalkingRule {
                 printableArgs, printableTalkingPredicates, printablePredicateArgs, printableBeliefValues,
                 positiveGroundArgs, directFormulation, whyExplanation);
     }
+    
 }

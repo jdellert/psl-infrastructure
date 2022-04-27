@@ -483,4 +483,9 @@ public abstract class TalkingRule {
     // This should not contain '\t'!
     public abstract String getSerializedParameters();
 
+    // Override me!
+    public String generateExplanation(ConstantRenderer renderer, String groundingName,
+            String contextAtom, RuleAtomGraph rag, boolean whyExplanation) {
+    	return getDefaultExplanation(groundingName, contextAtom, rag, whyExplanation);
+    }
 }
