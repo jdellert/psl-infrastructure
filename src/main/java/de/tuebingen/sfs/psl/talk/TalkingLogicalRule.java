@@ -37,7 +37,7 @@ public class TalkingLogicalRule extends TalkingRule {
 
         if (rule instanceof AbstractLogicalRule) {
             AbstractLogicalRule logRule = (AbstractLogicalRule) rule;
-            FormulaAnalysis.DNFClause dnf = logRule.getDNF();
+            FormulaAnalysis.DNFClause dnf = logRule.getNegatedDNF();
             List<Atom> posLit = dnf.getPosLiterals();
             positiveArgs = posLit.size();
         }

@@ -38,7 +38,7 @@ public class PslProblemConfig {
 		dbManager = null;
 
 		logger = new InferenceLogger();
-		setLogfile("src/test/resources/inf-log.txt");
+		setLogfile(System.getProperty("user.home") + "/.etinen/"+"inf-log.txt");
 	}
 
 	public String getName() {

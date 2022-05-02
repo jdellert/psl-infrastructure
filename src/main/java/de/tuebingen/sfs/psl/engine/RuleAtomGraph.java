@@ -5,10 +5,10 @@ import de.tuebingen.sfs.psl.util.color.HslColor;
 import de.tuebingen.sfs.psl.util.data.RankingEntry;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.psl.util.log.InferenceLogger;
-import org.linqs.psl.application.groundrulestore.GroundRuleStore;
-import org.linqs.psl.application.groundrulestore.MemoryGroundRuleStore;
-import org.linqs.psl.application.util.Grounding;
 import org.linqs.psl.database.atom.PersistedAtomManager;
+import org.linqs.psl.grounding.GroundRuleStore;
+import org.linqs.psl.grounding.Grounding;
+import org.linqs.psl.grounding.MemoryGroundRuleStore;
 import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.rule.GroundRule;
 import org.linqs.psl.model.rule.Rule;
@@ -194,13 +194,13 @@ public class RuleAtomGraph {
             FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
             arithRHS = AbstractGroundArithmeticRuleAccess.extractConstant(arithRule);
             switch (comparator) {
-                case SmallerThan:
+                case LTE:
                     arithRuleViolation = arithLHS - arithRHS;
                     break;
-                case LargerThan:
+                case GTE:
                     arithRuleViolation = arithRHS - arithLHS;
                     break;
-                case Equality:
+                case EQ:
                     arithRuleViolation = Math.abs(arithLHS - arithRHS);
                     equalityGroundings.add(groundingName);
                     break;
@@ -258,8 +258,8 @@ public class RuleAtomGraph {
                 FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
                 double signum = Math.signum(coeff);
                 //in inequality with polarity towards satisfaction (- in <=, + in >=)? => green +~
-                if (signum == -1 && comparator == FunctionComparator.SmallerThan
-                        || signum == 1 && comparator == FunctionComparator.LargerThan) {
+                if (signum == -1 && comparator == FunctionComparator.LTE
+                        || signum == 1 && comparator == FunctionComparator.GTE) {
                     linkStatus.put(link, "+");
 
                     double origValue = values[i];
@@ -270,8 +270,8 @@ public class RuleAtomGraph {
                     linkPressure.put(link, ruleViolationChange > 0.0);
                 }
                 //in inequality with polarity away from satisfaction (+ in <=, - in >=)? => red, -~
-                else if (signum == 1 && comparator == FunctionComparator.SmallerThan
-                        || signum == -1 && comparator == FunctionComparator.LargerThan) {
+                else if (signum == 1 && comparator == FunctionComparator.LTE
+                        || signum == -1 && comparator == FunctionComparator.GTE) {
                     linkStatus.put(link, "-");
 
                     double origValue = values[i];
@@ -282,7 +282,7 @@ public class RuleAtomGraph {
                     linkPressure.put(link, ruleViolationChange > 0.0);
                 }
                 //in equation? would depend on current state! grey for positive coefficient (LHS), brown for negative (RHS)
-                else if (comparator == FunctionComparator.Equality) {
+                else if (comparator == FunctionComparator.EQ) {
                     linkStatus.put(link, "=");
                 }
             }
