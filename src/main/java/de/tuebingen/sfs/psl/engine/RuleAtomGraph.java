@@ -49,7 +49,7 @@ public class RuleAtomGraph {
     Map<String, Set<Tuple>> outgoingLinks;
     Map<String, List<Tuple>> incomingLinks;
 
-    RagFilter renderer;
+    RagFilter filter;
     InferenceLogger logger;
 
     public RuleAtomGraph(RagFilter renderer) {
@@ -57,7 +57,7 @@ public class RuleAtomGraph {
     }
 
     public RuleAtomGraph(RagFilter renderer, InferenceLogger logger) {
-        this.renderer = renderer;
+        this.filter = renderer;
         this.logger = logger;
 
         atomNodes = new TreeSet<String>();
@@ -92,7 +92,7 @@ public class RuleAtomGraph {
         this.linkStrength = linkStrength;
         this.outgoingLinks = outgoingLinks;
         this.incomingLinks = incomingLinks;
-        this.renderer = renderer;
+        this.filter = renderer;
     }
 
     public RuleAtomGraph(PslProblem problem, RagFilter renderer) {
@@ -148,7 +148,7 @@ public class RuleAtomGraph {
     }
 
     public RagFilter getRagFilter() {
-        return renderer;
+        return filter;
     }
 
     private void add(String groundingName, GroundRule groundRule) {
@@ -171,7 +171,7 @@ public class RuleAtomGraph {
             groundAtoms = AbstractGroundLogicalRuleAccess.extractAtoms(logicalRule);
         }
 
-        double[] values = extractValueVector(groundAtoms, coefficients, renderer);
+        double[] values = extractValueVector(groundAtoms, coefficients, filter);
 
         double bodyScore = computeBodyScore(coefficients, values);
         double headScore = computeHeadScore(coefficients, values);
@@ -217,9 +217,9 @@ public class RuleAtomGraph {
 
         for (int i = 0; i < groundAtoms.size(); i++) {
             GroundAtom atom = groundAtoms.get(i);
-            if (!renderer.isRendered(atom.getPredicate().getName()))
+            if (!filter.isRendered(atom.getPredicate().getName()))
                 continue;
-            String atomName = renderer.atomToSimplifiedString(atom);
+            String atomName = filter.atomToSimplifiedString(atom);
             atomNodes.add(atomName);
 
             Tuple link = addLink(atomName, groundingName);
@@ -290,11 +290,11 @@ public class RuleAtomGraph {
     }
 
     public double getValue(String atomString) {
-        return renderer.getValueForAtom(atomString);
+        return filter.getValueForAtom(atomString);
     }
 
     public double updateValue(String atomString, double newValue) {
-        return 1.0 - renderer.updateToneForAtom(atomString, newValue);
+        return 1.0 - filter.updateToneForAtom(atomString, newValue);
     }
 
     public Tuple addLink(String atomName, String groundingName) {
@@ -315,15 +315,15 @@ public class RuleAtomGraph {
     }
 
     public Set<String> getIgnoredPredicates() {
-        return renderer.getIgnoreList();
+        return filter.getIgnoreList();
     }
 
     public boolean renderAtomInGui(String atomName) {
-        return renderer.isRenderedInGui(atomName.split("\\(")[0]);
+        return filter.isRenderedInGui(atomName.split("\\(")[0]);
     }
 
     public boolean preventUserInteraction(String pred) {
-        return renderer.getPreventUserInteraction().contains(pred);
+        return filter.getPreventUserInteraction().contains(pred);
     }
 
     public Set<Tuple> getOutgoingLinks(String atomName) {
@@ -475,7 +475,7 @@ public class RuleAtomGraph {
             out.println("      <data key=\"d6\">");
             out.println("        <y:ShapeNode>");
             out.println("          <y:Geometry height=\"25\" width=\"150\"/>");
-            out.println("          <y:Fill color=\"" + renderer.atomToColor(atomName) + "\" transparent=\"false\"/>");
+            out.println("          <y:Fill color=\"" + filter.atomToColor(atomName) + "\" transparent=\"false\"/>");
             out.println("          <y:NodeLabel alignment=\"center\" fontsize=\"15\" textColor=\"#000000\" visible=\"true\">" + atomName + "</y:NodeLabel>");
             out.println("          <y:Shape type=\"roundrectangle\"/>");
             out.println("        </y:ShapeNode>");
@@ -540,7 +540,11 @@ public class RuleAtomGraph {
     }
 
     public HslColor atomToBaseColor(String name, boolean deleted) {
-        return renderer.atomToBaseColor(name, deleted);
+        return filter.atomToBaseColor(name, deleted);
+    }
+    
+    public boolean isFixed(String atom) {
+    	return filter.isFixed(atom);
     }
 
     public Set<String> getAtomNodes() {
