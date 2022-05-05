@@ -33,6 +33,8 @@ public class RuleAtomGraph {
 	public static boolean ATOM_VALUE_OUTPUT = false;
 	public static boolean GROUNDING_SCORE_OUTPUT = false;
 
+	public static double COUNTERFACTUAL_OFFSET = 0.0001;
+
 	// rule groundings
 	Set<String> groundingNodes;
 	Map<String, Double> groundingStatus;
@@ -345,6 +347,66 @@ public class RuleAtomGraph {
 
 	public GroundRule getRuleForGrounding(String groundingName) {
 		return groundingToGroundRule.get(groundingName);
+	}
+
+	public double[] getCounterfactual(String groundingName, String currentAtom) {
+		double[] valueAndDist = new double[2];
+		List<GroundAtom> groundAtoms = new LinkedList<GroundAtom>();
+		// set to -1.0 and 1.0 for logical rules, representing the polarity
+		List<Double> coefficients = new LinkedList<Double>();
+		GroundRule groundRule = getRuleForGrounding(groundingName);
+
+		if (groundRule instanceof AbstractGroundLogicalRule) {
+			coefficients = AbstractGroundLogicalRuleAccess.extractSigns((AbstractGroundLogicalRule) groundRule);
+			groundAtoms = AbstractGroundLogicalRuleAccess.extractAtoms((AbstractGroundLogicalRule) groundRule);
+		} else if (groundRule instanceof AbstractGroundArithmeticRule) {
+			coefficients = AbstractGroundArithmeticRuleAccess
+					.extractCoefficients((AbstractGroundArithmeticRule) groundRule);
+			groundAtoms = AbstractGroundArithmeticRuleAccess.extractAtoms((AbstractGroundArithmeticRule) groundRule);
+		}
+		double[] values = extractValueVector(groundAtoms, coefficients, filter);
+
+		// Slightly adjust the value of the current atom:
+		List<Tuple> incomingLinksForGrounding = incomingLinks.get(groundingName);
+		for (int i = 0; i < incomingLinksForGrounding.size(); i++) {
+			if (incomingLinksForGrounding.get(i).get(0).equals(currentAtom)) {
+				if (linkStatus.get(incomingLinksForGrounding.get(i)).equals("+")) {
+					values[i] = values[i] - COUNTERFACTUAL_OFFSET;
+				} else {
+					values[i] = values[i] + COUNTERFACTUAL_OFFSET;
+				}
+				valueAndDist[0] = values[i];
+				break;
+			}
+		}
+
+		if (groundRule instanceof AbstractGroundLogicalRule) {
+			double bodyScore = computeBodyScore(coefficients, values);
+			double headScore = computeHeadScore(coefficients, values);
+			valueAndDist[1] = bodyScore - headScore;
+		} else if (groundRule instanceof AbstractGroundArithmeticRule) {
+			double arithLHS = computeWeightedSum(coefficients, values);
+			double arithRHS = 0.0;
+
+			AbstractGroundArithmeticRule arithRule = (AbstractGroundArithmeticRule) groundRule;
+			FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
+			arithRHS = AbstractGroundArithmeticRuleAccess.extractConstant(arithRule);
+			switch (comparator) {
+			case SmallerThan:
+				valueAndDist[1] = arithLHS - arithRHS;
+				break;
+			case LargerThan:
+				valueAndDist[1] = arithRHS - arithLHS;
+				break;
+			case Equality:
+				valueAndDist[1] = Math.abs(arithLHS - arithRHS);
+				break;
+			default:
+				break;
+			}
+		}
+
+		return valueAndDist;
 	}
 
 	public Map<String, String> getLinkedAtomsForGroundingWithLinkStatus(String groundingName) {
