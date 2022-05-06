@@ -37,7 +37,7 @@ public class TalkingArithmeticRule extends TalkingRule {
         if (rule instanceof AbstractArithmeticRule) {
             AbstractArithmeticRule ariRule = (AbstractArithmeticRule) rule;
             FunctionComparator comp = ariRule.getExpression().getComparator();
-            equative = comp.equals(FunctionComparator.Equality);
+            equative = comp.equals(FunctionComparator.EQ);
 
             List<SummationAtomOrAtom> atoms = ariRule.getExpression().getAtoms();
             sum = new boolean[atoms.size()];

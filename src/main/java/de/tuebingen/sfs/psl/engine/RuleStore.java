@@ -7,7 +7,6 @@ import org.linqs.psl.model.rule.Rule;
 import org.linqs.psl.parser.ModelLoader;
 import org.linqs.psl.parser.RulePartial;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -59,7 +58,7 @@ public class RuleStore {
             nameToRule.put(ruleName, rule);
             nameToTalkingRule.put(ruleName, TalkingRule.createTalkingRule(ruleName, ruleString, rule, pslProblem));
             model.addRule(rule);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

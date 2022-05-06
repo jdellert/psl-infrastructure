@@ -16,7 +16,6 @@ import org.linqs.psl.parser.ModelLoader;
 import org.linqs.psl.parser.RulePartial;
 import org.linqs.psl.reasoner.function.FunctionComparator;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -96,7 +95,7 @@ public abstract class TalkingRule {
         try {
             RulePartial partial = ModelLoader.loadRulePartial(dataStore, ruleString);
             rule = partial.toRule();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return rule;
@@ -200,7 +199,7 @@ public abstract class TalkingRule {
             List<SummationAtomOrAtom> atoms;
             if (rule instanceof AbstractLogicalRule) {
                 AbstractLogicalRule logRule = (AbstractLogicalRule) rule;
-                FormulaAnalysis.DNFClause dnf = logRule.getDNF();
+                FormulaAnalysis.DNFClause dnf = logRule.getNegatedDNF();
                 atoms = new ArrayList<>(dnf.getPosLiterals());
                 atoms.addAll(dnf.getNegLiterals());
             } else if (rule instanceof AbstractArithmeticRule) {

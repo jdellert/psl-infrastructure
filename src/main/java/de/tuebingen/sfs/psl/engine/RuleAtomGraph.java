@@ -5,10 +5,10 @@ import de.tuebingen.sfs.psl.util.color.HslColor;
 import de.tuebingen.sfs.psl.util.data.RankingEntry;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import de.tuebingen.sfs.psl.util.log.InferenceLogger;
-import org.linqs.psl.application.groundrulestore.GroundRuleStore;
-import org.linqs.psl.application.groundrulestore.MemoryGroundRuleStore;
-import org.linqs.psl.application.util.Grounding;
 import org.linqs.psl.database.atom.PersistedAtomManager;
+import org.linqs.psl.grounding.GroundRuleStore;
+import org.linqs.psl.grounding.Grounding;
+import org.linqs.psl.grounding.MemoryGroundRuleStore;
 import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.rule.GroundRule;
 import org.linqs.psl.model.rule.Rule;
@@ -193,31 +193,31 @@ public class RuleAtomGraph {
 		double arithRHS = 0.0;
 		double arithRuleViolation = 0.0;
 
-		if (groundRule instanceof AbstractGroundArithmeticRule) {
-			AbstractGroundArithmeticRule arithRule = (AbstractGroundArithmeticRule) groundRule;
-			FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
-			arithRHS = AbstractGroundArithmeticRuleAccess.extractConstant(arithRule);
-			switch (comparator) {
-			case SmallerThan:
-				arithRuleViolation = arithLHS - arithRHS;
-				break;
-			case LargerThan:
-				arithRuleViolation = arithRHS - arithLHS;
-				break;
-			case Equality:
-				arithRuleViolation = Math.abs(arithLHS - arithRHS);
-				equalityGroundings.add(groundingName);
-				break;
-			default:
-				break;
-			}
-			if (GROUNDING_SCORE_OUTPUT) {
-				logger.logln("     LHS: " + arithLHS);
-				logger.logln("     RHS: " + arithRHS);
-				logger.logln("  " + groundingName + ":\t" + arithRuleViolation);
-			}
-			groundingStatus.put(groundingName, arithRuleViolation);
-		}
+        if (groundRule instanceof AbstractGroundArithmeticRule) {
+            AbstractGroundArithmeticRule arithRule = (AbstractGroundArithmeticRule) groundRule;
+            FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
+            arithRHS = AbstractGroundArithmeticRuleAccess.extractConstant(arithRule);
+            switch (comparator) {
+                case LTE:
+                    arithRuleViolation = arithLHS - arithRHS;
+                    break;
+                case GTE:
+                    arithRuleViolation = arithRHS - arithLHS;
+                    break;
+                case EQ:
+                    arithRuleViolation = Math.abs(arithLHS - arithRHS);
+                    equalityGroundings.add(groundingName);
+                    break;
+                default:
+                    break;
+            }
+            if (GROUNDING_SCORE_OUTPUT) {
+                logger.logln("     LHS: " + arithLHS);
+                logger.logln("     RHS: " + arithRHS);
+                logger.logln("  " + groundingName + ":\t" + arithRuleViolation);
+            }
+            groundingStatus.put(groundingName, arithRuleViolation);
+        }
 
 		for (int i = 0; i < groundAtoms.size(); i++) {
 			GroundAtom atom = groundAtoms.get(i);
@@ -251,54 +251,50 @@ public class RuleAtomGraph {
 				else {
 					linkStatus.put(link, "-");
 
-					// Negative literal under pressure if it wants to go up
-					double origValue = values[i];
-					values[i] = Math.min(1.0, origValue + 0.1);
-					double changedBodyScore = computeBodyScore(coefficients, values);
-					values[i] = origValue;
-					double bodyScoreIncrease = changedBodyScore - bodyScore;
-					double effectiveRuleStrength = Math.max(bodyScoreIncrease,
-							distanceToSatisfaction + bodyScoreIncrease);
-					linkPressure.put(link, effectiveRuleStrength > 0.0);
-				}
-			} else if (groundRule instanceof AbstractGroundArithmeticRule) {
-				AbstractGroundArithmeticRule arithRule = (AbstractGroundArithmeticRule) groundRule;
-				FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
-				double signum = Math.signum(coeff);
-				// in inequality with polarity towards satisfaction (- in <=, + in >=)? => green
-				// +~
-				if (signum == -1 && comparator == FunctionComparator.SmallerThan
-						|| signum == 1 && comparator == FunctionComparator.LargerThan) {
-					linkStatus.put(link, "+");
+                    // Negative literal under pressure if it wants to go up
+                    double origValue = values[i];
+                    values[i] = Math.min(1.0, origValue + 0.1);
+                    double changedBodyScore = computeBodyScore(coefficients, values);
+                    values[i] = origValue;
+                    double bodyScoreIncrease = changedBodyScore - bodyScore;
+                    double effectiveRuleStrength = Math.max(bodyScoreIncrease, distanceToSatisfaction + bodyScoreIncrease);
+                    linkPressure.put(link, effectiveRuleStrength > 0.0);
+                }
+            } else if (groundRule instanceof AbstractGroundArithmeticRule) {
+                AbstractGroundArithmeticRule arithRule = (AbstractGroundArithmeticRule) groundRule;
+                FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
+                double signum = Math.signum(coeff);
+                //in inequality with polarity towards satisfaction (- in <=, + in >=)? => green +~
+                if (signum == -1 && comparator == FunctionComparator.LTE
+                        || signum == 1 && comparator == FunctionComparator.GTE) {
+                    linkStatus.put(link, "+");
 
-					double origValue = values[i];
-					values[i] = Math.max(0.0, origValue - 0.1);
-					double changedLHS = computeWeightedSum(coefficients, values);
-					values[i] = origValue;
-					double ruleViolationChange = (arithRHS - changedLHS) - arithRuleViolation;
-					linkPressure.put(link, ruleViolationChange > 0.0);
-				}
-				// in inequality with polarity away from satisfaction (+ in <=, - in >=)? =>
-				// red, -~
-				else if (signum == 1 && comparator == FunctionComparator.SmallerThan
-						|| signum == -1 && comparator == FunctionComparator.LargerThan) {
-					linkStatus.put(link, "-");
+                    double origValue = values[i];
+                    values[i] = Math.max(0.0, origValue - 0.1);
+                    double changedLHS = computeWeightedSum(coefficients, values);
+                    values[i] = origValue;
+                    double ruleViolationChange = (arithRHS - changedLHS) - arithRuleViolation;
+                    linkPressure.put(link, ruleViolationChange > 0.0);
+                }
+                //in inequality with polarity away from satisfaction (+ in <=, - in >=)? => red, -~
+                else if (signum == 1 && comparator == FunctionComparator.LTE
+                        || signum == -1 && comparator == FunctionComparator.GTE) {
+                    linkStatus.put(link, "-");
 
-					double origValue = values[i];
-					values[i] = Math.min(1.0, origValue + 0.1);
-					double changedLHS = computeWeightedSum(coefficients, values);
-					values[i] = origValue;
-					double ruleViolationChange = (arithRHS - changedLHS) - arithRuleViolation;
-					linkPressure.put(link, ruleViolationChange > 0.0);
-				}
-				// in equation? would depend on current state! grey for positive coefficient
-				// (LHS), brown for negative (RHS)
-				else if (comparator == FunctionComparator.Equality) {
-					linkStatus.put(link, "=");
-				}
-			}
-		}
-	}
+                    double origValue = values[i];
+                    values[i] = Math.min(1.0, origValue + 0.1);
+                    double changedLHS = computeWeightedSum(coefficients, values);
+                    values[i] = origValue;
+                    double ruleViolationChange = (arithRHS - changedLHS) - arithRuleViolation;
+                    linkPressure.put(link, ruleViolationChange > 0.0);
+                }
+                //in equation? would depend on current state! grey for positive coefficient (LHS), brown for negative (RHS)
+                else if (comparator == FunctionComparator.EQ) {
+                    linkStatus.put(link, "=");
+                }
+            }
+        }
+    }
 
 	public double getValue(String atomString) {
 		return filter.getValueForAtom(atomString);
@@ -392,13 +388,13 @@ public class RuleAtomGraph {
 			FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
 			arithRHS = AbstractGroundArithmeticRuleAccess.extractConstant(arithRule);
 			switch (comparator) {
-			case SmallerThan:
+            case LTE:
 				valueAndDist[1] = arithLHS - arithRHS;
 				break;
-			case LargerThan:
+            case GTE:
 				valueAndDist[1] = arithRHS - arithLHS;
 				break;
-			case Equality:
+			case EQ:
 				valueAndDist[1] = Math.abs(arithLHS - arithRHS);
 				break;
 			default:
