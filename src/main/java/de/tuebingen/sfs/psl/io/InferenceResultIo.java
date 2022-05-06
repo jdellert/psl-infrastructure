@@ -1,14 +1,5 @@
 package de.tuebingen.sfs.psl.io;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import de.tuebingen.sfs.psl.engine.InferenceResult;
-import de.tuebingen.sfs.psl.engine.PslProblem;
-import de.tuebingen.sfs.psl.engine.RagFilter;
-import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
-import de.tuebingen.sfs.psl.talk.TalkingPredicate;
-import de.tuebingen.sfs.psl.talk.TalkingRule;
-import de.tuebingen.sfs.psl.util.data.Tuple;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,6 +12,7 @@ import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,6 +22,16 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import de.tuebingen.sfs.psl.engine.InferenceResult;
+import de.tuebingen.sfs.psl.engine.PslProblem;
+import de.tuebingen.sfs.psl.engine.RagFilter;
+import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
+import de.tuebingen.sfs.psl.talk.TalkingPredicate;
+import de.tuebingen.sfs.psl.talk.TalkingRule;
+import de.tuebingen.sfs.psl.util.data.Tuple;
 
 public class InferenceResultIo {
 
@@ -75,6 +77,7 @@ public class InferenceResultIo {
         sb.append("\nIGNORE IN GUI\t").append(filter.getIgnoreInGui());
         sb.append("\nPREVENT USER INTERACTION\t").append(filter.getPreventUserInteraction());
         sb.append("\nPRED TO NAME\t").append(filter.getGroundPred2ActualNames());
+        sb.append("\nFIXED ATOMS\t").append(filter.getFixedAtoms());
 
         sb.append("\n\n\nRULE GROUNDINGS\n===============\nGROUNDING\tSTATUS\tINCOMING\tCLASS\tPARAMETERS\n");
         for (String grounding : rag.getGroundingNodes()) {
@@ -145,6 +148,7 @@ public class InferenceResultIo {
         Set<String> ignoreInGui = new TreeSet<>();
         Set<String> preventUserInteraction = new TreeSet<>();
         Map<String, String> groundPreds2ActualNames = new TreeMap<>();
+        Set<String> fixedAtoms = new HashSet<>();
 
         Set<String> groundingNodes = new TreeSet<String>();
         Map<String, Double> groundingStatus = new TreeMap<>();
@@ -217,6 +221,16 @@ public class InferenceResultIo {
                             for (String item : line.split(",")) {
                                 String[] entry = item.split("=");
                                 groundPreds2ActualNames.put(entry[0].trim(), entry[1].trim());
+                            }
+                        } else if (line.startsWith("FIXED")) {
+                        	line = line.split("\t")[1];
+                            // Remove { }
+                            line = line.substring(1, line.length() - 1);
+                            if (line.isEmpty()) {
+                                continue;
+                            }
+                            for (String item : line.split(",")) {
+                                fixedAtoms.add(item.trim());
                             }
                         }
                     }
@@ -369,7 +383,7 @@ public class InferenceResultIo {
                 ragFilter = new RagFilter();
             }
         }
-        ragFilter.setAll(beliefValues, groundPreds2ActualNames, ignoreList, ignoreInGui, preventUserInteraction);
+        ragFilter.setAll(beliefValues, groundPreds2ActualNames, ignoreList, ignoreInGui, preventUserInteraction, fixedAtoms);
         RuleAtomGraph rag = new RuleAtomGraph(groundingNodes, groundingStatus, equalityGroundings, atomNodes,
                 atomStatus, links, linkStatus, linkPressure, linkStrength, outgoingLinks, incomingLinks, ragFilter);
 

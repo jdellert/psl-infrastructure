@@ -1,47 +1,57 @@
 package de.tuebingen.sfs.psl.engine;
 
-import de.tuebingen.sfs.psl.talk.TalkingPredicate;
-import de.tuebingen.sfs.psl.util.color.HslColor;
-import de.tuebingen.sfs.psl.util.data.Multimap;
-import de.tuebingen.sfs.psl.util.data.StringUtils;
-import de.tuebingen.sfs.psl.util.data.Tuple;
-import org.linqs.psl.model.atom.GroundAtom;
-import org.linqs.psl.model.term.Constant;
-
 import java.awt.Color;
 import java.io.PrintStream;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import org.linqs.psl.model.atom.GroundAtom;
+import org.linqs.psl.model.term.Constant;
+
+import de.tuebingen.sfs.psl.talk.TalkingPredicate;
+import de.tuebingen.sfs.psl.util.color.HslColor;
+import de.tuebingen.sfs.psl.util.data.Multimap;
+import de.tuebingen.sfs.psl.util.data.StringUtils;
+import de.tuebingen.sfs.psl.util.data.Tuple;
+
 public class RagFilter {
 
     public static HslColor BASECOLOR = new HslColor(new Color(255, 214, 51));
     public static HslColor DELETECOLOR = new HslColor(new Color(180, 180, 180));
 
+    // Predicates
     protected Map<String, String> groundPred2ActualNames;
     protected Set<String> ignoreList;
     protected Set<String> ignoreInGui;
     protected Set<String> preventUserInteraction;
+    
+    // Atoms
+    protected Set<String> fixedAtoms;
     protected Map<String, Double> beliefValues;
 
     public RagFilter() {
-        setAll(null, null, null, null, null);
+        setAll(null, null, null, null, null, null);
     }
 
     public RagFilter(Map<String, Double> beliefValues) {
-        setAll(beliefValues, null, null, null, null);
+        setAll(beliefValues, null, null, null, null, null);
+    }
+    
+    public RagFilter(Map<String, Double> beliefValues, Set<String> fixedAtoms) {
+        setAll(beliefValues, null, null, null, null, fixedAtoms);
     }
 
     public RagFilter(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames) {
-        setAll(beliefValues, groundPred2ActualNames, null, null, null);
+        setAll(beliefValues, groundPred2ActualNames, null, null, null, null);
     }
 
     public void setAll(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
-                       Set<String> ignoreInGui, Set<String> preventUserInteraction) {
+                       Set<String> ignoreInGui, Set<String> preventUserInteraction, Set<String> fixedAtoms) {
         if (beliefValues == null) {
             this.beliefValues = new TreeMap<String, Double>();
         } else {
@@ -66,6 +76,11 @@ public class RagFilter {
             this.preventUserInteraction = new TreeSet<String>();
         } else {
             this.preventUserInteraction = preventUserInteraction;
+        }
+        if (fixedAtoms == null) {
+        	this.fixedAtoms = new HashSet<>();
+        } else {
+        	this.fixedAtoms = fixedAtoms;
         }
     }
 
@@ -159,6 +174,10 @@ public class RagFilter {
 
     public boolean isRenderedInGui(String predName) {
         return !ignoreInGui.contains(predName);
+    }
+    
+    public boolean isFixed(String atom) {
+    	return fixedAtoms.contains(atom.replace(" ", ""));
     }
 
     public String atomToSimplifiedString(GroundAtom atom) {
@@ -269,4 +288,8 @@ public class RagFilter {
         out.println("  </graph>");
         out.println("</graphml>");
     }
+
+	public Set<String> getFixedAtoms() {
+		return fixedAtoms;
+	}
 }

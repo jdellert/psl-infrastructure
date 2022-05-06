@@ -80,6 +80,13 @@ public class Multimap<T1, T2> {
         }
         throw new RuntimeException("Multimap.getList only works when the collection type is set to LIST");
     }
+    
+    public List<T2> getListOrDefault(T1 key, List<T2> def) {
+        if (collectionType.equals(CollectionType.LIST)) {
+            return (List<T2>) map.getOrDefault(key, def);
+        }
+        throw new RuntimeException("Multimap.getList only works when the collection type is set to LIST");
+    }
 
     public Set<T2> getSet(T1 key) {
         if (collectionType.equals(CollectionType.SET)) {
@@ -88,6 +95,13 @@ public class Multimap<T1, T2> {
         throw new RuntimeException("Multimap.getSet only works when the collection type is set to SET");
     }
 
+    public Set<T2> getSetOrDefault(T1 key, Set<T2> def) {
+        if (collectionType.equals(CollectionType.SET)) {
+            return (Set<T2>) map.getOrDefault(key, def);
+        }
+        throw new RuntimeException("Multimap.getSet only works when the collection type is set to SET");
+    }
+    
     public Set<T1> keySet() {
         return map.keySet();
     }
@@ -100,8 +114,8 @@ public class Multimap<T1, T2> {
         return map.entrySet();
     }
     
-    public void removeKey(T1 key) {
-    	map.remove(key);
+    public Collection<T2> removeKey(T1 key) {
+    	return map.remove(key);
     }
 
     public void removeFromOrDeleteCollection(T1 key, T2 value) {
