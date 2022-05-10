@@ -7,6 +7,7 @@ module de.tuebingen.sfs.psl {
     requires java.sql;
     requires com.fasterxml.jackson.databind;
     exports de.tuebingen.sfs.psl.engine;
+    opens de.tuebingen.sfs.psl.engine;
     exports de.tuebingen.sfs.psl.eval;
     exports de.tuebingen.sfs.psl.io;
     exports de.tuebingen.sfs.psl.talk;
