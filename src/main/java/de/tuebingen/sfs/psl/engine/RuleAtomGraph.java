@@ -376,17 +376,16 @@ public class RuleAtomGraph {
 			}
 		}
 
+		// Calculate the new distance to satisfaction
 		if (groundRule instanceof AbstractGroundLogicalRule) {
 			double bodyScore = computeBodyScore(coefficients, values);
 			double headScore = computeHeadScore(coefficients, values);
 			valueAndDist[1] = bodyScore - headScore;
 		} else if (groundRule instanceof AbstractGroundArithmeticRule) {
 			double arithLHS = computeWeightedSum(coefficients, values);
-			double arithRHS = 0.0;
-
 			AbstractGroundArithmeticRule arithRule = (AbstractGroundArithmeticRule) groundRule;
 			FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
-			arithRHS = AbstractGroundArithmeticRuleAccess.extractConstant(arithRule);
+			double arithRHS = AbstractGroundArithmeticRuleAccess.extractConstant(arithRule);
 			switch (comparator) {
             case LTE:
 				valueAndDist[1] = arithLHS - arithRHS;
@@ -402,6 +401,9 @@ public class RuleAtomGraph {
 			}
 		}
 
+		if (valueAndDist[1] < 0) {
+			valueAndDist[1] = 0;
+		}
 		return valueAndDist;
 	}
 
