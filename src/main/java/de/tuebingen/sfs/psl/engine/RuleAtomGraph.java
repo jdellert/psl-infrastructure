@@ -45,9 +45,12 @@ public class RuleAtomGraph {
 	// atoms
 	Set<String> atomNodes;
 	Map<String, String> atomStatus;
+
+	// atom + rule grounding combinations
 	Set<Tuple> links;
 	Map<Tuple, String> linkStatus;
 	Map<Tuple, Double> linkToCounterfactual;
+	Map<Tuple, double[]> equalityRuleLinkToCounterfactual;
 	Map<Tuple, Double> linkStrength;
 	Map<String, Set<Tuple>> outgoingLinks;
 	Map<String, List<Tuple>> incomingLinks;
@@ -74,15 +77,17 @@ public class RuleAtomGraph {
 		links = new TreeSet<Tuple>();
 		linkStatus = new TreeMap<Tuple, String>();
 		linkToCounterfactual = new TreeMap<Tuple, Double>();
+		equalityRuleLinkToCounterfactual = new TreeMap<>();
 		linkStrength = new TreeMap<Tuple, Double>();
 		outgoingLinks = new TreeMap<String, Set<Tuple>>();
 		incomingLinks = new TreeMap<String, List<Tuple>>();
 	}
 
 	public RuleAtomGraph(Set<String> groundingNodes, Map<String, Double> groundingStatus,
-			Set<String> equalityGroundings, Set<String> atomNodes, Map<String, String> atomStatus, Set<Tuple> links,
-			Map<Tuple, String> linkStatus, Map<Tuple, Double> linkToCounterfactual, Map<Tuple, Double> linkStrength,
-			Map<String, Set<Tuple>> outgoingLinks, Map<String, List<Tuple>> incomingLinks, RagFilter renderer) {
+						 Set<String> equalityGroundings, Set<String> atomNodes, Map<String, String> atomStatus, Set<Tuple> links,
+						 Map<Tuple, String> linkStatus, Map<Tuple, Double> linkToCounterfactual, Map<Tuple, double[]> equalityRuleLinkToCounterfactual,
+						 Map<Tuple, Double> linkStrength,
+						 Map<String, Set<Tuple>> outgoingLinks, Map<String, List<Tuple>> incomingLinks, RagFilter renderer) {
 		this.groundingNodes = groundingNodes;
 		this.groundingStatus = groundingStatus;
 		this.equalityGroundings = equalityGroundings;
@@ -91,6 +96,7 @@ public class RuleAtomGraph {
 		this.links = links;
 		this.linkStatus = linkStatus;
 		this.linkToCounterfactual = linkToCounterfactual;
+		this.equalityRuleLinkToCounterfactual = equalityRuleLinkToCounterfactual;
 		this.linkStrength = linkStrength;
 		this.outgoingLinks = outgoingLinks;
 		this.incomingLinks = incomingLinks;
@@ -254,7 +260,26 @@ public class RuleAtomGraph {
 			//in equation? would depend on current state! grey for positive coefficient (LHS), brown for negative (RHS)
 			else if (comparator == FunctionComparator.EQ) {
 				linkStatus.put(link, "=");
-				// TODO counterfactuals!
+
+				double origValue = values[i];
+				values[i] = Math.max(0.0, origValue - COUNTERFACTUAL_OFFSET);
+				double changedLHS = computeWeightedSum(coefficients, values);
+				double counterfactualLowerViolation = weight * Math.abs(arithRHS - changedLHS);
+				if (GROUNDING_SCORE_OUTPUT) {
+					logger.logln("     counterfactual (lower) LHS: " + changedLHS);
+					logger.logln("     RHS: " + arithRHS);
+					logger.logln("   counterfactual (lower) rule violation: " + weight + " * " + (arithRHS - changedLHS) + " = " + counterfactualLowerViolation);
+				}
+				values[i] = Math.min(1.0, origValue + COUNTERFACTUAL_OFFSET);
+				changedLHS = computeWeightedSum(coefficients, values);
+				values[i] = origValue;
+				double counterfactualHigherViolation = weight * Math.abs(arithRHS - changedLHS);
+				if (GROUNDING_SCORE_OUTPUT) {
+					logger.logln("     counterfactual (higher) LHS: " + changedLHS);
+					logger.logln("     RHS: " + arithRHS);
+					logger.logln("   counterfactual (lower) rule violation: " + weight + " * " + (arithRHS - changedLHS) + " = " + counterfactualHigherViolation);
+				}
+				equalityRuleLinkToCounterfactual.put(link, new double[] {counterfactualLowerViolation, counterfactualHigherViolation});
 			}
 		}
 	}
@@ -633,6 +658,14 @@ public class RuleAtomGraph {
 
 	public Double getCounterfactual(String atomName, String groundingName) {
 		return getCounterfactual(new Tuple(atomName, groundingName));
+	}
+
+	public double[] getCounterfactualsForEqualityRule(Tuple link) {
+		return equalityRuleLinkToCounterfactual.get(link);
+	}
+
+	public double[] getCounterfactualsForEqualityRule(String atomName, String groundingName) {
+		return getCounterfactualsForEqualityRule(new Tuple(atomName, groundingName));
 	}
 
 	public Double getLinkStrength(Tuple link) {

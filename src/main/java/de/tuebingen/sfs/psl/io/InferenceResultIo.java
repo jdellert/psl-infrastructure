@@ -95,7 +95,14 @@ public class InferenceResultIo {
                 sb.append(atom).append("\t").append(filter.getValueForAtom(atom)).append("\t")
                         .append(rag.getAtomStatus(atom)).append("\t");
                 sb.append(link.get(1)).append("\t").append(rag.getLinkStatus(link)).append("\t");
-                sb.append(rag.getLinkStrength(link)).append("\t").append(rag.getCounterfactual(link)).append("\n");
+                sb.append(rag.getLinkStrength(link)).append("\t");
+                double[] eqCounterfactual = rag.getCounterfactualsForEqualityRule(link);
+                if (eqCounterfactual == null) {
+                    sb.append(rag.getCounterfactual(link));
+                } else {
+                    sb.append(eqCounterfactual[0]).append(";").append(eqCounterfactual[1]);
+                }
+                sb.append("\n");
             }
         }
         sb.append("\n\nINFERENCE VALUES\n===============\n");
@@ -159,6 +166,7 @@ public class InferenceResultIo {
         Set<Tuple> links = new TreeSet<>();
         Map<Tuple, String> linkStatus = new TreeMap<>();
         Map<Tuple, Double> linkToCounterfactual = new TreeMap<>();
+        Map<Tuple, double[]> equalityRuleLinkToCounterfactual = new TreeMap<>();
         Map<Tuple, Double> linkStrength = new TreeMap<>();
         Map<String, Set<Tuple>> outgoingLinks = new TreeMap<>();
         Map<String, List<Tuple>> incomingLinks = new TreeMap<>();
@@ -315,7 +323,13 @@ public class InferenceResultIo {
                         } else {
                             linkStrength.put(link, Double.parseDouble(fields[5].trim()));
                         }
-                        linkToCounterfactual.put(link, Double.parseDouble(fields[6].trim()));
+                        if (fields[6].contains(";")) {
+                            String[] entries = fields[6].split(";");
+                            equalityRuleLinkToCounterfactual.put(link, new double[]{
+                                    Double.parseDouble(entries[0].trim()), Double.parseDouble(entries[1].trim())});
+                        } else {
+                            linkToCounterfactual.put(link, Double.parseDouble(fields[6].trim()));
+                        }
                         if (!outgoingLinks.containsKey(atom)) {
                             outgoingLinks.put(atom, new TreeSet<>());
                         }
@@ -385,7 +399,8 @@ public class InferenceResultIo {
         }
         ragFilter.setAll(beliefValues, groundPreds2ActualNames, ignoreList, ignoreInGui, preventUserInteraction, fixedAtoms);
         RuleAtomGraph rag = new RuleAtomGraph(groundingNodes, groundingStatus, equalityGroundings, atomNodes,
-                atomStatus, links, linkStatus, linkToCounterfactual, linkStrength, outgoingLinks, incomingLinks, ragFilter);
+                atomStatus, links, linkStatus, linkToCounterfactual, equalityRuleLinkToCounterfactual, linkStrength,
+                outgoingLinks, incomingLinks, ragFilter);
 
         for (TalkingRule rule : talkingRules.values()) {
             rule.setTalkingPredicates(talkingPreds);
