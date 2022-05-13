@@ -13,7 +13,9 @@ import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.rule.GroundRule;
 import org.linqs.psl.model.rule.Rule;
 import org.linqs.psl.model.rule.arithmetic.AbstractGroundArithmeticRule;
+import org.linqs.psl.model.rule.arithmetic.WeightedGroundArithmeticRule;
 import org.linqs.psl.model.rule.logical.AbstractGroundLogicalRule;
+import org.linqs.psl.model.rule.logical.WeightedGroundLogicalRule;
 import org.linqs.psl.reasoner.Reasoner;
 import org.linqs.psl.reasoner.admm.ADMMReasoner;
 import org.linqs.psl.reasoner.function.FunctionComparator;
@@ -32,7 +34,6 @@ public class RuleAtomGraph {
 	public static boolean GROUNDING_OUTPUT = false;
 	public static boolean ATOM_VALUE_OUTPUT = false;
 	public static boolean GROUNDING_SCORE_OUTPUT = false;
-
 	public static double COUNTERFACTUAL_OFFSET = 0.0001;
 
 	// rule groundings
@@ -46,7 +47,7 @@ public class RuleAtomGraph {
 	Map<String, String> atomStatus;
 	Set<Tuple> links;
 	Map<Tuple, String> linkStatus;
-	Map<Tuple, Boolean> linkPressure;
+	Map<Tuple, Double> linkToCounterfactual;
 	Map<Tuple, Double> linkStrength;
 	Map<String, Set<Tuple>> outgoingLinks;
 	Map<String, List<Tuple>> incomingLinks;
@@ -72,7 +73,7 @@ public class RuleAtomGraph {
 
 		links = new TreeSet<Tuple>();
 		linkStatus = new TreeMap<Tuple, String>();
-		linkPressure = new TreeMap<Tuple, Boolean>();
+		linkToCounterfactual = new TreeMap<Tuple, Double>();
 		linkStrength = new TreeMap<Tuple, Double>();
 		outgoingLinks = new TreeMap<String, Set<Tuple>>();
 		incomingLinks = new TreeMap<String, List<Tuple>>();
@@ -80,7 +81,7 @@ public class RuleAtomGraph {
 
 	public RuleAtomGraph(Set<String> groundingNodes, Map<String, Double> groundingStatus,
 			Set<String> equalityGroundings, Set<String> atomNodes, Map<String, String> atomStatus, Set<Tuple> links,
-			Map<Tuple, String> linkStatus, Map<Tuple, Boolean> linkPressure, Map<Tuple, Double> linkStrength,
+			Map<Tuple, String> linkStatus, Map<Tuple, Double> linkToCounterfactual, Map<Tuple, Double> linkStrength,
 			Map<String, Set<Tuple>> outgoingLinks, Map<String, List<Tuple>> incomingLinks, RagFilter renderer) {
 		this.groundingNodes = groundingNodes;
 		this.groundingStatus = groundingStatus;
@@ -89,7 +90,7 @@ public class RuleAtomGraph {
 		this.atomStatus = atomStatus;
 		this.links = links;
 		this.linkStatus = linkStatus;
-		this.linkPressure = linkPressure;
+		this.linkToCounterfactual = linkToCounterfactual;
 		this.linkStrength = linkStrength;
 		this.outgoingLinks = outgoingLinks;
 		this.incomingLinks = incomingLinks;
@@ -119,7 +120,11 @@ public class RuleAtomGraph {
 			int groundingCount = 1;
 			for (GroundRule groundRule : grs.getGroundRules(rule)) {
 				String groundingName = ruleName + "[" + (groundingCount++) + "]";
-				add(groundingName, groundRule);
+				if (groundRule instanceof AbstractGroundArithmeticRule) {
+					addGroundArithmeticRule(groundingName, (AbstractGroundArithmeticRule) groundRule);
+				} else {
+					addGroundLogicalRule(groundingName, (AbstractGroundLogicalRule) groundRule);
+				}
 			}
 		}
 	}
@@ -145,7 +150,11 @@ public class RuleAtomGraph {
 			int groundingCount = 1;
 			for (GroundRule groundRule : grs.get(r)) {
 				String groundingName = ruleName + "[" + (groundingCount++) + "]";
-				add(groundingName, groundRule);
+				if (groundRule instanceof AbstractGroundArithmeticRule) {
+					addGroundArithmeticRule(groundingName, (AbstractGroundArithmeticRule) groundRule);
+				} else {
+					addGroundLogicalRule(groundingName, (AbstractGroundLogicalRule) groundRule);
+				}
 			}
 		}
 	}
@@ -154,70 +163,48 @@ public class RuleAtomGraph {
 		return filter;
 	}
 
-	private void add(String groundingName, GroundRule groundRule) {
+	private void addGroundArithmeticRule(String groundingName, AbstractGroundArithmeticRule arithmeticRule) {
 		groundingNodes.add(groundingName);
-		groundingToGroundRule.put(groundingName, groundRule);
-
+		groundingToGroundRule.put(groundingName, arithmeticRule);
 		if (GROUNDING_OUTPUT)
-			logger.logln("  " + groundingName + "\t" + groundRule.toString());
+			logger.logln("  " + groundingName + "\t" + arithmeticRule.toString());
 
-		List<GroundAtom> groundAtoms = new LinkedList<GroundAtom>();
-		// set to -1.0 and 1.0 for logical rules, representing the polarity
-		List<Double> coefficients = new LinkedList<Double>();
-
-		if (groundRule instanceof AbstractGroundArithmeticRule) {
-			AbstractGroundArithmeticRule arithmeticRule = (AbstractGroundArithmeticRule) groundRule;
-			coefficients = AbstractGroundArithmeticRuleAccess.extractCoefficients(arithmeticRule);
-			groundAtoms = AbstractGroundArithmeticRuleAccess.extractAtoms(arithmeticRule);
-		} else if (groundRule instanceof AbstractGroundLogicalRule) {
-			AbstractGroundLogicalRule logicalRule = (AbstractGroundLogicalRule) groundRule;
-			coefficients = AbstractGroundLogicalRuleAccess.extractSigns(logicalRule);
-			groundAtoms = AbstractGroundLogicalRuleAccess.extractAtoms(logicalRule);
+		double weight = 1.0;
+		if (arithmeticRule instanceof WeightedGroundArithmeticRule) {
+			weight = ((WeightedGroundArithmeticRule) arithmeticRule).getWeight();
 		}
 
+		List<GroundAtom> groundAtoms = AbstractGroundArithmeticRuleAccess.extractAtoms(arithmeticRule);
+		// set to -1.0 and 1.0 for logical rules, representing the polarity
+		List<Double> coefficients = AbstractGroundArithmeticRuleAccess.extractCoefficients(arithmeticRule);
 		double[] values = extractValueVector(groundAtoms, coefficients, filter);
 
-		double bodyScore = computeBodyScore(coefficients, values);
-		double headScore = computeHeadScore(coefficients, values);
-		double distanceToSatisfaction = bodyScore - headScore;
-		if (GROUNDING_SCORE_OUTPUT && groundRule instanceof AbstractGroundLogicalRule) {
-			logger.logln("     headScore: " + headScore);
-			logger.logln("     bodyScore: " + bodyScore);
-			logger.logln("   distance to satisfaction: " + distanceToSatisfaction);
-		}
-		if (groundRule instanceof AbstractGroundLogicalRule) {
-			groundingStatus.put(groundingName, distanceToSatisfaction);
-		}
-
 		double arithLHS = computeWeightedSum(coefficients, values);
-		double arithRHS = 0.0;
+		double arithRHS = AbstractGroundArithmeticRuleAccess.extractConstant(arithmeticRule);
 		double arithRuleViolation = 0.0;
 
-        if (groundRule instanceof AbstractGroundArithmeticRule) {
-            AbstractGroundArithmeticRule arithRule = (AbstractGroundArithmeticRule) groundRule;
-            FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
-            arithRHS = AbstractGroundArithmeticRuleAccess.extractConstant(arithRule);
-            switch (comparator) {
-                case LTE:
-                    arithRuleViolation = arithLHS - arithRHS;
-                    break;
-                case GTE:
-                    arithRuleViolation = arithRHS - arithLHS;
-                    break;
-                case EQ:
-                    arithRuleViolation = Math.abs(arithLHS - arithRHS);
-                    equalityGroundings.add(groundingName);
-                    break;
-                default:
-                    break;
-            }
-            if (GROUNDING_SCORE_OUTPUT) {
-                logger.logln("     LHS: " + arithLHS);
-                logger.logln("     RHS: " + arithRHS);
-                logger.logln("  " + groundingName + ":\t" + arithRuleViolation);
-            }
-            groundingStatus.put(groundingName, arithRuleViolation);
-        }
+		FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithmeticRule);
+		switch (comparator) {
+			case LTE:
+				arithRuleViolation = arithLHS - arithRHS;
+				break;
+			case GTE:
+				arithRuleViolation = arithRHS - arithLHS;
+				break;
+			case EQ:
+				arithRuleViolation = Math.abs(arithLHS - arithRHS);
+				equalityGroundings.add(groundingName);
+				break;
+			default:
+				break;
+		}
+		double weightedViolation = weight * arithRuleViolation;
+		if (GROUNDING_SCORE_OUTPUT) {
+			logger.logln("     LHS: " + arithLHS);
+			logger.logln("     RHS: " + arithRHS);
+			logger.logln("   rule violation: " + weight + " * " + arithRuleViolation + " = " + arithRuleViolation);
+		}
+		groundingStatus.put(groundingName, weightedViolation);
 
 		for (int i = 0; i < groundAtoms.size(); i++) {
 			GroundAtom atom = groundAtoms.get(i);
@@ -229,72 +216,123 @@ public class RuleAtomGraph {
 			Tuple link = addLink(atomName, groundingName);
 
 			double coeff = coefficients.get(i);
+			double signum = Math.signum(coeff);
+			//in inequality with polarity towards satisfaction (- in <=, + in >=)? => green +~
+			if (signum == -1 && comparator == FunctionComparator.LTE
+					|| signum == 1 && comparator == FunctionComparator.GTE) {
+				linkStatus.put(link, "+");
 
-			if (groundRule instanceof AbstractGroundLogicalRule) {
-				// positive literal in logical rule? up -> more satisfied, down -> less
-				// satisfied => green, +~
-				if (coeff < 0) {
-					linkStatus.put(link, "+");
-
-					// Positive literal under pressure if it wants to go down
-					double origValue = values[i];
-					values[i] = Math.max(0.0, origValue - 0.1);
-					double changedHeadScore = computeHeadScore(coefficients, values);
-					values[i] = origValue;
-					double headScoreDecrease = headScore - changedHeadScore;
-					double effectiveRuleStrength = Math.max(headScoreDecrease,
-							distanceToSatisfaction + headScoreDecrease);
-					linkPressure.put(link, effectiveRuleStrength > 0.0);
+				double origValue = values[i];
+				values[i] = Math.max(0.0, origValue - COUNTERFACTUAL_OFFSET);
+				double changedLHS = computeWeightedSum(coefficients, values);
+				values[i] = origValue;
+				double counterfactualViolation = weight * (arithRHS - changedLHS);
+				linkToCounterfactual.put(link, counterfactualViolation);
+				if (GROUNDING_SCORE_OUTPUT) {
+					logger.logln("     counterfactual LHS: " + arithLHS);
+					logger.logln("     RHS: " + arithRHS);
+					logger.logln("   counterfactual rule violation: " + weight + " * " + (arithRHS - changedLHS) + " = " + counterfactualViolation);
 				}
-				// negative literal in logical rule? up -> less satisfied, down -> more
-				// satisfied => red, -~
-				else {
-					linkStatus.put(link, "-");
+			}
+			//in inequality with polarity away from satisfaction (+ in <=, - in >=)? => red, -~
+			else if (signum == 1 && comparator == FunctionComparator.LTE
+					|| signum == -1 && comparator == FunctionComparator.GTE) {
+				linkStatus.put(link, "-");
 
-                    // Negative literal under pressure if it wants to go up
-                    double origValue = values[i];
-                    values[i] = Math.min(1.0, origValue + 0.1);
-                    double changedBodyScore = computeBodyScore(coefficients, values);
-                    values[i] = origValue;
-                    double bodyScoreIncrease = changedBodyScore - bodyScore;
-                    double effectiveRuleStrength = Math.max(bodyScoreIncrease, distanceToSatisfaction + bodyScoreIncrease);
-                    linkPressure.put(link, effectiveRuleStrength > 0.0);
-                }
-            } else if (groundRule instanceof AbstractGroundArithmeticRule) {
-                AbstractGroundArithmeticRule arithRule = (AbstractGroundArithmeticRule) groundRule;
-                FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
-                double signum = Math.signum(coeff);
-                //in inequality with polarity towards satisfaction (- in <=, + in >=)? => green +~
-                if (signum == -1 && comparator == FunctionComparator.LTE
-                        || signum == 1 && comparator == FunctionComparator.GTE) {
-                    linkStatus.put(link, "+");
+				double origValue = values[i];
+				values[i] = Math.min(1.0, origValue + COUNTERFACTUAL_OFFSET);
+				double changedLHS = computeWeightedSum(coefficients, values);
+				values[i] = origValue;
+				double counterfactualViolation = weight * (arithRHS - changedLHS);
+				linkToCounterfactual.put(link, counterfactualViolation);
+				if (GROUNDING_SCORE_OUTPUT) {
+					logger.logln("     counterfactual LHS: " + arithLHS);
+					logger.logln("     RHS: " + arithRHS);
+					logger.logln("   counterfactual rule violation: " + weight + " * " + (arithRHS - changedLHS) + " = " + counterfactualViolation);
+				}
+			}
+			//in equation? would depend on current state! grey for positive coefficient (LHS), brown for negative (RHS)
+			else if (comparator == FunctionComparator.EQ) {
+				linkStatus.put(link, "=");
+				// TODO counterfactuals!
+			}
+		}
+	}
 
-                    double origValue = values[i];
-                    values[i] = Math.max(0.0, origValue - 0.1);
-                    double changedLHS = computeWeightedSum(coefficients, values);
-                    values[i] = origValue;
-                    double ruleViolationChange = (arithRHS - changedLHS) - arithRuleViolation;
-                    linkPressure.put(link, ruleViolationChange > 0.0);
-                }
-                //in inequality with polarity away from satisfaction (+ in <=, - in >=)? => red, -~
-                else if (signum == 1 && comparator == FunctionComparator.LTE
-                        || signum == -1 && comparator == FunctionComparator.GTE) {
-                    linkStatus.put(link, "-");
+	private void addGroundLogicalRule(String groundingName, AbstractGroundLogicalRule logicalRule) {
+		groundingNodes.add(groundingName);
+		groundingToGroundRule.put(groundingName, logicalRule);
+		if (GROUNDING_OUTPUT)
+			logger.logln("  " + groundingName + "\t" + logicalRule.toString());
 
-                    double origValue = values[i];
-                    values[i] = Math.min(1.0, origValue + 0.1);
-                    double changedLHS = computeWeightedSum(coefficients, values);
-                    values[i] = origValue;
-                    double ruleViolationChange = (arithRHS - changedLHS) - arithRuleViolation;
-                    linkPressure.put(link, ruleViolationChange > 0.0);
-                }
-                //in equation? would depend on current state! grey for positive coefficient (LHS), brown for negative (RHS)
-                else if (comparator == FunctionComparator.EQ) {
-                    linkStatus.put(link, "=");
-                }
-            }
-        }
-    }
+		double weight = 1.0;
+		if (logicalRule instanceof WeightedGroundLogicalRule) {
+			weight = ((WeightedGroundLogicalRule) logicalRule).getWeight();
+		}
+
+		List<GroundAtom> groundAtoms = AbstractGroundLogicalRuleAccess.extractAtoms(logicalRule);
+		// set to -1.0 and 1.0 for logical rules, representing the polarity
+		List<Double> coefficients = AbstractGroundLogicalRuleAccess.extractSigns(logicalRule);
+		double[] values = extractValueVector(groundAtoms, coefficients, filter);
+
+		double bodyScore = computeBodyScore(coefficients, values);
+		double headScore = computeHeadScore(coefficients, values);
+		double distanceToSatisfaction = bodyScore - headScore;
+		double weightedDistToSat = weight * distanceToSatisfaction;
+		if (GROUNDING_SCORE_OUTPUT) {
+			logger.logln("     headScore: " + headScore);
+			logger.logln("     bodyScore: " + bodyScore);
+			logger.logln("   distance to satisfaction: " + weight + " * " + distanceToSatisfaction + " = " + weightedDistToSat);
+		}
+		groundingStatus.put(groundingName, weightedDistToSat);
+
+		for (int i = 0; i < groundAtoms.size(); i++) {
+			GroundAtom atom = groundAtoms.get(i);
+			if (!filter.isRendered(atom.getPredicate().getName()))
+				continue;
+			String atomName = filter.atomToSimplifiedString(atom);
+			atomNodes.add(atomName);
+			Tuple link = addLink(atomName, groundingName);
+
+			double coeff = coefficients.get(i);
+			// positive literal in logical rule? up -> more satisfied, down -> less
+			// satisfied => green, +~
+			if (coeff < 0) {
+				linkStatus.put(link, "+");
+
+				// Positive literal under pressure if it wants to go down
+				double origValue = values[i];
+				values[i] = Math.max(0.0, origValue - COUNTERFACTUAL_OFFSET);
+				double changedHeadScore = computeHeadScore(coefficients, values);
+				values[i] = origValue;
+				double counterfactualDistance = weight * (bodyScore - changedHeadScore);
+				linkToCounterfactual.put(link, counterfactualDistance);
+				if (GROUNDING_SCORE_OUTPUT) {
+					logger.logln("     counterfactual headScore: " + changedHeadScore);
+					logger.logln("     bodyScore: " + bodyScore);
+					logger.logln("   counterfactual distance to satisfaction: " + weight + " * " + (bodyScore - changedHeadScore) + " = " + counterfactualDistance);
+				}
+			}
+			// negative literal in logical rule? up -> less satisfied, down -> more
+			// satisfied => red, -~
+			else {
+				linkStatus.put(link, "-");
+
+				// Negative literal under pressure if it wants to go up
+				double origValue = values[i];
+				values[i] = Math.min(1.0, origValue + COUNTERFACTUAL_OFFSET);
+				double changedBodyScore = computeBodyScore(coefficients, values);
+				values[i] = origValue;
+				double counterfactualDistance = weight * (changedBodyScore - headScore);
+				linkToCounterfactual.put(link, counterfactualDistance);
+				if (GROUNDING_SCORE_OUTPUT) {
+					logger.logln("     headScore: " + headScore);
+					logger.logln("     counterfactual bodyScore: " + changedBodyScore);
+					logger.logln("   counterfactual distance to satisfaction: " + weight + " * " + (changedBodyScore - headScore) + " = " + counterfactualDistance);
+				}
+			}
+		}
+	}
 
 	public double getValue(String atomString) {
 		return filter.getValueForAtom(atomString);
@@ -345,82 +383,6 @@ public class RuleAtomGraph {
 		return groundingToGroundRule.get(groundingName);
 	}
 
-	public double[] getCounterfactual(String groundingName, String currentAtom) {
-		double[] valueAndDist = new double[2];
-		List<GroundAtom> groundAtoms = new LinkedList<GroundAtom>();
-		// set to -1.0 and 1.0 for logical rules, representing the polarity
-		List<Double> coefficients = new LinkedList<Double>();
-		GroundRule groundRule = getRuleForGrounding(groundingName);
-
-		if (groundRule instanceof AbstractGroundLogicalRule) {
-			coefficients = AbstractGroundLogicalRuleAccess.extractSigns((AbstractGroundLogicalRule) groundRule);
-			groundAtoms = AbstractGroundLogicalRuleAccess.extractAtoms((AbstractGroundLogicalRule) groundRule);
-		} else if (groundRule instanceof AbstractGroundArithmeticRule) {
-			coefficients = AbstractGroundArithmeticRuleAccess
-					.extractCoefficients((AbstractGroundArithmeticRule) groundRule);
-			groundAtoms = AbstractGroundArithmeticRuleAccess.extractAtoms((AbstractGroundArithmeticRule) groundRule);
-		}
-		double[] values = extractValueVector(groundAtoms, coefficients, filter);
-
-		// Slightly adjust the value of the current atom:
-		List<Tuple> incomingLinksForGrounding = incomingLinks.get(groundingName);
-		for (int i = 0; i < incomingLinksForGrounding.size(); i++) {
-			if (incomingLinksForGrounding.get(i).get(0).equals(currentAtom)) {
-				if (linkStatus.get(incomingLinksForGrounding.get(i)).equals("+")) {
-					values[i] = values[i] - COUNTERFACTUAL_OFFSET;
-				} else {
-					values[i] = values[i] + COUNTERFACTUAL_OFFSET;
-				}
-				valueAndDist[0] = values[i];
-				break;
-			}
-		}
-
-		// Calculate the new distance to satisfaction
-		if (groundRule instanceof AbstractGroundLogicalRule) {
-			double bodyScore = computeBodyScore(coefficients, values);
-			double headScore = computeHeadScore(coefficients, values);
-			valueAndDist[1] = bodyScore - headScore;
-		} else if (groundRule instanceof AbstractGroundArithmeticRule) {
-			double arithLHS = computeWeightedSum(coefficients, values);
-			AbstractGroundArithmeticRule arithRule = (AbstractGroundArithmeticRule) groundRule;
-			FunctionComparator comparator = AbstractGroundArithmeticRuleAccess.extractComparator(arithRule);
-			double arithRHS = AbstractGroundArithmeticRuleAccess.extractConstant(arithRule);
-			switch (comparator) {
-            case LTE:
-				valueAndDist[1] = arithLHS - arithRHS;
-				break;
-            case GTE:
-				valueAndDist[1] = arithRHS - arithLHS;
-				break;
-			case EQ:
-				valueAndDist[1] = Math.abs(arithLHS - arithRHS);
-				break;
-			default:
-				break;
-			}
-		}
-
-		if (valueAndDist[1] < 0) {
-			valueAndDist[1] = 0;
-		}
-		return valueAndDist;
-	}
-
-	public Map<String, String> getLinkedAtomsForGroundingWithLinkStatus(String groundingName) {
-		Map<String, String> atomsToStatus = new TreeMap<String, String>();
-		List<Tuple> incomingLinksForGrounding = incomingLinks.get(groundingName);
-		if (incomingLinksForGrounding == null) {
-			incomingLinksForGrounding = new ArrayList<Tuple>();
-		}
-		for (Tuple link : incomingLinksForGrounding) {
-			String atom = link.get(0);
-			String status = linkStatus.get(link);
-			atomsToStatus.put(atom, status);
-		}
-		return atomsToStatus;
-	}
-
 	public List<Tuple> getLinkedAtomsForGroundingWithLinkStatusAsList(String groundingName) {
 		List<Tuple> atomsToStatus = new ArrayList<>();
 		List<Tuple> incomingLinksForGrounding = incomingLinks.get(groundingName);
@@ -433,10 +395,6 @@ public class RuleAtomGraph {
 			atomsToStatus.add(new Tuple(atom, status));
 		}
 		return atomsToStatus;
-	}
-
-	public boolean putsPressureOnGrounding(String atomName, String groundingName) {
-		return linkPressure.getOrDefault(new Tuple(atomName, groundingName), false);
 	}
 
 	public double distanceToSatisfaction(String groundingName) {
@@ -649,7 +607,32 @@ public class RuleAtomGraph {
 	}
 
 	public Boolean getLinkPressure(Tuple link) {
-		return linkPressure.get(link);
+		if (equalityGroundings.contains(link.get(1))) {
+			return true;
+		}
+		if (!linkToCounterfactual.containsKey(link)) {
+			return false;
+		}
+		return Math.abs(getCounterfactual(link) - distanceToSatisfaction(link.get(1))) > 0.000001;
+	}
+
+	public boolean putsPressureOnGrounding(String atomName, String groundingName) {
+		return getLinkPressure(new Tuple(atomName, groundingName));
+	}
+
+	public Double getCounterfactual(Tuple link) {
+		Double cDist = linkToCounterfactual.get(link);
+		if (cDist == null) {
+			return null;
+		}
+		if (cDist < 0) {
+			return 0.0;
+		}
+		return cDist;
+	}
+
+	public Double getCounterfactual(String atomName, String groundingName) {
+		return getCounterfactual(new Tuple(atomName, groundingName));
 	}
 
 	public Double getLinkStrength(Tuple link) {

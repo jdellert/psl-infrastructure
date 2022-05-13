@@ -89,13 +89,13 @@ public class InferenceResultIo {
         }
         sb.append("\n\nEQUALITY RULES\n===============\n").append(rag.getEqualityGroundings());
         sb.append("\n\nATOM LINKS\n===============\n");
-        sb.append("ATOM\tBELIEF VALUE\tATOM STATUS\tGROUNDING\tLINK STATUS\tLINK STRENGTH\tLINK PRESSURE\n");
+        sb.append("ATOM\tBELIEF VALUE\tATOM STATUS\tGROUNDING\tLINK STATUS\tLINK STRENGTH\tCOUNTERFACTUAL DIST TO SAT\n");
         for (String atom : rag.getAtomNodes()) {
             for (Tuple link : rag.getOutgoingLinks(atom)) {
                 sb.append(atom).append("\t").append(filter.getValueForAtom(atom)).append("\t")
                         .append(rag.getAtomStatus(atom)).append("\t");
                 sb.append(link.get(1)).append("\t").append(rag.getLinkStatus(link)).append("\t");
-                sb.append(rag.getLinkStrength(link)).append("\t").append(rag.getLinkPressure(link)).append("\n");
+                sb.append(rag.getLinkStrength(link)).append("\t").append(rag.getCounterfactual(link)).append("\n");
             }
         }
         sb.append("\n\nINFERENCE VALUES\n===============\n");
@@ -158,7 +158,7 @@ public class InferenceResultIo {
         Map<String, String> atomStatus = new TreeMap<>();
         Set<Tuple> links = new TreeSet<>();
         Map<Tuple, String> linkStatus = new TreeMap<>();
-        Map<Tuple, Boolean> linkPressure = new TreeMap<>();
+        Map<Tuple, Double> linkToCounterfactual = new TreeMap<>();
         Map<Tuple, Double> linkStrength = new TreeMap<>();
         Map<String, Set<Tuple>> outgoingLinks = new TreeMap<>();
         Map<String, List<Tuple>> incomingLinks = new TreeMap<>();
@@ -315,7 +315,7 @@ public class InferenceResultIo {
                         } else {
                             linkStrength.put(link, Double.parseDouble(fields[5].trim()));
                         }
-                        linkPressure.put(link, Boolean.parseBoolean(fields[6].trim()));
+                        linkToCounterfactual.put(link, Double.parseDouble(fields[6].trim()));
                         if (!outgoingLinks.containsKey(atom)) {
                             outgoingLinks.put(atom, new TreeSet<>());
                         }
@@ -385,7 +385,7 @@ public class InferenceResultIo {
         }
         ragFilter.setAll(beliefValues, groundPreds2ActualNames, ignoreList, ignoreInGui, preventUserInteraction, fixedAtoms);
         RuleAtomGraph rag = new RuleAtomGraph(groundingNodes, groundingStatus, equalityGroundings, atomNodes,
-                atomStatus, links, linkStatus, linkPressure, linkStrength, outgoingLinks, incomingLinks, ragFilter);
+                atomStatus, links, linkStatus, linkToCounterfactual, linkStrength, outgoingLinks, incomingLinks, ragFilter);
 
         for (TalkingRule rule : talkingRules.values()) {
             rule.setTalkingPredicates(talkingPreds);
