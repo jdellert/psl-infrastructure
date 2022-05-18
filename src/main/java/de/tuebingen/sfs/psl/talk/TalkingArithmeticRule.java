@@ -3,6 +3,7 @@ package de.tuebingen.sfs.psl.talk;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
 import de.tuebingen.sfs.psl.talk.pred.NotEqualPred;
+import de.tuebingen.sfs.psl.util.data.StringUtils;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import org.linqs.psl.model.rule.Rule;
 import org.linqs.psl.model.rule.arithmetic.AbstractArithmeticRule;
@@ -12,6 +13,7 @@ import org.linqs.psl.reasoner.function.FunctionComparator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class TalkingArithmeticRule extends TalkingRule {
 
@@ -98,6 +100,9 @@ public class TalkingArithmeticRule extends TalkingRule {
         int positiveArgs = 0;
         List<String> printableArgs = new ArrayList<>();
         List<Double> printableBeliefValues = new ArrayList<>();
+        List<String[]> printablePredicateArgs = new ArrayList<>();
+        Map<String, TalkingPredicate> nameToTalkingPredicate = getTalkingPredicates();
+        List<TalkingPredicate> printableTalkingPredicates = new ArrayList<>();
         boolean contextFound = false;
         boolean contextPositive = false;
         for (Tuple tuple : atomToStatus) {
@@ -115,9 +120,14 @@ public class TalkingArithmeticRule extends TalkingRule {
                 printableArgs.add(atom);
                 printableBeliefValues.add(rag.getValue(atom));
             }
+            String[] predDetails = StringUtils.split(atom, '(');
+            printableTalkingPredicates.add(nameToTalkingPredicate.get(predDetails[0]));
+            printablePredicateArgs.add(StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1), ","));
         }
+
         return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
-                printableArgs, printableBeliefValues, positiveArgs, true, whyExplanation);
+                printableArgs, printableTalkingPredicates, printablePredicateArgs, printableBeliefValues,
+                positiveArgs, true, whyExplanation);
     }
 
 }

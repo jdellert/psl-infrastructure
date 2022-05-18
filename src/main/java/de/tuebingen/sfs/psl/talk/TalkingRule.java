@@ -175,7 +175,7 @@ public abstract class TalkingRule {
             String verbalization = printableTalkingPredicates.get(index)
                     .verbalizeIdeaAsNP(printablePredicateArgs.get(index));
             if (!predicateName.equals(verbalization)) {
-                sb.append("[the ");
+                sb.append("[");
                 sb.append(escapeForURL(verbalization));
                 sb.append("]");
             }
@@ -288,14 +288,6 @@ public abstract class TalkingRule {
     public abstract String getDefaultExplanation(String groundingName, String contextAtom, RuleAtomGraph rag,
                                                  boolean whyExplanation);
 
-    // TODO delete, update method calls
-    String getUnequativeExplanation(String contextAtom, double belief, boolean contextFound, boolean contextPositive,
-                                    List<String> printableArgs, List<Double> printableBeliefValues, int positiveArgs, boolean directFormulation,
-                                    boolean whyExplanation) {
-        return getUnequativeExplanation(contextAtom, belief, contextFound, contextPositive, printableArgs, null, null,
-                printableBeliefValues, positiveArgs, directFormulation, whyExplanation);
-    }
-
     /**
      * Generate explanation for logical rules and for non-equative arithmetic
      * rules.
@@ -322,13 +314,6 @@ public abstract class TalkingRule {
                                     List<String[]> printablePredicateArgs, List<Double> printableBeliefValues, int positiveArgs,
                                     boolean directFormulation, boolean whyExplanation) {
         StringBuilder sb = new StringBuilder();
-
-        // TODO del
-        System.err.println(getVerbalization());
-        System.err.println(printableArgs);
-        System.err.println(printableTalkingPredicates);
-        System.err.println(printableBeliefValues);
-        System.err.println("----");
 
         // Context atom is not amongst given ground atoms
         // (i.e. is closed or on ignore list)
@@ -369,21 +354,23 @@ public abstract class TalkingRule {
                 List<String> components = new ArrayList<String>();
                 for (int i = 0; i < positiveArgs; i++) {
                     StringBuilder sbComponent = new StringBuilder();
-//					System.out.println(name + ": " + ruleString);
                     addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sbComponent);
                     sbComponent.append(" reaching a ");
-                    if (printableTalkingPredicates != null
-                            && printableTalkingPredicates.get(i).verbalizeOnHighLowScale()) {
+                    boolean verbalizeAsHighLow = printableTalkingPredicates != null
+                            && printableTalkingPredicates.get(i).verbalizeOnHighLowScale;
+                    if (verbalizeAsHighLow) {
                         sbComponent.append("similarity");
                     } else {
                         sbComponent.append("confidence");
                     }
                     sbComponent.append(" level of \\textit{");
-                    if (printableTalkingPredicates != null
-                            && printableTalkingPredicates.get(i).verbalizeOnHighLowScale()) {
+                    if (verbalizeAsHighLow) {
                         sbComponent.append(BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableBeliefValues.get(i)));
                     } else if (printableBeliefValues != null) {
                         sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableBeliefValues.get(i)));
+                    } else {
+                        // This shouldn't happen.
+                        sbComponent.append("???");
                     }
                     sbComponent.append("}");
                     components.add(sbComponent.toString());
@@ -413,12 +400,20 @@ public abstract class TalkingRule {
                     StringBuilder sbComponent = new StringBuilder();
                     addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sbComponent);
                     sbComponent.append(" being only ");
-                    if (printableTalkingPredicates != null
-                            && printableTalkingPredicates.get(i).verbalizeOnHighLowScale()) {
-                        sbComponent.append(BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableBeliefValues.get(i)));
-                    } else if (printableBeliefValues != null) {
-                        sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableBeliefValues.get(i)));
-                    } // TODO else? (arithmetic rules)
+                    if (printableTalkingPredicates != null && printableBeliefValues != null) {
+                        if (printableTalkingPredicates.get(i).verbalizeOnHighLowScale) {
+                            sbComponent.append(BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableBeliefValues.get(i)));
+                        } else {
+                            sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableBeliefValues.get(i)));
+                        }
+                    } else {
+                        if (printableBeliefValues != null) {
+                            sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableBeliefValues.get(i)));
+                        } else {
+                            // This shouldn't happen.
+                            sbComponent.append("???");
+                        }
+                    }
                     components.add(sbComponent.toString());
                 }
                 appendAnd(components, sb, false);
@@ -435,8 +430,6 @@ public abstract class TalkingRule {
         }
 
         sb.append(". (Rule: ").append(getVerbalization()).append(")");
-
-        // System.out.println(sb.toString());
 
         return sb.toString();
     }
