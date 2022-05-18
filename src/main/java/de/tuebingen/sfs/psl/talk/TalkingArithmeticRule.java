@@ -2,6 +2,7 @@ package de.tuebingen.sfs.psl.talk;
 
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
+import de.tuebingen.sfs.psl.talk.pred.NotEqualPred;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import org.linqs.psl.model.rule.Rule;
 import org.linqs.psl.model.rule.arithmetic.AbstractArithmeticRule;
@@ -70,7 +71,7 @@ public class TalkingArithmeticRule extends TalkingRule {
     // Override me! Can just return "" if your talking rule doesn't need serialized parameters.
     @Override
     public String getSerializedParameters() {
-        return getName() + "-" + getRuleString() + getVerbalization() != null ? "-" + getVerbalization() : "";
+        return getName() + "-" + getRuleString() + (getVerbalization() != null ? "-" + getVerbalization() : "");
     }
 
     @Override
@@ -92,26 +93,31 @@ public class TalkingArithmeticRule extends TalkingRule {
                 appendAnd(printableArgs, sb);
             }
             return sb.append(" in rule '").append(getName()).append("'.").toString();
-        } else {
-            int positiveArgs = 0;
-            List<String> printableArgs = new ArrayList<>();
-            boolean contextFound = false;
-            boolean contextPositive = false;
-            for (Tuple tuple : atomToStatus) {
-                String atom = tuple.get(0);
-                if (atom.equals(contextAtom)) {
-                    contextFound = true;
-                    contextPositive = tuple.get(1).equals("+");
-                } else if (tuple.get(1).equals("+")) {
-                    printableArgs.add(positiveArgs, atom);
-                    positiveArgs++;
-                } else
-                    printableArgs.add(atom);
-            }
-
-            return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
-                    printableArgs, null, positiveArgs, true, whyExplanation);
         }
+
+        int positiveArgs = 0;
+        List<String> printableArgs = new ArrayList<>();
+        List<Double> printableBeliefValues = new ArrayList<>();
+        boolean contextFound = false;
+        boolean contextPositive = false;
+        for (Tuple tuple : atomToStatus) {
+            String atom = tuple.get(0);
+            if (atom.equals(contextAtom)) {
+                contextFound = true;
+                contextPositive = tuple.get(1).equals("+");
+            } else if (atom.startsWith(NotEqualPred.SYMBOL)) {
+                continue;
+            } else if (tuple.get(1).equals("+")) {
+                printableArgs.add(positiveArgs, atom);
+                printableBeliefValues.add(positiveArgs, rag.getValue(atom));
+                positiveArgs++;
+            } else {
+                printableArgs.add(atom);
+                printableBeliefValues.add(rag.getValue(atom));
+            }
+        }
+        return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
+                printableArgs, printableBeliefValues, positiveArgs, true, whyExplanation);
     }
 
 }

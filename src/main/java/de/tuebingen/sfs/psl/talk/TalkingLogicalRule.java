@@ -67,7 +67,7 @@ public class TalkingLogicalRule extends TalkingRule {
     // Override me! Can just return "" if your talking rule doesn't need serialized parameters.
     @Override
     public String getSerializedParameters() {
-        return getName() + "-" + getRuleString() + getVerbalization() != null ? "-" + getVerbalization() : "";
+        return getName() + "-" + getRuleString() + (getVerbalization() != null ? "-" + getVerbalization() : "");
     }
 
     @Override
@@ -115,8 +115,8 @@ public class TalkingLogicalRule extends TalkingRule {
                     String predName = predDetails[0];
                     String[] predArgs = StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1), ", ");
                     if (predName.equals("#notequal")) {
-                        // TODO either skip this predicate instead or make sure no URL is created
-                        printableTalkingPredicates.add(new NotEqualPred());
+                        continue;
+//                        printableTalkingPredicates.add(new NotEqualPred());
                     } else {
                         printableTalkingPredicates.add(nameToTalkingPredicate.get(predName));
                     }

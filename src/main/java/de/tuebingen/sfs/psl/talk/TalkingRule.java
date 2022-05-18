@@ -323,6 +323,13 @@ public abstract class TalkingRule {
                                     boolean directFormulation, boolean whyExplanation) {
         StringBuilder sb = new StringBuilder();
 
+        // TODO del
+        System.err.println(getVerbalization());
+        System.err.println(printableArgs);
+        System.err.println(printableTalkingPredicates);
+        System.err.println(printableBeliefValues);
+        System.err.println("----");
+
         // Context atom is not amongst given ground atoms
         // (i.e. is closed or on ignore list)
         if (!contextFound) {
@@ -377,7 +384,7 @@ public abstract class TalkingRule {
                         sbComponent.append(BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableBeliefValues.get(i)));
                     } else if (printableBeliefValues != null) {
                         sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableBeliefValues.get(i)));
-                    } // TODO else? (arithmetic rules)
+                    }
                     sbComponent.append("}");
                     components.add(sbComponent.toString());
                 }
@@ -391,7 +398,7 @@ public abstract class TalkingRule {
                     appendAnd(printableArgs, printableTalkingPredicates, printablePredicateArgs, 0, positiveArgs, sb,
                             true);
                 sb.append(" would have to be ").append((contextPositive) ? "less" : "more").append(" likely");
-                // TODO scales: likely vs. high
+                // TODO scales: likely vs. high (difficulty: both types might be mixed here)
                 if (negativeArgs > 0)
                     sb.append(", or ");
                 if (negativeArgs > 1)
@@ -417,7 +424,6 @@ public abstract class TalkingRule {
                 appendAnd(components, sb, false);
 
             } else {
-
                 if (printableTalkingPredicates == null)
                     appendAnd(printableArgs, positiveArgs, printableArgs.size(), sb, true);
                 else

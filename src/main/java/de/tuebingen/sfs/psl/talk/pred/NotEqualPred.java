@@ -7,8 +7,10 @@ public class NotEqualPred extends TalkingPredicate {
     // Internally used to avoid NPEs when generating default explanations for rules.
     // When writing rules use != instead: X != Y.
 
+    public final static String SYMBOL = "#notequal";
+
     public NotEqualPred() {
-        super("#notequal", 2);
+        super(SYMBOL, 2);
     }
 
 }
