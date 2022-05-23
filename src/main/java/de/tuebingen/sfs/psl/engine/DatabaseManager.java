@@ -510,7 +510,7 @@ public class DatabaseManager {
         if (blacklist.contains(predName, tuple))
             return;
 
-        System.err.println("Adding atom " + predName + " " + Arrays.toString(tuple) + " " + value);
+        System.err.println("Adding " + (isTarget ? "target" : "observation") + " atom " + predName + " " + Arrays.toString(tuple) + " " + value);
         StandardPredicate pred = predicates.get(predName);
         if (pred == null) {
             System.err.println("WARNING: Undeclared predicate \"" + predName + "\"! Ignoring atom.");
