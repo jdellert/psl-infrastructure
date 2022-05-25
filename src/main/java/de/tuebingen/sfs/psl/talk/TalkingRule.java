@@ -114,8 +114,10 @@ public abstract class TalkingRule {
     }
 
     public static void appendAnd(List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
-                                 List<String[]> printablePredicateArgs, int from, int to, StringBuilder sb, boolean url) {
-        appendList(printableArgs, printableTalkingPredicates, printablePredicateArgs, from, to, "and", sb, url);
+                                 List<String[]> printablePredicateArgs, int from, int to, StringBuilder sb, boolean url,
+                                 ConstantRenderer renderer) {
+        appendList(printableArgs, printableTalkingPredicates, printablePredicateArgs, from, to, "and", sb, url,
+                renderer);
     }
 
     public static void appendOr(List<String> args, StringBuilder sb) {
@@ -131,8 +133,9 @@ public abstract class TalkingRule {
     }
 
     public static void appendOr(List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
-                                List<String[]> printablePredicateArgs, int from, int to, StringBuilder sb, boolean url) {
-        appendList(printableArgs, printableTalkingPredicates, printablePredicateArgs, from, to, "or", sb, url);
+                                List<String[]> printablePredicateArgs, int from, int to, StringBuilder sb, boolean url,
+                                ConstantRenderer renderer) {
+        appendList(printableArgs, printableTalkingPredicates, printablePredicateArgs, from, to, "or", sb, url, renderer);
     }
 
     private static void appendList(List<String> args, int from, int to, String conj, StringBuilder sb, boolean url) {
@@ -150,10 +153,11 @@ public abstract class TalkingRule {
     }
 
     private static void appendList(List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
-                                   List<String[]> printablePredicateArgs, int from, int to, String conj, StringBuilder sb, boolean url) {
+                                   List<String[]> printablePredicateArgs, int from, int to, String conj,
+                                   StringBuilder sb, boolean url, ConstantRenderer renderer) {
         for (int i = from; i < to; i++) {
             if (url)
-                addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sb);
+                addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sb, renderer);
             else
                 sb.append(printableArgs.get(i));
             if (i == printableArgs.size() - 2)
@@ -164,7 +168,8 @@ public abstract class TalkingRule {
     }
 
     private static void addURL(List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
-                               List<String[]> printablePredicateArgs, int index, StringBuilder sb) {
+                               List<String[]> printablePredicateArgs, int index, StringBuilder sb,
+                               ConstantRenderer renderer) {
         String predicateName = printableArgs.get(index);
         sb.append("\\url");
         if (printableTalkingPredicates != null && printablePredicateArgs != null) {
@@ -173,7 +178,7 @@ public abstract class TalkingRule {
 //				System.out.println(printableTalkingPredicates.get(i) + " - " + Arrays.toString(printablePredicateArgs.get(i)));
 //			}
             String verbalization = printableTalkingPredicates.get(index)
-                    .verbalizeIdeaAsNP(printablePredicateArgs.get(index));
+                    .verbalizeIdeaAsNP(renderer, printablePredicateArgs.get(index));
             if (!predicateName.equals(verbalization)) {
                 sb.append("[");
                 sb.append(escapeForURL(verbalization));
@@ -280,13 +285,13 @@ public abstract class TalkingRule {
         this.talkingPreds = talkingPreds;
     }
 
-    public String generateExplanation(String groundingName, String contextAtom, RuleAtomGraph rag,
-                                      boolean whyExplanation) {
-        return getDefaultExplanation(groundingName, contextAtom, rag, whyExplanation);
+    public String generateExplanation(ConstantRenderer renderer, String groundingName, String contextAtom,
+                                      RuleAtomGraph rag, boolean whyExplanation) {
+        return getDefaultExplanation(renderer, groundingName, contextAtom, rag, whyExplanation);
     }
 
-    public abstract String getDefaultExplanation(String groundingName, String contextAtom, RuleAtomGraph rag,
-                                                 boolean whyExplanation);
+    public abstract String getDefaultExplanation(ConstantRenderer renderer, String groundingName, String contextAtom,
+                                                 RuleAtomGraph rag, boolean whyExplanation);
 
     /**
      * Generate explanation for logical rules and for non-equative arithmetic
@@ -307,12 +312,13 @@ public abstract class TalkingRule {
      * @param directFormulation     Use direct formulation? (Else contrafactive)
      * @param whyExplanation        If true: explanation appears in the WHY block, otherwise: in
      *                              the WHY NOT block.
+     * @param renderer              Renderer for the atom arguments. Can be null.
      * @return Unequative explanation
      */
     String getUnequativeExplanation(String contextAtom, double belief, boolean contextFound, boolean contextPositive,
                                     List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
                                     List<String[]> printablePredicateArgs, List<Double> printableBeliefValues, int positiveArgs,
-                                    boolean directFormulation, boolean whyExplanation) {
+                                    boolean directFormulation, boolean whyExplanation, ConstantRenderer renderer) {
         StringBuilder sb = new StringBuilder();
 
         // Context atom is not amongst given ground atoms
@@ -354,7 +360,7 @@ public abstract class TalkingRule {
                 List<String> components = new ArrayList<String>();
                 for (int i = 0; i < positiveArgs; i++) {
                     StringBuilder sbComponent = new StringBuilder();
-                    addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sbComponent);
+                    addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sbComponent, renderer);
                     sbComponent.append(" reaching a ");
                     boolean verbalizeAsHighLow = printableTalkingPredicates != null
                             && printableTalkingPredicates.get(i).verbalizeOnHighLowScale;
@@ -383,7 +389,7 @@ public abstract class TalkingRule {
                     appendAnd(printableArgs, 0, positiveArgs, sb, true);
                 else
                     appendAnd(printableArgs, printableTalkingPredicates, printablePredicateArgs, 0, positiveArgs, sb,
-                            true);
+                            true, renderer);
                 sb.append(" would have to be ").append((contextPositive) ? "less" : "more").append(" likely");
                 // TODO scales: likely vs. high (difficulty: both types might be mixed here)
                 if (negativeArgs > 0)
@@ -398,7 +404,7 @@ public abstract class TalkingRule {
                 List<String> components = new ArrayList<String>();
                 for (int i = positiveArgs; i < printableArgs.size(); i++) {
                     StringBuilder sbComponent = new StringBuilder();
-                    addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sbComponent);
+                    addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sbComponent, renderer);
                     sbComponent.append(" being only ");
                     if (printableTalkingPredicates != null && printableBeliefValues != null) {
                         if (printableTalkingPredicates.get(i).verbalizeOnHighLowScale) {
@@ -423,7 +429,7 @@ public abstract class TalkingRule {
                     appendAnd(printableArgs, positiveArgs, printableArgs.size(), sb, true);
                 else
                     appendAnd(printableArgs, printableTalkingPredicates, printablePredicateArgs, positiveArgs,
-                            printableArgs.size(), sb, true);
+                            printableArgs.size(), sb, true, renderer);
                 sb.append(" would have to be ").append((contextPositive) ? "more" : "less").append(" likely");
                 // TODO scales: likely vs. high
             }
@@ -481,9 +487,4 @@ public abstract class TalkingRule {
     // This should not contain '\t'!
     public abstract String getSerializedParameters();
 
-    // Override me!
-    public String generateExplanation(ConstantRenderer renderer, String groundingName,
-            String contextAtom, RuleAtomGraph rag, boolean whyExplanation) {
-    	return getDefaultExplanation(groundingName, contextAtom, rag, whyExplanation);
-    }
 }

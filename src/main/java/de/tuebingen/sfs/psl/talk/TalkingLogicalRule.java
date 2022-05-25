@@ -71,12 +71,28 @@ public class TalkingLogicalRule extends TalkingRule {
     }
 
     @Override
-    public String getDefaultExplanation(String groundingName, String contextAtom, RuleAtomGraph rag, boolean whyExplanation) {
-        return getDefaultExplanation(groundingName, contextAtom, rag, true, whyExplanation);
+    public String getDefaultExplanation(ConstantRenderer renderer, String groundingName, String contextAtom,
+                                        RuleAtomGraph rag, boolean whyExplanation) {
+        return getDefaultExplanation(renderer, groundingName, contextAtom, rag, true, whyExplanation);
     }
 
-    public String getDefaultExplanation(String groundingName, String contextAtom, RuleAtomGraph rag,
-                                        boolean directFormulation, boolean whyExplanation) {
+    public String getDefaultExplanation(String groundingName, String contextAtom,
+                                        RuleAtomGraph rag, boolean whyExplanation) {
+        return getDefaultExplanation(null, groundingName, contextAtom, rag, true, whyExplanation);
+    }
+
+    public String generateExplanation(String groundingName, String contextAtom,
+                                        RuleAtomGraph rag, boolean whyExplanation) {
+        return generateExplanation(null, groundingName, contextAtom, rag, whyExplanation);
+    }
+
+    public String generateExplanation(ConstantRenderer renderer, String groundingName, String contextAtom,
+                                      RuleAtomGraph rag, boolean whyExplanation) {
+        return getDefaultExplanation(renderer, groundingName, contextAtom, rag, true, whyExplanation);
+    }
+
+    public String getDefaultExplanation(ConstantRenderer renderer, String groundingName, String contextAtom,
+                                        RuleAtomGraph rag, boolean directFormulation, boolean whyExplanation) {
         String[] args = getArgs();
         // Get arguments of ground rule
         List<Tuple> atomToStatus = rag.getLinkedAtomsForGroundingWithLinkStatusAsList(groundingName);
@@ -132,7 +148,7 @@ public class TalkingLogicalRule extends TalkingRule {
         boolean contextPositive = contextIndex < positiveArgs;
         return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
                 printableArgs, printableTalkingPredicates, printablePredicateArgs, printableBeliefValues,
-                positiveGroundArgs, directFormulation, whyExplanation);
+                positiveGroundArgs, directFormulation, whyExplanation, renderer);
     }
     
 }

@@ -58,37 +58,28 @@ public class TalkingPredicate {
 		return verbalizeOnHighLowScale;
 	}
 
-	public String verbalizeIdea(String... args) {
+	public String verbalizeIdea(ConstantRenderer renderer, String... args) {
 		return predSymbol + "(" + StringUtils.join(args, ", ") + ")";
 	}
 
-	public String verbalizeIdeaWithBelief(double belief, String... args) {
-		return verbalizeIdea(args) + " " + BeliefScale.verbalizeBeliefAsPredicate(belief);
+	// Override me!
+	public String verbalizeIdeaWithBelief(ConstantRenderer renderer, double belief, String[] array) {
+		return verbalizeIdea(renderer, array) + " %.2f".formatted(belief);
 	}
 
 	// Override me!
-	public String verbalizeIdeaWithBelief(ConstantRenderer constantRenderer, double belief, String[] array) {
-		return verbalizeIdeaWithBelief(belief, array);
+	public String verbalizeIdeaAsSentence(ConstantRenderer renderer, String... args) {
+		return verbalizeIdea(renderer, args);
 	}
 
 	// Override me!
-	public String verbalizeIdeaAsSentence(String... args) {
-		return verbalizeIdea(args);
+	public String verbalizeIdeaAsSentence(ConstantRenderer renderer, double belief, String... args) {
+		return verbalizeIdeaWithBelief(renderer, belief, args);
 	}
 
 	// Override me!
-	public String verbalizeIdeaAsSentence(double belief, String... args) {
-		return verbalizeIdeaWithBelief(belief, args);
-	}
-
-	// Override me!
-	public String verbalizeIdeaAsSentence(ConstantRenderer constantRenderer, double belief, String... args) {
-		return verbalizeIdeaAsSentence(belief, args);
-	}
-
-	// Override me!
-	public String verbalizeIdeaAsNP(String... args) {
-		return verbalizeIdea(args);
+	public String verbalizeIdeaAsNP(ConstantRenderer renderer, String... args) {
+		return verbalizeIdea(renderer, args);
 	}
 
 	// Override me!

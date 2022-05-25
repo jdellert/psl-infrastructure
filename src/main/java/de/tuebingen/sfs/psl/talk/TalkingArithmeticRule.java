@@ -76,9 +76,14 @@ public class TalkingArithmeticRule extends TalkingRule {
         return getName() + "-" + getRuleString() + (getVerbalization() != null ? "-" + getVerbalization() : "");
     }
 
+    public String getDefaultExplanation(String groundingName, String contextAtom,
+                                        RuleAtomGraph rag, boolean whyExplanation) {
+        return getDefaultExplanation(null, groundingName, contextAtom, rag, whyExplanation);
+    }
+
     @Override
-    public String getDefaultExplanation(String groundingName, String contextAtom, RuleAtomGraph rag,
-                                        boolean whyExplanation) {
+    public String getDefaultExplanation(ConstantRenderer renderer, String groundingName, String contextAtom,
+                                        RuleAtomGraph rag, boolean whyExplanation) {
         List<Tuple> atomToStatus = rag.getLinkedAtomsForGroundingWithLinkStatusAsList(groundingName);
         if (equative) {
             StringBuilder sb = new StringBuilder();
@@ -127,7 +132,7 @@ public class TalkingArithmeticRule extends TalkingRule {
 
         return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
                 printableArgs, printableTalkingPredicates, printablePredicateArgs, printableBeliefValues,
-                positiveArgs, true, whyExplanation);
+                positiveArgs, true, whyExplanation, renderer);
     }
 
 }
