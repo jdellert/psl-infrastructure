@@ -277,6 +277,9 @@ public class InferenceResultIo {
                     }
                     continue;
                 }
+                if (current == null) {
+                    continue;
+                }
                 String[] fields = line.split("\t");
                 switch (current) {
                     case GROUNDINGS:
