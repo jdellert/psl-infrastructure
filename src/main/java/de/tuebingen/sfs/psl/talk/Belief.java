@@ -7,17 +7,22 @@ public class Belief {
     private String adverb;
     private String adjectiveHigh;
     private String similarity;
+    private String similarityMinInf;
+    private String similarityOnly;
     private String frequencyAdv;
     private String frequencyAdj;
 
     public Belief(double threshold, String adjective, String predicate, String adverb, String adjectiveHigh,
-                  String similarity, String frequencyAdv, String frequencyAdj) {
+                  String similarity, String similarityMinInf, String similarityOnly, String frequencyAdv,
+                  String frequencyAdj) {
         this.threshold = threshold;
         this.adjective = adjective;
         this.predicate = predicate;
         this.adverb = adverb;
         this.adjectiveHigh = adjectiveHigh;
         this.similarity = similarity;
+        this.similarityMinInf = similarityMinInf;
+        this.similarityOnly = similarityOnly;
         this.frequencyAdv = frequencyAdv;
         this.frequencyAdj = frequencyAdj;
     }
@@ -97,6 +102,17 @@ public class Belief {
      */
     public String getSimilarity() {
         return similarity;
+    }
+
+    /**
+     * @return the minimum similarity (infinitive)
+     */
+    public String getSimilarityMinInf() {
+        return similarityMinInf;
+    }
+
+    public String getSimilarityOnly() {
+        return similarityOnly;
     }
 
     /**
