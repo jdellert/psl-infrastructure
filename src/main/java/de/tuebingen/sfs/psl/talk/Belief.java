@@ -4,6 +4,8 @@ public class Belief {
     private double threshold;
     private String adjective;
     private String predicate;
+    private String predicateMinInf;
+    private String predicateOnly;
     private String adverb;
     private String adjectiveHigh;
     private String similarity;
@@ -12,13 +14,15 @@ public class Belief {
     private String frequencyAdv;
     private String frequencyAdj;
 
-    public Belief(double threshold, String adjective, String predicate, String adverb, String adjectiveHigh,
-                  String similarity, String similarityMinInf, String similarityOnly, String frequencyAdv,
-                  String frequencyAdj) {
+    public Belief(double threshold, String adjective, String predicate, String predicateMinInf, String predicateOnly, String adverb,
+                  String adjectiveHigh, String similarity, String similarityMinInf, String similarityOnly,
+                  String frequencyAdv, String frequencyAdj) {
         this.threshold = threshold;
         this.adjective = adjective;
         this.predicate = predicate;
         this.adverb = adverb;
+        this.predicateMinInf = predicateMinInf;
+        this.predicateOnly = predicateOnly;
         this.adjectiveHigh = adjectiveHigh;
         this.similarity = similarity;
         this.similarityMinInf = similarityMinInf;
@@ -60,6 +64,14 @@ public class Belief {
      */
     public String getPredicate() {
         return predicate;
+    }
+
+    public String getPredicateMinInf() {
+        return predicateMinInf;
+    }
+
+    public String getPredicateOnly() {
+        return predicateOnly;
     }
 
     /**
