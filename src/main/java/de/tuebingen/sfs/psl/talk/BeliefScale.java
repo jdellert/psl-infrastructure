@@ -5,36 +5,40 @@ public class BeliefScale {
     private static final Belief[] scale = new Belief[]{
             new Belief(0.01, "almost certainly false", "is almost certainly false", "not be (extremely) unlikely",
                     "is (extremely) unlikely", "almost certainly not", "extremely low", "extremely dissimilar",
-                    "not be extremely dissimilar", "(extremely) dissimilar", "almost never", "extremely rare"),
+                    "not be extremely dissimilar", "(extremely) dissimilar", "be extremely dissimilar", "almost never",
+                    "extremely rare"),
             new Belief(0.05, "very unlikely", "is very unlikely", "not be (very) unlikely", "is (very) unlikely",
                     "very probably not", "very low", "very dissimilar", "not be extremely dissimilar",
-                    "(very) dissimilar", "very rarely", "very rare"),
+                    "(very) dissimilar", "be very dissimilar", "very rarely", "very rare"),
             new Belief(0.15, "unlikely", "is unlikely", "not be unlikely", "is unlikely", "probably not", "low",
-                    "dissimilar", "not be very dissimilar", "dissimilar", "rarely", "rare"),
+                    "dissimilar", "not be very dissimilar", "dissimilar", "be dissimilar", "rarely", "rare"),
             // TODO alternative to 'doubtfully' since it cannot be used in the same constructions as e.g. 'probably not'
             // * "X is doubtfully derived from Y."
             new Belief(0.33, "doubtful", "is doubtful", "not be (even moderately) unlikely", "is doubtful",
                     "doubtfully", "moderately low", "moderately dissimilar", "not be more than moderately dissimilar",
-                    "(moderately) dissimilar", "rather rarely", "rather rare"),
+                    "(moderately) dissimilar", "be dissimilar", "rather rarely", "rather rare"),
             new Belief(0.50, "slightly doubtful", "is slightly doubtful", "not be (even slightly) unlikely",
                     "is (slightly) doubtful", "perhaps", "slightly low", "somewhat dissimilar",
-                    "not be more than somewhat dissimilar", "(somewhat) dissimilar", "somewhat rarely",
-                    "somewhat rare"),
+                    "not be more than somewhat dissimilar", "(somewhat) dissimilar", "not be even moderately similar",
+                    "somewhat rarely", "somewhat rare"),
             new Belief(0.66, "fairly plausible", "is fairly plausible", "be at least fairly plausible",
                     "is merely fairly plausible", "fairly plausibly", "slightly high", "somewhat similar",
-                    "be at least somewhat similar", "only somewhat similar", "somewhat often", "somewhat frequent"),
+                    "be at least somewhat similar", "only somewhat similar", "not be more than somewhat similar",
+                    "somewhat often", "somewhat frequent"),
             new Belief(0.85, "plausible", "is plausible", "at least be plausible", "is merely plausible", "plausibly",
                     "moderately high", "moderately similar", "at least moderately similar", "only moderately similar",
-                    "rather often", "rather frequent"),
+                    "be moderately similar at most", "rather often", "rather frequent"),
             new Belief(0.95, "likely", "is likely", "at least be likely", "is merely likely", "probably", "high",
-                    "similar", "be more than moderately similar", "not quite highly similar", "often", "frequent"),
+                    "similar", "be more than moderately similar", "not much more than moderately similar",
+                    "not be \\textit{very} similar", "often", "frequent"),
             new Belief(0.99, "very likely", "is very likely", "be at least very likely", "is merely very likely",
                     "very probably", "very high", "very similar", "be at least very similar",
-                    "not quite extremely similar", "very often", "very frequent"),
-            // This threshold value needs to be above any possible belief value:
+                    "not quite extremely similar", "not be extremely similar", "very often", "very frequent"),
+            // This last threshold value needs to be above any possible belief value.
+            // The 'only' and 'at most' and 'at least' entries for this belief shouldn't be used, and these cases should be expressed differently.
             new Belief(100.00, "almost certainly true", "is almost certain", "be (almost) certain", "is likely",
                     "almost certainly", "extremely high", "extremely similar", "be extremely similar",
-                    "extremely similar", "almost always", "extremely frequent")};
+                    "extremely similar", "not be identical", "almost always", "extremely frequent")};
 
     private static String verbalizeBelief(VerbalizationType type, double belief) {
         int i;
@@ -64,6 +68,8 @@ public class BeliefScale {
                 return scale[i].getSimilarityMinInf();
             case SIMILARITY_ONLY:
                 return scale[i].getSimilarityOnly();
+            case SIMILARITY_AT_MOST_INF:
+                return scale[i].getSimilarityAtMostInf();
             case FREQUENCY_ADV:
                 return scale[i].getFrequencyAdverb();
             case FREQUENCY_ADJ:
@@ -133,6 +139,15 @@ public class BeliefScale {
         return verbalizeBelief(VerbalizationType.SIMILARITY_ONLY, belief);
     }
 
+    /**
+     * "[The forms should] not be extremely similar." (= very similar, or lower)
+     * "[The forms should] not be even moderately similar." (= somewhat dissimilar, or lower)
+     * "[The forms should] not be more than somewhat similar." (= somewhat similar, or lower)
+     */
+    public static String verbalizeBeliefAsMaximumSimilarityInfinitive(double belief) {
+        return verbalizeBelief(VerbalizationType.SIMILARITY_AT_MOST_INF, belief);
+    }
+
     public static String verbalizeBeliefAsAdverbFrequency(double belief) {
         return verbalizeBelief(VerbalizationType.FREQUENCY_ADV, belief);
     }
@@ -143,7 +158,7 @@ public class BeliefScale {
 
     private enum VerbalizationType {
         ADJECTIVE, PREDICATE, PREDICATE_MIN_INF, PREDICATE_ONLY, ADVERB, ADJECTIVE_HIGH, SIMILARITY, SIMILARITY_MIN_INF,
-        SIMILARITY_ONLY, FREQUENCY_ADV, FREQUENCY_ADJ
+        SIMILARITY_ONLY, SIMILARITY_AT_MOST_INF, FREQUENCY_ADV, FREQUENCY_ADJ
     }
 
 }
