@@ -34,7 +34,8 @@ public class RuleAtomGraph {
 	public static boolean GROUNDING_OUTPUT = false;
 	public static boolean ATOM_VALUE_OUTPUT = false;
 	public static boolean GROUNDING_SCORE_OUTPUT = false;
-	public static double COUNTERFACTUAL_OFFSET = 0.0001;
+	public static final double COUNTERFACTUAL_OFFSET = 0.02;
+	public static final double DISSATISFACTION_PRECISION = 0.01;
 
 	// rule groundings
 	Set<String> groundingNodes;
@@ -424,7 +425,7 @@ public class RuleAtomGraph {
 
 	public double distanceToSatisfaction(String groundingName) {
 		double dist = groundingStatus.get(groundingName);
-		if (dist < 0) {
+		if (dist < DISSATISFACTION_PRECISION) {
 			return 0;
 		}
 		return dist;
@@ -638,7 +639,7 @@ public class RuleAtomGraph {
 		if (!linkToCounterfactual.containsKey(link)) {
 			return false;
 		}
-		return Math.abs(getCounterfactual(link) - distanceToSatisfaction(link.get(1))) > 0.000001;
+		return Math.abs(getCounterfactual(link) - distanceToSatisfaction(link.get(1))) > DISSATISFACTION_PRECISION;
 	}
 
 	public boolean putsPressureOnGrounding(String atomName, String groundingName) {
@@ -650,7 +651,7 @@ public class RuleAtomGraph {
 		if (cDist == null) {
 			return null;
 		}
-		if (cDist < 0) {
+		if (cDist < DISSATISFACTION_PRECISION) {
 			return 0.0;
 		}
 		return cDist;
