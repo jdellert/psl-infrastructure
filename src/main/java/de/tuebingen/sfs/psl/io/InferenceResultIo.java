@@ -30,7 +30,7 @@ import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RagFilter;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
 import de.tuebingen.sfs.psl.talk.TalkingPredicate;
-import de.tuebingen.sfs.psl.talk.TalkingRule;
+import de.tuebingen.sfs.psl.talk.TalkingRuleOrConstraint;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 
 public class InferenceResultIo {
@@ -46,12 +46,12 @@ public class InferenceResultIo {
     }
 
     public static void saveToFile(InferenceResult inferenceResult, Map<String, TalkingPredicate> talkingPreds,
-                                  Map<String, TalkingRule> talkingRules, ObjectMapper mapper) {
+                                  Map<String, TalkingRuleOrConstraint> talkingRules, ObjectMapper mapper) {
         saveToFile(inferenceResult, talkingPreds, talkingRules, mapper, new File(INFERENCE_RESULT_PATH));
     }
 
     public static void saveToFile(InferenceResult inferenceResult, Map<String, TalkingPredicate> talkingPreds,
-                                  Map<String, TalkingRule> talkingRules, ObjectMapper mapper, File path) {
+                                  Map<String, TalkingRuleOrConstraint> talkingRules, ObjectMapper mapper, File path) {
         System.out.println("PATH");
         System.out.println(path);
         System.out.println(path.exists());
@@ -67,7 +67,7 @@ public class InferenceResultIo {
     }
 
     public static void saveToFile(InferenceResult inferenceResult, Map<String, TalkingPredicate> talkingPreds,
-                                  Map<String, TalkingRule> talkingRules, ObjectMapper mapper, OutputStream out) throws IOException {
+                                  Map<String, TalkingRuleOrConstraint> talkingRules, ObjectMapper mapper, OutputStream out) throws IOException {
         StringBuilder sb = new StringBuilder();
         RuleAtomGraph rag = inferenceResult.getRag();
         RagFilter filter = rag.getRagFilter();
@@ -83,7 +83,7 @@ public class InferenceResultIo {
         for (String grounding : rag.getGroundingNodes()) {
             sb.append(grounding).append("\t").append(rag.getGroundingStatus(grounding)).append("\t");
             sb.append(rag.getIncomingLinks(grounding).stream().map(x -> x.get(0)).collect(Collectors.toList()));
-            TalkingRule rule = talkingRules.get(grounding.substring(0, grounding.indexOf('[')));
+            TalkingRuleOrConstraint rule = talkingRules.get(grounding.substring(0, grounding.indexOf('[')));
             sb.append("\t").append(rule.getClass().getName()).append("\t").append(rule.getSerializedParameters())
                     .append("\n");
         }
@@ -120,12 +120,12 @@ public class InferenceResultIo {
     }
 
     public static InferenceResult fromFile(ObjectMapper mapper, Map<String, TalkingPredicate> talkingPreds,
-                                           Map<String, TalkingRule> talkingRules) {
+                                           Map<String, TalkingRuleOrConstraint> talkingRules) {
         return fromFile(mapper, INFERENCE_RESULT_PATH, talkingPreds, talkingRules);
     }
 
     public static InferenceResult fromFile(ObjectMapper mapper, String path, Map<String, TalkingPredicate> talkingPreds,
-                                           Map<String, TalkingRule> talkingRules) {
+                                           Map<String, TalkingRuleOrConstraint> talkingRules) {
         try {
             return fromFile(mapper, new FileInputStream(path), talkingPreds, talkingRules);
         } catch (FileNotFoundException e) {
@@ -136,13 +136,13 @@ public class InferenceResultIo {
 
     @SuppressWarnings("rawtypes")
     public static InferenceResult fromFile(ObjectMapper mapper, InputStream is,
-                                           Map<String, TalkingPredicate> talkingPreds, Map<String, TalkingRule> talkingRules) {
+                                           Map<String, TalkingPredicate> talkingPreds, Map<String, TalkingRuleOrConstraint> talkingRules) {
         return fromFile(mapper, is, talkingPreds, talkingRules, true);
     }
 
     @SuppressWarnings("rawtypes")
     public static InferenceResult fromFile(ObjectMapper mapper, InputStream is,
-                                           Map<String, TalkingPredicate> talkingPreds, Map<String, TalkingRule> talkingRules, boolean closeStream) {
+                                           Map<String, TalkingPredicate> talkingPreds, Map<String, TalkingRuleOrConstraint> talkingRules, boolean closeStream) {
         if (talkingPreds == null)
             talkingPreds = new TreeMap<>();
         if (talkingRules == null)
@@ -296,13 +296,13 @@ public class InferenceResultIo {
                         String parameters = "";
                         if (fields.length > 4)
                             parameters = fields[4].trim();
-                        TalkingRule rule = null;
+                        TalkingRuleOrConstraint rule = null;
                         try {
                             Class c = Class.forName(ruleClass);
                             // NOTE: We're not using the newer version
                             // c.getDeclaredConstructor(String.class).newInstance(parameters)
                             // since it was introduced after Java 8.
-                            rule = (TalkingRule) c.getConstructor(String.class).newInstance(parameters);
+                            rule = (TalkingRuleOrConstraint) c.getConstructor(String.class).newInstance(parameters);
                             talkingRules.put(rule.getName(), rule);
                         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
                                 | NullPointerException | IllegalArgumentException | InvocationTargetException
@@ -405,7 +405,7 @@ public class InferenceResultIo {
                 atomStatus, links, linkStatus, linkToCounterfactual, equalityRuleLinkToCounterfactual, linkStrength,
                 outgoingLinks, incomingLinks, ragFilter);
 
-        for (TalkingRule rule : talkingRules.values()) {
+        for (TalkingRuleOrConstraint rule : talkingRules.values()) {
             rule.setTalkingPredicates(talkingPreds);
         }
 

@@ -1,6 +1,6 @@
 package de.tuebingen.sfs.psl.engine;
 
-import de.tuebingen.sfs.psl.talk.TalkingRule;
+import de.tuebingen.sfs.psl.talk.TalkingRuleOrConstraint;
 import org.linqs.psl.database.DataStore;
 import org.linqs.psl.groovy.PSLModel;
 import org.linqs.psl.model.rule.Rule;
@@ -20,7 +20,7 @@ public class RuleStore {
     PSLModel model;
     Map<Rule, String> ruleToName;
     Map<String, Rule> nameToRule;
-    Map<String, TalkingRule> nameToTalkingRule;
+    Map<String, TalkingRuleOrConstraint> nameToTalkingRuleOrConstraint;
 
     public RuleStore(PslProblem pslProblem, DataStore dataStore, PSLModel model) {
         this.pslProblem = pslProblem;
@@ -28,17 +28,17 @@ public class RuleStore {
         this.model = model;
         ruleToName = new HashMap<Rule, String>();
         nameToRule = new TreeMap<String, Rule>();
-        nameToTalkingRule = new TreeMap<String, TalkingRule>();
+        nameToTalkingRuleOrConstraint = new TreeMap<String, TalkingRuleOrConstraint>();
     }
 
-    public void addRule(TalkingRule rule) {
+    public void addRule(TalkingRuleOrConstraint rule) {
         String ruleName = rule.getName();
         if (nameToRule.containsKey(ruleName)) {
             System.err.println("Rule '" + ruleName + "' already added to this model. Ignoring second declaration. "
                     + "Please make sure to give your rules unique names.");
             return;
         }
-        nameToTalkingRule.put(ruleName, rule);
+        nameToTalkingRuleOrConstraint.put(ruleName, rule);
         nameToRule.put(ruleName, rule.getRule());
         ruleToName.put(rule.getRule(), ruleName);
         model.addRule(rule.getRule());
@@ -56,7 +56,7 @@ public class RuleStore {
 
             ruleToName.put(rule, ruleName);
             nameToRule.put(ruleName, rule);
-            nameToTalkingRule.put(ruleName, TalkingRule.createTalkingRule(ruleName, ruleString, rule, pslProblem));
+            nameToTalkingRuleOrConstraint.put(ruleName, TalkingRuleOrConstraint.createTalkingRuleOrConstraint(ruleName, ruleString, rule, pslProblem));
             model.addRule(rule);
         } catch (Exception e) {
             e.printStackTrace();

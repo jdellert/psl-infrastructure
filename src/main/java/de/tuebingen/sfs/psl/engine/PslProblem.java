@@ -1,7 +1,7 @@
 package de.tuebingen.sfs.psl.engine;
 
 import de.tuebingen.sfs.psl.talk.TalkingPredicate;
-import de.tuebingen.sfs.psl.talk.TalkingRule;
+import de.tuebingen.sfs.psl.talk.TalkingRuleOrConstraint;
 import de.tuebingen.sfs.psl.util.data.Multimap;
 import de.tuebingen.sfs.psl.util.data.Multimap.CollectionType;
 import de.tuebingen.sfs.psl.util.data.RankingEntry;
@@ -50,7 +50,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
     public boolean VERBOSE = false;
     Map<Rule, String> ruleToName;
     Map<String, Rule> nameToRule;
-    Map<String, TalkingRule> nameToTalkingRule;
+    Map<String, TalkingRuleOrConstraint> nameToTalkingRuleOrConstraint;
     Map<String, TalkingPredicate> talkingPredicates;
     Set<String> closedPredicates;
     private PslProblemConfig config;
@@ -90,7 +90,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
         System.err.println("Creating rule store...");
         ruleToName = new HashMap<>();
         nameToRule = new TreeMap<>();
-        nameToTalkingRule = new TreeMap<>();
+        nameToTalkingRuleOrConstraint = new TreeMap<>();
 
         System.err.println("Declaring predicates...");
         talkingPredicates = new TreeMap<>();
@@ -267,8 +267,8 @@ public abstract class PslProblem implements Callable<InferenceResult> {
      * See also {@link #addRule(String, String)}
      */
 
-    public Map<String, TalkingRule> getTalkingRules() {
-        return nameToTalkingRule;
+    public Map<String, TalkingRuleOrConstraint> getTalkingRules() {
+        return nameToTalkingRuleOrConstraint;
     }
 
     /**
@@ -470,14 +470,14 @@ public abstract class PslProblem implements Callable<InferenceResult> {
         dbManager.setAtomsAsTarget(predName, name, new AtomTemplate(predName, args));
     }
 
-    public void addRule(TalkingRule rule) {
+    public void addRule(TalkingRuleOrConstraint rule) {
         String ruleName = rule.getName();
         if (nameToRule.containsKey(ruleName)) {
             System.err.println("Rule '" + ruleName + "' already added to this model. Ignoring second declaration. "
                     + "Please make sure to give your rules unique names.");
             return;
         }
-        nameToTalkingRule.put(ruleName, rule);
+        nameToTalkingRuleOrConstraint.put(ruleName, rule);
         nameToRule.put(ruleName, rule.getRule());
         ruleToName.put(rule.getRule(), ruleName);
         model.addRule(rule.getRule());
@@ -495,7 +495,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
 
             ruleToName.put(rule, ruleName);
             nameToRule.put(ruleName, rule);
-            nameToTalkingRule.put(ruleName, TalkingRule.createTalkingRule(ruleName, ruleString, rule, this));
+            nameToTalkingRuleOrConstraint.put(ruleName, TalkingRuleOrConstraint.createTalkingRuleOrConstraint(ruleName, ruleString, rule, this));
 
             model.addRule(rule);
         } catch (Exception e) {
@@ -617,7 +617,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
     }
 
     public void printRules(PrintStream out) {
-        for (Entry<String, TalkingRule> rule : nameToTalkingRule.entrySet()) {
+        for (Entry<String, TalkingRuleOrConstraint> rule : nameToTalkingRuleOrConstraint.entrySet()) {
             out.println(rule.getKey() + "\t" + rule.getValue().getRuleString());
         }
     }
