@@ -78,6 +78,7 @@ public class InferenceResultIo {
         sb.append("\nPREVENT USER INTERACTION\t").append(filter.getPreventUserInteraction());
         sb.append("\nPRED TO NAME\t").append(filter.getGroundPred2ActualNames());
         sb.append("\nFIXED ATOMS\t").append(filter.getFixedAtoms());
+        sb.append("\nHIDDEN ATOMS\t").append(filter.getHiddenAtoms());
 
         sb.append("\n\n\nRULE GROUNDINGS\n===============\nGROUNDING\tSTATUS\tINCOMING\tCLASS\tPARAMETERS\n");
         for (String grounding : rag.getGroundingNodes()) {
@@ -156,6 +157,7 @@ public class InferenceResultIo {
         Set<String> preventUserInteraction = new TreeSet<>();
         Map<String, String> groundPreds2ActualNames = new TreeMap<>();
         Set<String> fixedAtoms = new HashSet<>();
+        Set<String> hiddenAtoms = new HashSet<>();
 
         Set<String> groundingNodes = new TreeSet<String>();
         Map<String, Double> groundingStatus = new TreeMap<>();
@@ -239,6 +241,16 @@ public class InferenceResultIo {
                             }
                             for (String item : line.split(",")) {
                                 fixedAtoms.add(item.trim());
+                            }
+                        } else if (line.startsWith("HIDDEN")) {
+                            line = line.split("\t")[1];
+                            // Remove { }
+                            line = line.substring(1, line.length() - 1);
+                            if (line.isEmpty()) {
+                                continue;
+                            }
+                            for (String item : line.split(",")) {
+                                hiddenAtoms.add(item.trim());
                             }
                         }
                     }
@@ -400,7 +412,8 @@ public class InferenceResultIo {
                 ragFilter = new RagFilter();
             }
         }
-        ragFilter.setAll(beliefValues, groundPreds2ActualNames, ignoreList, ignoreInGui, preventUserInteraction, fixedAtoms);
+        ragFilter.setAll(beliefValues, groundPreds2ActualNames, ignoreList, ignoreInGui, preventUserInteraction,
+                fixedAtoms, hiddenAtoms);
         RuleAtomGraph rag = new RuleAtomGraph(groundingNodes, groundingStatus, equalityGroundings, atomNodes,
                 atomStatus, links, linkStatus, linkToCounterfactual, equalityRuleLinkToCounterfactual, linkStrength,
                 outgoingLinks, incomingLinks, ragFilter);

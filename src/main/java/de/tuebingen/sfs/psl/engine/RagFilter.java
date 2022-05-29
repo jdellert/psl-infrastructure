@@ -32,26 +32,28 @@ public class RagFilter {
     
     // Atoms
     protected Set<String> fixedAtoms;
+    // Atoms that shouldn't be displayed but that don't belong to any predicate that's non-persisted by default.
+    protected Set<String> hiddenAtoms;
     protected Map<String, Double> beliefValues;
 
     public RagFilter() {
-        setAll(null, null, null, null, null, null);
+        setAll(null, null, null, null, null, null, null);
     }
 
     public RagFilter(Map<String, Double> beliefValues) {
-        setAll(beliefValues, null, null, null, null, null);
+        setAll(beliefValues, null, null, null, null, null, null);
     }
     
-    public RagFilter(Map<String, Double> beliefValues, Set<String> fixedAtoms) {
-        setAll(beliefValues, null, null, null, null, fixedAtoms);
+    public RagFilter(Map<String, Double> beliefValues, Set<String> fixedAtoms, Set<String> hiddenAtoms) {
+        setAll(beliefValues, null, null, null, null, fixedAtoms, hiddenAtoms);
     }
 
     public RagFilter(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames) {
-        setAll(beliefValues, groundPred2ActualNames, null, null, null, null);
+        setAll(beliefValues, groundPred2ActualNames, null, null, null, null, null);
     }
 
     public void setAll(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
-                       Set<String> ignoreInGui, Set<String> preventUserInteraction, Set<String> fixedAtoms) {
+                       Set<String> ignoreInGui, Set<String> preventUserInteraction, Set<String> fixedAtoms, Set<String> hiddenAtoms) {
         if (beliefValues == null) {
             this.beliefValues = new TreeMap<String, Double>();
         } else {
@@ -81,6 +83,11 @@ public class RagFilter {
         	this.fixedAtoms = new HashSet<>();
         } else {
         	this.fixedAtoms = fixedAtoms;
+        }
+        if (hiddenAtoms == null) {
+            this.hiddenAtoms = new HashSet<>();
+        } else {
+            this.hiddenAtoms = hiddenAtoms;
         }
     }
 
@@ -292,4 +299,8 @@ public class RagFilter {
 	public Set<String> getFixedAtoms() {
 		return fixedAtoms;
 	}
+
+    public Set<String> getHiddenAtoms() {
+        return hiddenAtoms;
+    }
 }
