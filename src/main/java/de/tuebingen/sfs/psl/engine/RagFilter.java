@@ -29,7 +29,7 @@ public class RagFilter {
     protected Set<String> ignoreList;
     protected Set<String> ignoreInGui;
     protected Set<String> preventUserInteraction;
-    
+
     // Atoms
     protected Set<String> fixedAtoms;
     // Atoms that shouldn't be displayed but that don't belong to any predicate that's non-persisted by default.
@@ -43,7 +43,7 @@ public class RagFilter {
     public RagFilter(Map<String, Double> beliefValues) {
         setAll(beliefValues, null, null, null, null, null, null);
     }
-    
+
     public RagFilter(Map<String, Double> beliefValues, Set<String> fixedAtoms, Set<String> hiddenAtoms) {
         setAll(beliefValues, null, null, null, null, fixedAtoms, hiddenAtoms);
     }
@@ -52,8 +52,9 @@ public class RagFilter {
         setAll(beliefValues, groundPred2ActualNames, null, null, null, null, null);
     }
 
-    public void setAll(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames, Set<String> ignoreList,
-                       Set<String> ignoreInGui, Set<String> preventUserInteraction, Set<String> fixedAtoms, Set<String> hiddenAtoms) {
+    public void setAll(Map<String, Double> beliefValues, Map<String, String> groundPred2ActualNames,
+                       Set<String> ignoreList, Set<String> ignoreInGui, Set<String> preventUserInteraction,
+                       Set<String> fixedAtoms, Set<String> hiddenAtoms) {
         if (beliefValues == null) {
             this.beliefValues = new TreeMap<String, Double>();
         } else {
@@ -80,9 +81,9 @@ public class RagFilter {
             this.preventUserInteraction = preventUserInteraction;
         }
         if (fixedAtoms == null) {
-        	this.fixedAtoms = new HashSet<>();
+            this.fixedAtoms = new HashSet<>();
         } else {
-        	this.fixedAtoms = fixedAtoms;
+            this.fixedAtoms = fixedAtoms;
         }
         if (hiddenAtoms == null) {
             this.hiddenAtoms = new HashSet<>();
@@ -112,14 +113,12 @@ public class RagFilter {
     }
 
     public double getValueForAtom(String atomRepresentation) {
-        if (beliefValues == null)
-            return -1.0;
+        if (beliefValues == null) return -1.0;
         return beliefValues.getOrDefault(atomRepresentation, -1.0);
     }
 
     public double getTransparencyForAtom(String atomRepresentation) {
-        if (beliefValues == null)
-            return -1.0;
+        if (beliefValues == null) return -1.0;
         return beliefValues.getOrDefault(atomRepresentation, 1.0);
     }
 
@@ -143,23 +142,19 @@ public class RagFilter {
     }
 
     public double updateToneForAtom(String atomRepresentation, double newTone) {
-        if (beliefValues == null)
-            return 0.0;
+        if (beliefValues == null) return 0.0;
         else {
             Double oldTone = beliefValues.get(atomRepresentation);
             beliefValues.put(atomRepresentation, newTone);
-            if (oldTone == null)
-                return 0.0;
+            if (oldTone == null) return 0.0;
             return 1.0 - oldTone;
         }
     }
 
     public double strengthToWidth(double strength) {
         double width = strength / 0.1;
-        if (width > 4)
-            width = 4.0;
-        if (width < 1)
-            width = 1.0;
+        if (width > 4) width = 4.0;
+        if (width < 1) width = 1.0;
         return Math.floor(width);
     }
 
@@ -182,16 +177,19 @@ public class RagFilter {
     public boolean isRenderedInGui(String predName) {
         return !ignoreInGui.contains(predName);
     }
-    
+
     public boolean isFixed(String atom) {
-    	return fixedAtoms.contains(atom.replace(" ", ""));
+        if (fixedAtoms.contains(atom)) {
+            return true;
+        }
+        return fixedAtoms.contains(atom.replace(" ", ""));
     }
 
     public String atomToSimplifiedString(GroundAtom atom) {
         String predName = atom.getPredicate().getName();
         // TODO: find out why this wasn't previously necessary
-        predName = (groundPred2ActualNames == null || !groundPred2ActualNames.containsKey(predName))
-                ? TalkingPredicate.getPredNameFromAllCaps(predName) : groundPred2ActualNames.get(predName);
+        predName = (groundPred2ActualNames == null || !groundPred2ActualNames.containsKey(predName)) ?
+                TalkingPredicate.getPredNameFromAllCaps(predName) : groundPred2ActualNames.get(predName);
         Tuple argTuple = new Tuple();
         for (Constant c : atom.getArguments()) {
             String cStr = c.toString();
@@ -225,18 +223,17 @@ public class RagFilter {
     public void printNodes(PrintStream out, PslProblem pslProblem) {
         Multimap<String, Tuple> predicatesToTuples = pslProblem.getTuplesByPredicate();
         for (String predName : predicatesToTuples.keySet()) {
-            if (!isRendered(predName))
-                continue;
+            if (!isRendered(predName)) continue;
             for (Tuple tuple : predicatesToTuples.get(predName)) {
                 out.println("    <node id=\"" + predName + "(" + tuple.toString() + ")" + "\">");
                 out.println("      <data key=\"d6\">");
                 out.println("        <y:ShapeNode>");
                 out.println("          <y:Geometry height=\"25\" width=\"150\"/>");
-                out.println("          <y:Fill color=\"" + atomToColor(predName + "(" + tuple.toString() + ")")
-                        + "\" transparent=\"false\"/>");
+                out.println("          <y:Fill color=\"" + atomToColor(predName + "(" + tuple.toString() + ")") +
+                        "\" transparent=\"false\"/>");
                 out.println(
-                        "          <y:NodeLabel alignment=\"center\" fontsize=\"15\" textColor=\"#000000\" visible=\"true\">"
-                                + (predName + "(" + tuple.toString() + ")") + "</y:NodeLabel>");
+                        "          <y:NodeLabel alignment=\"center\" fontsize=\"15\" textColor=\"#000000\" visible=\"true\">" +
+                                (predName + "(" + tuple.toString() + ")") + "</y:NodeLabel>");
                 out.println("          <y:Shape type=\"roundrectangle\"/>");
                 out.println("        </y:ShapeNode>");
                 out.println("      </data>");
@@ -262,13 +259,11 @@ public class RagFilter {
             if (connectionStrength.get(reverseLink) != null) {
                 String otherColor = connectionColor.get(reverseLink);
                 if (otherColor.equals(colorString)) {
-                    if (node1.compareTo(node2) > 0)
-                        continue;
+                    if (node1.compareTo(node2) > 0) continue;
                     targetArrow = "none";
                     strength = Math.max(strength, connectionStrength.get(reverseLink));
                 } else {
-                    if (colorString.equals("#c0c0c0"))
-                        continue;
+                    if (colorString.equals("#c0c0c0")) continue;
                 }
             }
 
@@ -296,9 +291,9 @@ public class RagFilter {
         out.println("</graphml>");
     }
 
-	public Set<String> getFixedAtoms() {
-		return fixedAtoms;
-	}
+    public Set<String> getFixedAtoms() {
+        return fixedAtoms;
+    }
 
     public Set<String> getHiddenAtoms() {
         return hiddenAtoms;

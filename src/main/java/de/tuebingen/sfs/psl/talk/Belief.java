@@ -6,29 +6,32 @@ public class Belief {
     private String predicate;
     private String predicateMinInf;
     private String predicateOnly;
+    private String predicateMaxInf;
     private String adverb;
     private String adjectiveHigh;
     private String similarity;
     private String similarityMinInf;
     private String similarityOnly;
-    private String similarityAtMostInf;
+    private String similarityMaxInf;
     private String frequencyAdv;
     private String frequencyAdj;
 
     public Belief(double threshold, String adjective, String predicate, String predicateMinInf, String predicateOnly,
-                  String adverb, String adjectiveHigh, String similarity, String similarityMinInf,
-                  String similarityOnly, String similarityAtMostInf, String frequencyAdv, String frequencyAdj) {
+                  String predicateMaxInf, String adverb, String adjectiveHigh, String similarity,
+                  String similarityMinInf, String similarityOnly, String similarityMaxInf, String frequencyAdv,
+                  String frequencyAdj) {
         this.threshold = threshold;
         this.adjective = adjective;
         this.predicate = predicate;
         this.adverb = adverb;
         this.predicateMinInf = predicateMinInf;
         this.predicateOnly = predicateOnly;
+        this.predicateMaxInf = predicateMaxInf;
         this.adjectiveHigh = adjectiveHigh;
         this.similarity = similarity;
         this.similarityMinInf = similarityMinInf;
         this.similarityOnly = similarityOnly;
-        this.similarityAtMostInf = similarityAtMostInf;
+        this.similarityMaxInf = similarityMaxInf;
         this.frequencyAdv = frequencyAdv;
         this.frequencyAdj = frequencyAdj;
     }
@@ -74,6 +77,10 @@ public class Belief {
 
     public String getPredicateOnly() {
         return predicateOnly;
+    }
+
+    public String getPredicateMaxInf() {
+        return predicateMaxInf;
     }
 
     /**
@@ -129,8 +136,8 @@ public class Belief {
         return similarityOnly;
     }
 
-    public String getSimilarityAtMostInf() {
-        return similarityAtMostInf;
+    public String getSimilarityMaxInf() {
+        return similarityMaxInf;
     }
 
     /**

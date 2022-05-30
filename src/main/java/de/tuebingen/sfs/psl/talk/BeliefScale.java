@@ -1,44 +1,52 @@
 package de.tuebingen.sfs.psl.talk;
 
+import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
+
 public class BeliefScale {
 
     private static final Belief[] scale = new Belief[]{
-            new Belief(0.01, "almost certainly false", "is almost certainly false", "not be (extremely) unlikely",
-                    "is (extremely) unlikely", "almost certainly not", "extremely low", "extremely dissimilar",
-                    "not be extremely dissimilar", "(extremely) dissimilar", "be extremely dissimilar", "almost never",
-                    "extremely rare"),
+            new Belief(RuleAtomGraph.DISSATISFACTION_PRECISION, "almost certainly false", "is almost certainly false",
+                    "not be (extremely) unlikely", "is (extremely) unlikely", "be extremely unlikely",
+                    "almost certainly not", "extremely low", "extremely dissimilar", "not be extremely dissimilar",
+                    "(extremely) dissimilar", "be extremely dissimilar", "almost never", "extremely rare"),
             new Belief(0.05, "very unlikely", "is very unlikely", "not be (very) unlikely", "is (very) unlikely",
-                    "very probably not", "very low", "very dissimilar", "not be extremely dissimilar",
-                    "(very) dissimilar", "be very dissimilar", "very rarely", "very rare"),
-            new Belief(0.15, "unlikely", "is unlikely", "not be unlikely", "is unlikely", "probably not", "low",
-                    "dissimilar", "not be very dissimilar", "dissimilar", "be dissimilar", "rarely", "rare"),
+                    "be very unlikely", "very probably not", "very low", "very dissimilar",
+                    "not be extremely dissimilar", "(very) dissimilar", "be very dissimilar", "very rarely",
+                    "very rare"),
+            new Belief(0.15, "unlikely", "is unlikely", "not be unlikely", "is unlikely", "be unlikely", "probably not",
+                    "low", "dissimilar", "not be very dissimilar", "dissimilar", "be dissimilar", "rarely", "rare"),
             // TODO alternative to 'doubtfully' since it cannot be used in the same constructions as e.g. 'probably not'
             // * "X is doubtfully derived from Y."
             new Belief(0.33, "doubtful", "is doubtful", "not be (even moderately) unlikely", "is doubtful",
-                    "doubtfully", "moderately low", "moderately dissimilar", "not be more than moderately dissimilar",
-                    "(moderately) dissimilar", "be dissimilar", "rather rarely", "rather rare"),
+                    "be doubtful", "doubtfully", "moderately low", "moderately dissimilar",
+                    "not be more than moderately dissimilar", "(moderately) dissimilar", "be dissimilar",
+                    "rather rarely", "rather rare"),
             new Belief(0.50, "slightly doubtful", "is slightly doubtful", "not be (even slightly) unlikely",
-                    "is (slightly) doubtful", "perhaps", "slightly low", "somewhat dissimilar",
-                    "not be more than somewhat dissimilar", "(somewhat) dissimilar", "not be even moderately similar",
-                    "somewhat rarely", "somewhat rare"),
+                    "is (slightly) doubtful", "not be even fairly plausible", "perhaps", "slightly low",
+                    "somewhat dissimilar", "not be more than somewhat dissimilar", "(somewhat) dissimilar",
+                    "not be even moderately similar", "somewhat rarely", "somewhat rare"),
             new Belief(0.66, "fairly plausible", "is fairly plausible", "be at least fairly plausible",
-                    "is merely fairly plausible", "fairly plausibly", "slightly high", "somewhat similar",
-                    "be at least somewhat similar", "only somewhat similar", "not be more than somewhat similar",
-                    "somewhat often", "somewhat frequent"),
-            new Belief(0.85, "plausible", "is plausible", "at least be plausible", "is merely plausible", "plausibly",
-                    "moderately high", "moderately similar", "at least moderately similar", "only moderately similar",
-                    "be moderately similar at most", "rather often", "rather frequent"),
-            new Belief(0.95, "likely", "is likely", "at least be likely", "is merely likely", "probably", "high",
-                    "similar", "be more than moderately similar", "not much more than moderately similar",
+                    "is merely fairly plausible", "not be more than fairly plausible", "fairly plausibly",
+                    "slightly high", "somewhat similar", "be at least somewhat similar", "only somewhat similar",
+                    "not be more than somewhat similar", "somewhat often", "somewhat frequent"),
+            new Belief(0.85, "plausible", "is plausible", "at least be plausible", "is merely plausible",
+                    "be moderately plausible at most", "plausibly", "moderately high", "moderately similar",
+                    "at least moderately similar", "only moderately similar", "be moderately similar at most",
+                    "rather often", "rather frequent"),
+            new Belief(0.95, "likely", "is likely", "at least be likely", "is merely likely",
+                    "not be more than moderately plausible", "probably", "high", "similar",
+                    "be more than moderately similar", "not much more than moderately similar",
                     "not be \\textit{very} similar", "often", "frequent"),
-            new Belief(0.99, "very likely", "is very likely", "be at least very likely", "is merely very likely",
-                    "very probably", "very high", "very similar", "be at least very similar",
-                    "not quite extremely similar", "not be extremely similar", "very often", "very frequent"),
+            new Belief(1 - RuleAtomGraph.DISSATISFACTION_PRECISION, "very likely", "is very likely",
+                    "be at least very likely", "is merely very likely", "not be almost certainly true", "very probably",
+                    "very high", "very similar", "be at least very similar", "not quite extremely similar",
+                    "not be extremely similar", "very often", "very frequent"),
             // This last threshold value needs to be above any possible belief value.
             // The 'only' and 'at most' and 'at least' entries for this belief shouldn't be used, and these cases should be expressed differently.
             new Belief(100.00, "almost certainly true", "is almost certain", "be (almost) certain", "is likely",
-                    "almost certainly", "extremely high", "extremely similar", "be extremely similar",
-                    "extremely similar", "not be identical", "almost always", "extremely frequent")};
+                    "not be guaranteed", "almost certainly", "extremely high", "extremely similar",
+                    "be extremely similar", "extremely similar", "not be identical", "almost always",
+                    "extremely frequent")};
 
     private static String verbalizeBelief(VerbalizationType type, double belief) {
         int i;
@@ -60,6 +68,8 @@ public class BeliefScale {
                 return scale[i].getPredicateMinInf();
             case PREDICATE_ONLY:
                 return scale[i].getPredicateOnly();
+            case PREDICATE_MAX_INF:
+                return scale[i].getPredicateMaxInf();
             case ADJECTIVE_HIGH:
                 return scale[i].getAdjectiveHigh();
             case SIMILARITY:
@@ -68,8 +78,8 @@ public class BeliefScale {
                 return scale[i].getSimilarityMinInf();
             case SIMILARITY_ONLY:
                 return scale[i].getSimilarityOnly();
-            case SIMILARITY_AT_MOST_INF:
-                return scale[i].getSimilarityAtMostInf();
+            case SIMILARITY_MAX_INF:
+                return scale[i].getSimilarityMaxInf();
             case FREQUENCY_ADV:
                 return scale[i].getFrequencyAdverb();
             case FREQUENCY_ADJ:
@@ -109,6 +119,10 @@ public class BeliefScale {
         return verbalizeBelief(VerbalizationType.PREDICATE_ONLY, belief);
     }
 
+    public static String verbalizeBeliefAsInfinitiveMaximumPredicate(double belief) {
+        return verbalizeBelief(VerbalizationType.PREDICATE_MAX_INF, belief);
+    }
+
 
     public static String verbalizeBeliefAsAdverb(double belief) {
         return verbalizeBelief(VerbalizationType.ADVERB, belief);
@@ -145,7 +159,7 @@ public class BeliefScale {
      * "[The forms should] not be more than somewhat similar." (= somewhat similar, or lower)
      */
     public static String verbalizeBeliefAsMaximumSimilarityInfinitive(double belief) {
-        return verbalizeBelief(VerbalizationType.SIMILARITY_AT_MOST_INF, belief);
+        return verbalizeBelief(VerbalizationType.SIMILARITY_MAX_INF, belief);
     }
 
     public static String verbalizeBeliefAsAdverbFrequency(double belief) {
@@ -157,8 +171,8 @@ public class BeliefScale {
     }
 
     private enum VerbalizationType {
-        ADJECTIVE, PREDICATE, PREDICATE_MIN_INF, PREDICATE_ONLY, ADVERB, ADJECTIVE_HIGH, SIMILARITY, SIMILARITY_MIN_INF,
-        SIMILARITY_ONLY, SIMILARITY_AT_MOST_INF, FREQUENCY_ADV, FREQUENCY_ADJ
+        ADJECTIVE, PREDICATE, PREDICATE_MIN_INF, PREDICATE_ONLY, PREDICATE_MAX_INF, ADVERB, ADJECTIVE_HIGH, SIMILARITY,
+        SIMILARITY_MIN_INF, SIMILARITY_ONLY, SIMILARITY_MAX_INF, FREQUENCY_ADV, FREQUENCY_ADJ
     }
 
 }
