@@ -38,14 +38,14 @@ public class BeliefScale {
                     "be more than moderately similar", "not much more than moderately similar",
                     "not be \\textit{very} similar", "often", "frequent"),
             new Belief(1 - RuleAtomGraph.DISSATISFACTION_PRECISION, "very likely", "is very likely",
-                    "be at least very likely", "is merely very likely", "not be almost certainly true", "very probably",
+                    "be at least very likely", "is merely very likely", "not be certainly true", "very probably",
                     "very high", "very similar", "be at least very similar", "not quite extremely similar",
                     "not be extremely similar", "very often", "very frequent"),
             // This last threshold value needs to be above any possible belief value.
             // The 'only' and 'at most' and 'at least' entries for this belief shouldn't be used, and these cases should be expressed differently.
-            new Belief(100.00, "almost certainly true", "is almost certain", "be (almost) certain", "is likely",
-                    "not be guaranteed", "almost certainly", "extremely high", "extremely similar",
-                    "be extremely similar", "extremely similar", "not be identical", "almost always",
+            new Belief(100.00, "certainly true", "is certain", "be certain", "is likely",
+                    "not be guaranteed", "certainly", "extremely high", "extremely similar",
+                    "be extremely similar", "extremely similar", "not be identical", "always",
                     "extremely frequent")};
 
     private static String verbalizeBelief(VerbalizationType type, double belief) {
