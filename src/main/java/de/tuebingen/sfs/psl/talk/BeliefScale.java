@@ -5,10 +5,10 @@ import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
 public class BeliefScale {
 
     private static final Belief[] scale = new Belief[]{
-            new Belief(RuleAtomGraph.DISSATISFACTION_PRECISION, "almost certainly false", "is almost certainly false",
-                    "not be (extremely) unlikely", "is (extremely) unlikely", "be extremely unlikely",
-                    "almost certainly not", "extremely low", "extremely dissimilar", "not be extremely dissimilar",
-                    "(extremely) dissimilar", "be extremely dissimilar", "almost never", "extremely rare"),
+            new Belief(RuleAtomGraph.DISSATISFACTION_PRECISION, "certainly false", "is certainly false",
+                    "not be (extremely) unlikely", "is (extremely) unlikely", "be extremely unlikely", "certainly not",
+                    "extremely low", "extremely dissimilar", "not be extremely dissimilar", "(extremely) dissimilar",
+                    "be extremely dissimilar", "almost never", "extremely rare"),
             new Belief(0.05, "very unlikely", "is very unlikely", "not be (very) unlikely", "is (very) unlikely",
                     "be very unlikely", "very probably not", "very low", "very dissimilar",
                     "not be extremely dissimilar", "(very) dissimilar", "be very dissimilar", "very rarely",
@@ -43,10 +43,9 @@ public class BeliefScale {
                     "not be extremely similar", "very often", "very frequent"),
             // This last threshold value needs to be above any possible belief value.
             // The 'only' and 'at most' and 'at least' entries for this belief shouldn't be used, and these cases should be expressed differently.
-            new Belief(100.00, "certainly true", "is certain", "be certain", "is likely",
-                    "not be guaranteed", "certainly", "extremely high", "extremely similar",
-                    "be extremely similar", "extremely similar", "not be identical", "always",
-                    "extremely frequent")};
+            new Belief(100.00, "certainly true", "is certain", "be certain", "is likely", "not be guaranteed",
+                    "certainly", "extremely high", "extremely similar", "be extremely similar", "extremely similar",
+                    "not be identical", "always", "extremely frequent")};
 
     private static String verbalizeBelief(VerbalizationType type, double belief) {
         int i;
@@ -88,6 +87,26 @@ public class BeliefScale {
             default:
                 return scale[i].getAdjective();
         }
+    }
+
+    public static boolean sameBeliefInterval(double belief1, double belief2) {
+        int pos1 = -1;
+        int pos2 = -1;
+        for (int i = 0; i < scale.length; i++) {
+            if (pos1 < 0 && belief1 <= scale[i].getThreshold()) {
+                pos1 = i;
+                if (pos2 >= 0) {
+                    break;
+                }
+            }
+            if (pos2 < 0 && belief2 <= scale[i].getThreshold()) {
+                pos2 = i;
+                if (pos1 >= 0) {
+                    break;
+                }
+            }
+        }
+        return pos1 == pos2;
     }
 
     // TODO: default behavior for closed / fixed predicates
