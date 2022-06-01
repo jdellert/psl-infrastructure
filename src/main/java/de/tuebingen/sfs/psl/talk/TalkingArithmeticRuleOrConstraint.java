@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static de.tuebingen.sfs.psl.talk.SentenceHelper.appendAnd;
+
 public abstract class TalkingArithmeticRuleOrConstraint extends TalkingRuleOrConstraint {
 
     // sum[i] == super.args[i] is a SummationAtom
