@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.tuebingen.sfs.psl.talk;
+package de.tuebingen.sfs.psl.talk.rule;
 
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import org.linqs.psl.model.rule.Rule;

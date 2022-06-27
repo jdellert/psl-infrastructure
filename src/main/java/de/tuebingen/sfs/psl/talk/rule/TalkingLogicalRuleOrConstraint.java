@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.tuebingen.sfs.psl.talk;
+package de.tuebingen.sfs.psl.talk.rule;
 
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
+import de.tuebingen.sfs.psl.talk.ConstantRenderer;
+import de.tuebingen.sfs.psl.talk.PrintableTalkingAtom;
 import de.tuebingen.sfs.psl.util.data.StringUtils;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import org.linqs.psl.model.atom.Atom;

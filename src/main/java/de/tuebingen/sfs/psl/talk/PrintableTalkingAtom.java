@@ -1,5 +1,7 @@
 package de.tuebingen.sfs.psl.talk;
 
+import de.tuebingen.sfs.psl.talk.rule.TalkingPredicate;
+
 public class PrintableTalkingAtom {
 
     TalkingPredicate pred = null;
@@ -28,6 +30,18 @@ public class PrintableTalkingAtom {
 
     public void setBelief(double belief) {
         this.belief = belief;
+    }
+
+    public TalkingPredicate getPred() {
+        return pred;
+    }
+
+    public String[] getArgs() {
+        return args;
+    }
+
+    public double getBelief() {
+        return belief;
     }
 
     public boolean allFieldsSet() {

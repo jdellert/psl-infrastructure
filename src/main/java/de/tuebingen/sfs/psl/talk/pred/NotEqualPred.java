@@ -15,7 +15,7 @@
  */
 package de.tuebingen.sfs.psl.talk.pred;
 
-import de.tuebingen.sfs.psl.talk.TalkingPredicate;
+import de.tuebingen.sfs.psl.talk.rule.TalkingPredicate;
 
 public class NotEqualPred extends TalkingPredicate {
 

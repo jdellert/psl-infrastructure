@@ -13,11 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.tuebingen.sfs.psl.talk;
+package de.tuebingen.sfs.psl.talk.rule;
+
+import de.tuebingen.sfs.psl.talk.ConstantRenderer;
+import de.tuebingen.sfs.psl.talk.PrintableTalkingAtom;
 
 import java.util.List;
 
-import static de.tuebingen.sfs.psl.talk.TalkingRuleOrConstraint.escapeForURL;
+import static de.tuebingen.sfs.psl.talk.rule.TalkingRuleOrConstraint.escapeForURL;
 
 public class SentenceHelper {
 
@@ -83,7 +86,7 @@ public class SentenceHelper {
         if (printableTalkingAtoms != null) {
             PrintableTalkingAtom atom = printableTalkingAtoms.get(index);
             if (atom != null) {
-                String verbalization = atom.pred.verbalizeIdeaAsNP(renderer, atom.args);
+                String verbalization = atom.getPred().verbalizeIdeaAsNP(renderer, atom.getArgs());
                 if (!predicateName.equals(verbalization)) {
                     sb.append("[");
                     sb.append(escapeForURL(verbalization));
@@ -102,7 +105,8 @@ public class SentenceHelper {
             // This requires having implemented subclasses of TalkingPredicate in order to actually look nice.
             PrintableTalkingAtom atom = printableTalkingAtoms.get(index);
             if (atom != null) {
-                String verbalization = atom.pred.verbalizeIdeaAsSentence(renderer, atom.belief, atom.args);
+                String verbalization = atom.getPred().verbalizeIdeaAsSentence(renderer, atom.getBelief(),
+                        atom.getArgs());
                 if (!predicateName.equals(verbalization)) {
                     sb.append("[");
                     sb.append(escapeForURL(verbalization));

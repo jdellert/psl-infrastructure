@@ -13,10 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.tuebingen.sfs.psl.talk;
+package de.tuebingen.sfs.psl.talk.rule;
 
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
+import de.tuebingen.sfs.psl.talk.BeliefScale;
+import de.tuebingen.sfs.psl.talk.ConstantRenderer;
+import de.tuebingen.sfs.psl.talk.PrintableTalkingAtom;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import org.linqs.psl.database.DataStore;
 import org.linqs.psl.model.atom.Atom;
@@ -38,7 +41,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static de.tuebingen.sfs.psl.talk.SentenceHelper.*;
+import static de.tuebingen.sfs.psl.talk.rule.SentenceHelper.*;
 
 // To use a custom class for properly rendering the PSL constants (atom arguments), create the following classes:
 // - `class YourConstantRenderer`, a class that assigns human-understandable strings to PSL constants
@@ -324,7 +327,7 @@ public abstract class TalkingRuleOrConstraint {
         if (talkingConsequent == null || !talkingConsequent.allFieldsSet()) {
             sb.append(consequent);
         } else {
-            sb.append(talkingConsequent.pred.verbalizeIdeaAsNP(renderer, talkingConsequent.args));
+            sb.append(talkingConsequent.getPred().verbalizeIdeaAsNP(renderer, talkingConsequent.getArgs()));
         }
         sb.append(" has a");
         if (whyNotLower) {
@@ -369,7 +372,7 @@ public abstract class TalkingRuleOrConstraint {
                 if (printableTalkingAtoms != null) {
                     PrintableTalkingAtom atom = printableTalkingAtoms.get(i);
                     if (atom != null) {
-                        verbalization = atom.pred.verbalizeIdeaAsSentence(renderer, atom.belief, atom.args);
+                        verbalization = atom.getPred().verbalizeIdeaAsSentence(renderer, atom.getBelief(), atom.getArgs());
                     }
                 }
                 sb.append(verbalization);
@@ -393,7 +396,7 @@ public abstract class TalkingRuleOrConstraint {
         if (talkingConsequent == null || !talkingConsequent.allFieldsSet()) {
             sb.append(consequent);
         } else {
-            sb.append(talkingConsequent.pred.verbalizeIdeaAsNP(renderer, talkingConsequent.args));
+            sb.append(talkingConsequent.getPred().verbalizeIdeaAsNP(renderer, talkingConsequent.getArgs()));
         }
         sb.append(". However, since it already has a value of ");
         if (whyNotLower) {
@@ -453,9 +456,9 @@ public abstract class TalkingRuleOrConstraint {
         }
 
         if (consequent != null && talkingConsequent != null &&
-                ((negatedConsequent && talkingConsequent.belief < RuleAtomGraph.DISSATISFACTION_PRECISION) ||
+                ((negatedConsequent && talkingConsequent.getBelief() < RuleAtomGraph.DISSATISFACTION_PRECISION) ||
                         (!negatedConsequent &&
-                                talkingConsequent.belief > 1 - RuleAtomGraph.DISSATISFACTION_PRECISION))) {
+                                talkingConsequent.getBelief() > 1 - RuleAtomGraph.DISSATISFACTION_PRECISION))) {
             // The rule is trivially satisfied.
             return getExplanationForTriviallySatisfiedRule(contextAtom, printableArgs, printableTalkingAtoms, renderer,
                     whyNotLower, consequent, talkingConsequent);
@@ -491,7 +494,7 @@ public abstract class TalkingRuleOrConstraint {
                 addURL(printableArgs, printableTalkingAtoms, i, sbComponent, renderer);
                 if (printableTalkingAtoms != null) {
                     sbComponent.append(" reaching a ");
-                    boolean verbalizeAsHighLow = printableTalkingAtoms.get(i).pred.verbalizeOnHighLowScale;
+                    boolean verbalizeAsHighLow = printableTalkingAtoms.get(i).getPred().verbalizeOnHighLowScale;
                     if (verbalizeAsHighLow) {
                         sbComponent.append("similarity");
                     } else {
@@ -500,9 +503,9 @@ public abstract class TalkingRuleOrConstraint {
                     sbComponent.append(" level of \\textit{");
                     if (verbalizeAsHighLow) {
                         sbComponent.append(
-                                BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableTalkingAtoms.get(i).belief));
+                                BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableTalkingAtoms.get(i).getBelief()));
                     } else {
-                        sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableTalkingAtoms.get(i).belief));
+                        sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableTalkingAtoms.get(i).getBelief()));
                     }
                     sbComponent.append("}");
                 }
@@ -519,11 +522,11 @@ public abstract class TalkingRuleOrConstraint {
                 addURL(printableArgs, printableTalkingAtoms, i, sbComponent, renderer);
                 if (printableTalkingAtoms != null) {
                     sbComponent.append(" being only ");
-                    if (printableTalkingAtoms.get(i).pred.verbalizeOnHighLowScale) {
+                    if (printableTalkingAtoms.get(i).getPred().verbalizeOnHighLowScale) {
                         sbComponent.append(
-                                BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableTalkingAtoms.get(i).belief));
+                                BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableTalkingAtoms.get(i).getBelief()));
                     } else {
-                        sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableTalkingAtoms.get(i).belief));
+                        sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableTalkingAtoms.get(i).getBelief()));
                     }
                 }
                 components.add(sbComponent.toString());

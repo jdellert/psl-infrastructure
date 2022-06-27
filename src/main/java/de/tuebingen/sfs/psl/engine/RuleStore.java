@@ -15,7 +15,7 @@
  */
 package de.tuebingen.sfs.psl.engine;
 
-import de.tuebingen.sfs.psl.talk.TalkingRuleOrConstraint;
+import de.tuebingen.sfs.psl.talk.rule.TalkingRuleOrConstraint;
 import org.linqs.psl.database.DataStore;
 import org.linqs.psl.groovy.PSLModel;
 import org.linqs.psl.model.rule.Rule;

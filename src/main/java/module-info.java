@@ -11,6 +11,8 @@ module de.tuebingen.sfs.psl {
     exports de.tuebingen.sfs.psl.eval;
     exports de.tuebingen.sfs.psl.io;
     exports de.tuebingen.sfs.psl.talk;
+    exports de.tuebingen.sfs.psl.talk.pred;
+    exports de.tuebingen.sfs.psl.talk.rule;
     exports de.tuebingen.sfs.psl.util.color;
     exports de.tuebingen.sfs.psl.util.data;
     exports de.tuebingen.sfs.psl.util.log;

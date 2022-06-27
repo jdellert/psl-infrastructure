@@ -44,8 +44,8 @@ import de.tuebingen.sfs.psl.engine.InferenceResult;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RagFilter;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
-import de.tuebingen.sfs.psl.talk.TalkingPredicate;
-import de.tuebingen.sfs.psl.talk.TalkingRuleOrConstraint;
+import de.tuebingen.sfs.psl.talk.rule.TalkingPredicate;
+import de.tuebingen.sfs.psl.talk.rule.TalkingRuleOrConstraint;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 
 public class InferenceResultIo {

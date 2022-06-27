@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.tuebingen.sfs.psl.talk;
+package de.tuebingen.sfs.psl.talk.rule;
 
 import java.util.Arrays;
 import java.util.List;
 
 import de.tuebingen.sfs.psl.engine.PslProblem;
+import de.tuebingen.sfs.psl.talk.ConstantRenderer;
 import de.tuebingen.sfs.psl.util.data.StringUtils;
 
 // To use a custom class for properly rendering the PSL constants (atom arguments), create the following classes:
