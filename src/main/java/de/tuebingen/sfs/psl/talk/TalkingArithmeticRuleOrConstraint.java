@@ -43,7 +43,8 @@ public abstract class TalkingArithmeticRuleOrConstraint extends TalkingRuleOrCon
         this(name, ruleString, createRule(pslProblem.getDataStore(), ruleString), pslProblem, null);
     }
 
-    public TalkingArithmeticRuleOrConstraint(String name, String ruleString, PslProblem pslProblem, String verbalization) {
+    public TalkingArithmeticRuleOrConstraint(String name, String ruleString, PslProblem pslProblem,
+                                             String verbalization) {
         this(name, ruleString, createRule(pslProblem.getDataStore(), ruleString), pslProblem, verbalization);
     }
 
@@ -83,8 +84,7 @@ public abstract class TalkingArithmeticRuleOrConstraint extends TalkingRuleOrCon
         String[] parameters = serializedParameters.split("-");
         setName(parameters[0]);
         setRuleString(parameters[1]);
-        if (parameters.length > 2)
-            setVerbalization(parameters[2]);
+        if (parameters.length > 2) setVerbalization(parameters[2]);
     }
 
     // Override me! Can just return "" if your talking rule doesn't need serialized parameters.
@@ -93,25 +93,23 @@ public abstract class TalkingArithmeticRuleOrConstraint extends TalkingRuleOrCon
         return getName() + "-" + getRuleString() + (getVerbalization() != null ? "-" + getVerbalization() : "");
     }
 
-    public String getDefaultExplanation(String groundingName, String contextAtom,
-                                        RuleAtomGraph rag, boolean whyExplanation) {
+    public String getDefaultExplanation(String groundingName, String contextAtom, RuleAtomGraph rag,
+                                        boolean whyExplanation) {
         return getDefaultExplanation(null, groundingName, contextAtom, rag, whyExplanation);
     }
 
     @Override
     public String getDefaultExplanation(ConstantRenderer renderer, String groundingName, String contextAtom,
-                                        RuleAtomGraph rag, boolean whyExplanation) {
+                                        RuleAtomGraph rag, boolean whyNotLower) {
         List<Tuple> atomToStatus = rag.getLinkedAtomsForGroundingWithLinkStatusAsList(groundingName);
         if (equative) {
             StringBuilder sb = new StringBuilder();
             List<String> printableArgs = new ArrayList<>();
             for (Tuple tuple : atomToStatus) {
                 String atom = tuple.get(0);
-                if (!atom.equals(contextAtom))
-                    printableArgs.add(atom);
+                if (!atom.equals(contextAtom)) printableArgs.add(atom);
             }
-            if (printableArgs.size() == 0)
-                sb.append(contextAtom).append(" has no competitors");
+            if (printableArgs.size() == 0) sb.append(contextAtom).append(" has no competitors");
             else {
                 sb.append(contextAtom).append(" competes with ");
                 appendAnd(printableArgs, sb);
@@ -121,10 +119,8 @@ public abstract class TalkingArithmeticRuleOrConstraint extends TalkingRuleOrCon
 
         int positiveArgs = 0;
         List<String> printableArgs = new ArrayList<>();
-        List<Double> printableBeliefValues = new ArrayList<>();
-        List<String[]> printablePredicateArgs = new ArrayList<>();
+        List<PrintableTalkingAtom> printableTalkingAtoms = new ArrayList<>();
         Map<String, TalkingPredicate> nameToTalkingPredicate = getTalkingPredicates();
-        List<TalkingPredicate> printableTalkingPredicates = new ArrayList<>();
         boolean contextFound = false;
         boolean contextPositive = false;
         for (Tuple tuple : atomToStatus) {
@@ -132,24 +128,28 @@ public abstract class TalkingArithmeticRuleOrConstraint extends TalkingRuleOrCon
             if (atom.equals(contextAtom)) {
                 contextFound = true;
                 contextPositive = tuple.get(1).equals("+");
-            } else if (atom.startsWith(NotEqualPred.SYMBOL)) {
                 continue;
-            } else if (tuple.get(1).equals("+")) {
+            }
+            if (atom.startsWith(NotEqualPred.SYMBOL)) {
+                continue;
+            }
+
+            String[] predDetails = StringUtils.split(atom, '(');
+            PrintableTalkingAtom talkingAtom = new PrintableTalkingAtom(nameToTalkingPredicate.get(predDetails[0]),
+                    StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1), ","),
+                    rag.getValue(atom));
+            if (tuple.get(1).equals("+")) {
                 printableArgs.add(positiveArgs, atom);
-                printableBeliefValues.add(positiveArgs, rag.getValue(atom));
+                printableTalkingAtoms.add(positiveArgs, talkingAtom);
                 positiveArgs++;
             } else {
                 printableArgs.add(atom);
-                printableBeliefValues.add(rag.getValue(atom));
+                printableTalkingAtoms.add(talkingAtom);
             }
-            String[] predDetails = StringUtils.split(atom, '(');
-            printableTalkingPredicates.add(nameToTalkingPredicate.get(predDetails[0]));
-            printablePredicateArgs.add(StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1), ","));
         }
 
         return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
-                printableArgs, printableTalkingPredicates, printablePredicateArgs, printableBeliefValues,
-                positiveArgs, true, whyExplanation, renderer);
+                printableArgs, printableTalkingAtoms, positiveArgs, true, whyNotLower, renderer, null, false, null);
     }
 
 }

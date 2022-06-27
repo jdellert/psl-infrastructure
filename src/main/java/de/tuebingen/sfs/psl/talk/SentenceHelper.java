@@ -33,11 +33,9 @@ public class SentenceHelper {
         appendList(args, from, to, "and", sb, url);
     }
 
-    public static void appendAnd(List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
-                                 List<String[]> printablePredicateArgs, int from, int to, StringBuilder sb, boolean url,
-                                 ConstantRenderer renderer) {
-        appendList(printableArgs, printableTalkingPredicates, printablePredicateArgs, from, to, "and", sb, url,
-                renderer);
+    public static void appendAnd(List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms, int from, int to,
+                                 StringBuilder sb, boolean url, ConstantRenderer renderer) {
+        appendList(printableArgs, printableTalkingAtoms, from, to, "and", sb, url, renderer);
     }
 
     public static void appendOr(List<String> args, StringBuilder sb) {
@@ -52,11 +50,9 @@ public class SentenceHelper {
         appendList(args, from, to, "or", sb, url);
     }
 
-    public static void appendOr(List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
-                                List<String[]> printablePredicateArgs, int from, int to, StringBuilder sb, boolean url,
-                                ConstantRenderer renderer) {
-        appendList(printableArgs, printableTalkingPredicates, printablePredicateArgs, from, to, "or", sb, url,
-                renderer);
+    public static void appendOr(List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms, int from, int to,
+                                StringBuilder sb, boolean url, ConstantRenderer renderer) {
+        appendList(printableArgs, printableTalkingAtoms, from, to, "or", sb, url, renderer);
     }
 
 
@@ -70,49 +66,48 @@ public class SentenceHelper {
         }
     }
 
-    protected static void appendList(List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
-                                     List<String[]> printablePredicateArgs, int from, int to, String conj,
-                                     StringBuilder sb, boolean url, ConstantRenderer renderer) {
+    protected static void appendList(List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms, int from, int to,
+                                     String conj, StringBuilder sb, boolean url, ConstantRenderer renderer) {
         for (int i = from; i < to; i++) {
-            if (url) addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sb, renderer);
+            if (url) addURL(printableArgs, printableTalkingAtoms, i, sb, renderer);
             else sb.append(printableArgs.get(i));
             if (i == printableArgs.size() - 2) sb.append(" ").append(conj).append(" ");
             else if (i != printableArgs.size() - 1) sb.append(", ");
         }
     }
 
-    protected static void addURL(List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
-                                 List<String[]> printablePredicateArgs, int index, StringBuilder sb,
-                                 ConstantRenderer renderer) {
+    protected static void addURL(List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms, int index,
+                                 StringBuilder sb, ConstantRenderer renderer) {
         String predicateName = printableArgs.get(index);
         sb.append("\\url");
-        if (printableTalkingPredicates != null && printablePredicateArgs != null) {
-            String verbalization = printableTalkingPredicates.get(index)
-                    .verbalizeIdeaAsNP(renderer, printablePredicateArgs.get(index));
-            if (!predicateName.equals(verbalization)) {
-                sb.append("[");
-                sb.append(escapeForURL(verbalization));
-                sb.append("]");
+        if (printableTalkingAtoms != null) {
+            PrintableTalkingAtom atom = printableTalkingAtoms.get(index);
+            if (atom != null) {
+                String verbalization = atom.pred.verbalizeIdeaAsNP(renderer, atom.args);
+                if (!predicateName.equals(verbalization)) {
+                    sb.append("[");
+                    sb.append(escapeForURL(verbalization));
+                    sb.append("]");
+                }
             }
         }
         sb.append("{").append(predicateName).append("}");
     }
 
-    protected static void addSentenceWithURL(List<String> printableArgs,
-                                             List<TalkingPredicate> printableTalkingPredicates,
-                                             List<String[]> printablePredicateArgs, List<Double> printableBeliefValues,
-                                             int index, StringBuilder sb, ConstantRenderer renderer) {
+    protected static void addSentenceWithURL(List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms, int index,
+                                             StringBuilder sb, ConstantRenderer renderer) {
         String predicateName = printableArgs.get(index);
         sb.append("\\url");
-        if (printableTalkingPredicates != null && printablePredicateArgs != null && printableBeliefValues != null) {
+        if (printableTalkingAtoms != null) {
             // This requires having implemented subclasses of TalkingPredicate in order to actually look nice.
-            String verbalization = printableTalkingPredicates.get(index)
-                    .verbalizeIdeaAsSentence(renderer, printableBeliefValues.get(index),
-                            printablePredicateArgs.get(index));
-            if (!predicateName.equals(verbalization)) {
-                sb.append("[");
-                sb.append(escapeForURL(verbalization));
-                sb.append("]");
+            PrintableTalkingAtom atom = printableTalkingAtoms.get(index);
+            if (atom != null) {
+                String verbalization = atom.pred.verbalizeIdeaAsSentence(renderer, atom.belief, atom.args);
+                if (!predicateName.equals(verbalization)) {
+                    sb.append("[");
+                    sb.append(escapeForURL(verbalization));
+                    sb.append("]");
+                }
             }
         }
         sb.append("{").append(predicateName).append("}");

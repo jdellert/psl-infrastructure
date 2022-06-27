@@ -251,36 +251,29 @@ public abstract class TalkingRuleOrConstraint {
      * Returns the explanation for a rule with a context atom that cannot be pushed further in the direction the rule
      * exerts pressure.
      *
-     * @param printableArgs              All arguments of the ground rule that are eligible for printing (i.e. open and unequal to the context atom)
-     * @param printableTalkingPredicates
-     * @param printablePredicateArgs
-     * @param printableBeliefValues      The belief values corresponding to the entries in printableArgs.
-     * @param renderer                   Renderer for the atom arguments. Can be null.
+     * @param printableArgs         All arguments of the ground rule that are eligible for printing (i.e. open and unequal to the context atom)
+     * @param printableTalkingAtoms
+     * @param renderer              Renderer for the atom arguments. Can be null.
      * @return
      */
     public String getExplanationForPolarAtom(List<String> printableArgs,
-                                             List<TalkingPredicate> printableTalkingPredicates,
-                                             List<String[]> printablePredicateArgs, List<Double> printableBeliefValues,
+                                             List<PrintableTalkingAtom> printableTalkingAtoms,
                                              ConstantRenderer renderer) {
         // If the context atom is 1.0/0.0 and can't be higher/lower:
         // Intro, then, in parentheses, list the atom links/values.
-        return getMinimalExplanation(printableArgs, printableTalkingPredicates, printablePredicateArgs,
-                printableBeliefValues, renderer);
+        return getMinimalExplanation(printableArgs, printableTalkingAtoms, renderer);
     }
 
     /**
      * Returns a very minimal explanation consisting of an introductory sentence followed by a list of links to
-     * conntected atoms (when possible, verbalized) and their belief values.
+     * connected atoms (when possible, verbalized) and their belief values.
      *
-     * @param printableArgs              All arguments of the ground rule that are eligible for printing (i.e. open and unequal to the context atom)
-     * @param printableTalkingPredicates
-     * @param printablePredicateArgs
-     * @param printableBeliefValues      The belief values corresponding to the entries in printableArgs.
-     * @param renderer                   Renderer for the atom arguments. Can be null.
+     * @param printableArgs         All arguments of the ground rule that are eligible for printing (i.e. open and unequal to the context atom)
+     * @param printableTalkingAtoms
+     * @param renderer              Renderer for the atom arguments. Can be null.
      * @return
      */
-    public String getMinimalExplanation(List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
-                                        List<String[]> printablePredicateArgs, List<Double> printableBeliefValues,
+    public String getMinimalExplanation(List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms,
                                         ConstantRenderer renderer) {
         // Intro, then, in parentheses, list the atom links/values.
         StringBuilder sb = new StringBuilder();
@@ -288,8 +281,7 @@ public abstract class TalkingRuleOrConstraint {
 
         int numArgs = printableArgs.size();
         for (int i = 0; i < numArgs; i++) {
-            addSentenceWithURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, printableBeliefValues,
-                    i, sb, renderer);
+            addSentenceWithURL(printableArgs, printableTalkingAtoms, i, sb, renderer);
             if (i == numArgs - 2) {
                 sb.append("and ");
             } else if (i != numArgs - 1) {
@@ -305,28 +297,23 @@ public abstract class TalkingRuleOrConstraint {
      * for the (single) atom that opposes the other atoms in an arithmetic rule expressing an inequality (A + B <= *C*).
      *
      * @param printableArgs
-     * @param printableTalkingPredicates
-     * @param printablePredicateArgs
-     * @param printableBeliefValues
+     * @param printableTalkingAtoms
      * @param renderer
      * @param whyNotLower
      * @param consequent
-     * @param consequentArgs
-     * @param consequentPredicate
+     * @param talkingConsequent
      * @return the verbalization
      */
     public String getExplanationForConsequent(List<String> printableArgs,
-                                              List<TalkingPredicate> printableTalkingPredicates,
-                                              List<String[]> printablePredicateArgs, List<Double> printableBeliefValues,
+                                              List<PrintableTalkingAtom> printableTalkingAtoms,
                                               ConstantRenderer renderer, boolean whyNotLower, String consequent,
-                                              String[] consequentArgs, TalkingPredicate consequentPredicate) {
+                                              PrintableTalkingAtom talkingConsequent) {
         StringBuilder sb = new StringBuilder();
         sb.append(getIntroductorySentence()).append(" ");
         sb.append("Since ");
         int numArgs = printableArgs.size();
         for (int i = 0; i < numArgs; i++) {
-            addSentenceWithURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, printableBeliefValues,
-                    i, sb, renderer);
+            addSentenceWithURL(printableArgs, printableTalkingAtoms, i, sb, renderer);
             if (i == numArgs - 1) {
                 sb.append("and ");
             } else {
@@ -334,10 +321,10 @@ public abstract class TalkingRuleOrConstraint {
             }
         }
         sb.append("the value of ");
-        if (consequentPredicate == null) {
+        if (talkingConsequent == null || !talkingConsequent.allFieldsSet()) {
             sb.append(consequent);
         } else {
-            sb.append(consequentPredicate.verbalizeIdeaAsNP(renderer, consequentArgs));
+            sb.append(talkingConsequent.pred.verbalizeIdeaAsNP(renderer, talkingConsequent.args));
         }
         sb.append(" has a");
         if (whyNotLower) {
@@ -356,35 +343,39 @@ public abstract class TalkingRuleOrConstraint {
     /**
      * Returns the explanation for a context atom in a rule that is trivially satisfied by the consequent's value.
      * If the context atom is in the consequent of the rule, use the method {@link #getExplanationForConsequent(
-     *List, List, List, List, ConstantRenderer, boolean, String, String[], TalkingPredicate)} instead.
+     *List, List, ConstantRenderer, boolean, String, PrintableTalkingAtom)} instead.
      *
-     * @param contextAtom                Atom displayed in the fact window.
+     * @param contextAtom           Atom displayed in the fact window.
      * @param printableArgs
-     * @param printableTalkingPredicates
-     * @param printablePredicateArgs
-     * @param printableBeliefValues
+     * @param printableTalkingAtoms
      * @param renderer
      * @param whyNotLower
-     * @param consequent                 The atom in the consequent of the rule. NOT identical to the context atom!
-     * @param consequentArgs
-     * @param consequentPredicate
+     * @param consequent            The atom in the consequent of the rule. NOT identical to the context atom!
+     * @param talkingConsequent
      * @return the verbalization
      */
     public String getExplanationForTriviallySatisfiedRule(String contextAtom, List<String> printableArgs,
-                                                          List<TalkingPredicate> printableTalkingPredicates,
-                                                          List<String[]> printablePredicateArgs,
-                                                          List<Double> printableBeliefValues, ConstantRenderer renderer,
-                                                          boolean whyNotLower, String consequent,
-                                                          String[] consequentArgs,
-                                                          TalkingPredicate consequentPredicate) {
+                                                          List<PrintableTalkingAtom> printableTalkingAtoms,
+                                                          ConstantRenderer renderer, boolean whyNotLower,
+                                                          String consequent, PrintableTalkingAtom talkingConsequent) {
         StringBuilder sb = new StringBuilder();
         sb.append(getIntroductorySentence()).append(" ");
         sb.append("In this case, ");
         int numArgs = printableArgs.size();
         for (int i = 0; i < numArgs; i++) {
-            // TODO no link if this is the contextAtom
-            addSentenceWithURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, printableBeliefValues,
-                    i, sb, renderer);
+            if (printableArgs.get(i).equals(contextAtom)) {
+                // No link if this is the context atom.
+                String verbalization = printableArgs.get(i);
+                if (printableTalkingAtoms != null) {
+                    PrintableTalkingAtom atom = printableTalkingAtoms.get(i);
+                    if (atom != null) {
+                        verbalization = atom.pred.verbalizeIdeaAsSentence(renderer, atom.belief, atom.args);
+                    }
+                }
+                sb.append(verbalization);
+            } else {
+                addSentenceWithURL(printableArgs, printableTalkingAtoms, i, sb, renderer);
+            }
             if (i == numArgs - 1) {
                 sb.append("and ");
             } else {
@@ -399,10 +390,10 @@ public abstract class TalkingRuleOrConstraint {
             sb.append("maximum");
         }
         sb.append(" value for ");
-        if (consequentPredicate == null) {
+        if (talkingConsequent == null || !talkingConsequent.allFieldsSet()) {
             sb.append(consequent);
         } else {
-            sb.append(consequentPredicate.verbalizeIdeaAsNP(renderer, consequentArgs));
+            sb.append(talkingConsequent.pred.verbalizeIdeaAsNP(renderer, talkingConsequent.args));
         }
         sb.append(". However, since it already has a value of ");
         if (whyNotLower) {
@@ -414,52 +405,36 @@ public abstract class TalkingRuleOrConstraint {
         return sb.toString();
     }
 
-    String getUnequativeExplanation(String contextAtom, double belief, boolean contextFound, boolean contextPositive,
-                                    List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
-                                    List<String[]> printablePredicateArgs, List<Double> printableBeliefValues,
-                                    int positiveArgs, boolean directFormulation, boolean whyNotLower,
-                                    ConstantRenderer renderer) {
-        // TODO get rid of this method and update the other methods accordingly
-        return getUnequativeExplanation(contextAtom, belief, contextFound, contextPositive, printableArgs,
-                printableTalkingPredicates, printablePredicateArgs, printableBeliefValues, positiveArgs,
-                directFormulation, whyNotLower, renderer, null, false, -1, null, null);
-    }
-
     /**
      * Generate explanation for logical rules and for non-equative arithmetic
      * rules.
      *
-     * @param contextAtom                Atom displayed in the fact window
-     * @param belief                     Value of context atom
-     * @param contextFound               Was the context found amongst the arguments of the ground
-     *                                   rule? If not, its predicate is closed or it is on the RAG's
-     *                                   renderer's ignore list.
-     * @param contextPositive            Is the context atom a positive literal?
-     * @param printableArgs              All arguments of the ground rule that are eligible for
-     *                                   printing (i.e. open and unequal to the context atom)
-     * @param printableTalkingPredicates The talking predicates corresponding to the printableArgs.
-     * @param printablePredicateArgs     The belief values corresponding to the printableArgs.
-     * @param printableBeliefValues      The belief values corresponding to the entries in
-     *                                   printableArgs.
-     * @param positiveArgs               The first [positiveArgs] entries of printableArgs are positive
-     *                                   literals, the rest is negative
-     * @param directFormulation          Use direct formulation? (Else contrafactive)
-     * @param whyNotLower                If true: explanation appears in the WHY block, otherwise: in
-     *                                   the WHY NOT block.
-     * @param renderer                   Renderer for the atom arguments. Can be null.
-     * @param consequent                 The atom in the consequent of the rule. Can be null.
-     * @param negatedConsequent          True if consequent is negated. Only matters if consequent != null.
-     * @param consequentBelief           The belief value of the consequent. Only matters if consequent != null.
-     * @param consequentPredicate        The predicate to which the consequent belongs. Can be null even if the consequent is non-null.
+     * @param contextAtom           Atom displayed in the fact window
+     * @param belief                Value of context atom
+     * @param contextFound          Was the context found amongst the arguments of the ground
+     *                              rule? If not, its predicate is closed or it is on the RAG's
+     *                              renderer's ignore list.
+     * @param contextPositive       Is the context atom a positive literal?
+     * @param printableArgs         All arguments of the ground rule that are eligible for
+     *                              printing (i.e. open and unequal to the context atom)
+     * @param printableTalkingAtoms The talking predicates, arguments, and belief values corresponding to the printableArgs.
+     *                              printableArgs.
+     * @param positiveArgs          The first [positiveArgs] entries of printableArgs are positive
+     *                              literals, the rest is negative
+     * @param directFormulation     Use direct formulation? (Else contrafactive)
+     * @param whyNotLower           If true: explanation appears in the WHY block, otherwise: in
+     *                              the WHY NOT block.
+     * @param renderer              Renderer for the atom arguments. Can be null.
+     * @param consequent            The atom in the consequent of the rule. Can be null.
+     * @param negatedConsequent     True if consequent is negated. Only matters if consequent != null.
+     * @param talkingConsequent
      * @return Unequative explanation
      */
     String getUnequativeExplanation(String contextAtom, double belief, boolean contextFound, boolean contextPositive,
-                                    List<String> printableArgs, List<TalkingPredicate> printableTalkingPredicates,
-                                    List<String[]> printablePredicateArgs, List<Double> printableBeliefValues,
+                                    List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms,
                                     int positiveArgs, boolean directFormulation, boolean whyNotLower,
                                     ConstantRenderer renderer, String consequent, boolean negatedConsequent,
-                                    double consequentBelief, String[] consequentArgs,
-                                    TalkingPredicate consequentPredicate) {
+                                    PrintableTalkingAtom talkingConsequent) {
         if (!contextFound) {
             // Context atom is not among given ground atoms (e.g. because it's on the problem's ignore list)
             return getContextlessExplanation(contextAtom, printableArgs);
@@ -469,21 +444,21 @@ public abstract class TalkingRuleOrConstraint {
                 (belief < RuleAtomGraph.DISSATISFACTION_PRECISION && whyNotLower)) {
             // "Why is this atom with value 1.0 not higher?" or
             // "Why is this atom with value 0.0 not lower?"
-            return getExplanationForPolarAtom(printableArgs, printableTalkingPredicates, printablePredicateArgs,
-                    printableBeliefValues, renderer);
+            return getExplanationForPolarAtom(printableArgs, printableTalkingAtoms, renderer);
         }
 
         if (contextAtom.equals(consequent)) {
-            return getExplanationForConsequent(printableArgs, printableTalkingPredicates, printablePredicateArgs,
-                    printableBeliefValues, renderer, whyNotLower, consequent, consequentArgs, consequentPredicate);
+            return getExplanationForConsequent(printableArgs, printableTalkingAtoms, renderer, whyNotLower, consequent,
+                    talkingConsequent);
         }
 
-        if (consequent != null && ((negatedConsequent && consequentBelief < RuleAtomGraph.DISSATISFACTION_PRECISION) ||
-                (!negatedConsequent && consequentBelief > 1 - RuleAtomGraph.DISSATISFACTION_PRECISION))) {
+        if (consequent != null && talkingConsequent != null &&
+                ((negatedConsequent && talkingConsequent.belief < RuleAtomGraph.DISSATISFACTION_PRECISION) ||
+                        (!negatedConsequent &&
+                                talkingConsequent.belief > 1 - RuleAtomGraph.DISSATISFACTION_PRECISION))) {
             // The rule is trivially satisfied.
-            return getExplanationForTriviallySatisfiedRule(contextAtom, printableArgs, printableTalkingPredicates,
-                    printablePredicateArgs, printableBeliefValues, renderer, whyNotLower, consequent, consequentArgs,
-                    consequentPredicate);
+            return getExplanationForTriviallySatisfiedRule(contextAtom, printableArgs, printableTalkingAtoms, renderer,
+                    whyNotLower, consequent, talkingConsequent);
         }
 
         // Intro, then:
@@ -510,28 +485,27 @@ public abstract class TalkingRuleOrConstraint {
         }
 
         if (positiveArgs > 0) {
-            List<String> components = new ArrayList<String>();
+            List<String> components = new ArrayList<>();
             for (int i = 0; i < positiveArgs; i++) {
                 StringBuilder sbComponent = new StringBuilder();
-                addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sbComponent, renderer);
-                sbComponent.append(" reaching a ");
-                boolean verbalizeAsHighLow =
-                        printableTalkingPredicates != null && printableTalkingPredicates.get(i).verbalizeOnHighLowScale;
-                if (verbalizeAsHighLow) {
-                    sbComponent.append("similarity");
-                } else {
-                    sbComponent.append("confidence");
+                addURL(printableArgs, printableTalkingAtoms, i, sbComponent, renderer);
+                if (printableTalkingAtoms != null) {
+                    sbComponent.append(" reaching a ");
+                    boolean verbalizeAsHighLow = printableTalkingAtoms.get(i).pred.verbalizeOnHighLowScale;
+                    if (verbalizeAsHighLow) {
+                        sbComponent.append("similarity");
+                    } else {
+                        sbComponent.append("confidence");
+                    }
+                    sbComponent.append(" level of \\textit{");
+                    if (verbalizeAsHighLow) {
+                        sbComponent.append(
+                                BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableTalkingAtoms.get(i).belief));
+                    } else {
+                        sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableTalkingAtoms.get(i).belief));
+                    }
+                    sbComponent.append("}");
                 }
-                sbComponent.append(" level of \\textit{");
-                if (verbalizeAsHighLow) {
-                    sbComponent.append(BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableBeliefValues.get(i)));
-                } else if (printableBeliefValues != null) {
-                    sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableBeliefValues.get(i)));
-                } else {
-                    // This shouldn't happen.
-                    sbComponent.append("???");
-                }
-                sbComponent.append("}");
                 components.add(sbComponent.toString());
             }
             appendAnd(components, sb, false);
@@ -539,23 +513,17 @@ public abstract class TalkingRuleOrConstraint {
         }
 
         if (negativeArgs > 0) {
-            List<String> components = new ArrayList<String>();
+            List<String> components = new ArrayList<>();
             for (int i = positiveArgs; i < printableArgs.size(); i++) {
                 StringBuilder sbComponent = new StringBuilder();
-                addURL(printableArgs, printableTalkingPredicates, printablePredicateArgs, i, sbComponent, renderer);
-                sbComponent.append(" being only ");
-                if (printableTalkingPredicates != null && printableBeliefValues != null) {
-                    if (printableTalkingPredicates.get(i).verbalizeOnHighLowScale) {
-                        sbComponent.append(BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableBeliefValues.get(i)));
+                addURL(printableArgs, printableTalkingAtoms, i, sbComponent, renderer);
+                if (printableTalkingAtoms != null) {
+                    sbComponent.append(" being only ");
+                    if (printableTalkingAtoms.get(i).pred.verbalizeOnHighLowScale) {
+                        sbComponent.append(
+                                BeliefScale.verbalizeBeliefAsAdjectiveHigh(printableTalkingAtoms.get(i).belief));
                     } else {
-                        sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableBeliefValues.get(i)));
-                    }
-                } else {
-                    if (printableBeliefValues != null) {
-                        sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableBeliefValues.get(i)));
-                    } else {
-                        // This shouldn't happen.
-                        sbComponent.append("???");
+                        sbComponent.append(BeliefScale.verbalizeBeliefAsAdjective(printableTalkingAtoms.get(i).belief));
                     }
                 }
                 components.add(sbComponent.toString());
