@@ -16,7 +16,7 @@
 package de.tuebingen.sfs.psl.talk.rule;
 
 import de.tuebingen.sfs.psl.talk.ConstantRenderer;
-import de.tuebingen.sfs.psl.talk.PrintableTalkingAtom;
+import de.tuebingen.sfs.psl.talk.PrintableAtom;
 
 import java.util.List;
 
@@ -36,9 +36,18 @@ public class SentenceHelper {
         appendList(args, from, to, "and", sb, url);
     }
 
-    public static void appendAnd(List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms, int from, int to,
-                                 StringBuilder sb, boolean url, ConstantRenderer renderer) {
-        appendList(printableArgs, printableTalkingAtoms, from, to, "and", sb, url, renderer);
+    public static void appendAnd(List<PrintableAtom> printableAtoms, StringBuilder sb, ConstantRenderer renderer) {
+        appendAnd(printableAtoms, sb, true, renderer);
+    }
+
+    public static void appendAnd(List<PrintableAtom> printableAtoms, StringBuilder sb, boolean url,
+                                 ConstantRenderer renderer) {
+        appendAnd(printableAtoms, 0, printableAtoms.size(), sb, url, renderer);
+    }
+
+    public static void appendAnd(List<PrintableAtom> printableAtoms, int from, int to, StringBuilder sb, boolean url,
+                                 ConstantRenderer renderer) {
+        appendList(printableAtoms, from, to, "and", sb, url, renderer);
     }
 
     public static void appendOr(List<String> args, StringBuilder sb) {
@@ -53,9 +62,9 @@ public class SentenceHelper {
         appendList(args, from, to, "or", sb, url);
     }
 
-    public static void appendOr(List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms, int from, int to,
-                                StringBuilder sb, boolean url, ConstantRenderer renderer) {
-        appendList(printableArgs, printableTalkingAtoms, from, to, "or", sb, url, renderer);
+    public static void appendOr(List<PrintableAtom> printableAtoms, int from, int to, StringBuilder sb, boolean url,
+                                ConstantRenderer renderer) {
+        appendList(printableAtoms, from, to, "or", sb, url, renderer);
     }
 
 
@@ -69,52 +78,74 @@ public class SentenceHelper {
         }
     }
 
-    protected static void appendList(List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms, int from, int to,
-                                     String conj, StringBuilder sb, boolean url, ConstantRenderer renderer) {
+    protected static void appendList(List<PrintableAtom> printableAtoms, int from, int to, String conj,
+                                     StringBuilder sb, boolean url, ConstantRenderer renderer) {
         for (int i = from; i < to; i++) {
-            if (url) addURL(printableArgs, printableTalkingAtoms, i, sb, renderer);
-            else sb.append(printableArgs.get(i));
-            if (i == printableArgs.size() - 2) sb.append(" ").append(conj).append(" ");
-            else if (i != printableArgs.size() - 1) sb.append(", ");
+            if (url) addNpWithUrl(printableAtoms, i, sb, renderer);
+            else addNpWithoutUrl(printableAtoms, i, sb, renderer);
+            if (i == printableAtoms.size() - 2) sb.append(" ").append(conj).append(" ");
+            else if (i != printableAtoms.size() - 1) sb.append(", ");
         }
     }
 
-    protected static void addURL(List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms, int index,
-                                 StringBuilder sb, ConstantRenderer renderer) {
-        String predicateName = printableArgs.get(index);
+    protected static void addNpWithUrl(List<PrintableAtom> printableAtoms, int index, StringBuilder sb,
+                                       ConstantRenderer renderer) {
+        addNpWithUrl(printableAtoms.get(index), sb, renderer);
+    }
+
+    protected static void addNpWithUrl(PrintableAtom atom, StringBuilder sb, ConstantRenderer renderer) {
         sb.append("\\url");
-        if (printableTalkingAtoms != null) {
-            PrintableTalkingAtom atom = printableTalkingAtoms.get(index);
-            if (atom != null) {
-                String verbalization = atom.getPred().verbalizeIdeaAsNP(renderer, atom.getArgs());
-                if (!predicateName.equals(verbalization)) {
-                    sb.append("[");
-                    sb.append(escapeForURL(verbalization));
-                    sb.append("]");
-                }
+        if (atom.canTalk()) {
+            String verbalization = atom.getPred().verbalizeIdeaAsNP(renderer, atom.getArgs());
+            if (!atom.getAtom().equals(verbalization)) {
+                sb.append("[");
+                sb.append(escapeForURL(verbalization));
+                sb.append("]");
             }
         }
-        sb.append("{").append(predicateName).append("}");
+        sb.append("{").append(atom.getAtom()).append("}");
     }
 
-    protected static void addSentenceWithURL(List<String> printableArgs, List<PrintableTalkingAtom> printableTalkingAtoms, int index,
-                                             StringBuilder sb, ConstantRenderer renderer) {
-        String predicateName = printableArgs.get(index);
+    protected static void addNpWithoutUrl(List<PrintableAtom> printableAtoms, int index, StringBuilder sb,
+                                          ConstantRenderer renderer) {
+        addNpWithoutUrl(printableAtoms.get(index), sb, renderer);
+    }
+
+    protected static void addNpWithoutUrl(PrintableAtom atom, StringBuilder sb, ConstantRenderer renderer) {
+        if (atom.canTalk()) {
+            sb.append(atom.getPred().verbalizeIdeaAsNP(renderer, atom.getArgs()));
+        } else {
+            sb.append(atom.getAtom());
+        }
+    }
+
+    protected static void addSentenceWithUrl(List<PrintableAtom> printableAtoms, int index, StringBuilder sb,
+                                             ConstantRenderer renderer) {
+        PrintableAtom atom = printableAtoms.get(index);
         sb.append("\\url");
-        if (printableTalkingAtoms != null) {
+        if (atom.canTalk()) {
             // This requires having implemented subclasses of TalkingPredicate in order to actually look nice.
-            PrintableTalkingAtom atom = printableTalkingAtoms.get(index);
-            if (atom != null) {
-                String verbalization = atom.getPred().verbalizeIdeaAsSentence(renderer, atom.getBelief(),
-                        atom.getArgs());
-                if (!predicateName.equals(verbalization)) {
-                    sb.append("[");
-                    sb.append(escapeForURL(verbalization));
-                    sb.append("]");
-                }
+            String verbalization = atom.getPred().verbalizeIdeaAsSentence(renderer, atom.getBelief(), atom.getArgs());
+            if (!atom.getAtom().equals(verbalization)) {
+                sb.append("[");
+                sb.append(escapeForURL(verbalization));
+                sb.append("]");
             }
         }
-        sb.append("{").append(predicateName).append("}");
+        sb.append("{").append(atom.getAtom()).append("}");
+    }
+
+    protected static void addSentenceWithoutUrl(List<PrintableAtom> printableAtoms, int index, StringBuilder sb,
+                                                ConstantRenderer renderer) {
+        addSentenceWithoutUrl(printableAtoms.get(index), sb, renderer);
+    }
+
+    protected static void addSentenceWithoutUrl(PrintableAtom atom, StringBuilder sb, ConstantRenderer renderer) {
+        if (atom.canTalk()) {
+            sb.append(atom.getPred().verbalizeIdeaAsSentence(renderer, atom.getBelief(), atom.getArgs()));
+        } else {
+            sb.append(atom.getAtom());
+        }
     }
 
 }

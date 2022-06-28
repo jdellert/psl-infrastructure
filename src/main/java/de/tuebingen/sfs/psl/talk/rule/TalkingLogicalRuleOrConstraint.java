@@ -18,7 +18,7 @@ package de.tuebingen.sfs.psl.talk.rule;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
 import de.tuebingen.sfs.psl.talk.ConstantRenderer;
-import de.tuebingen.sfs.psl.talk.PrintableTalkingAtom;
+import de.tuebingen.sfs.psl.talk.PrintableAtom;
 import de.tuebingen.sfs.psl.util.data.StringUtils;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import org.linqs.psl.model.atom.Atom;
@@ -86,29 +86,20 @@ public abstract class TalkingLogicalRuleOrConstraint extends TalkingRuleOrConstr
         return getName() + "-" + getRuleString() + (getVerbalization() != null ? "-" + getVerbalization() : "");
     }
 
-    @Override
-    public String getDefaultExplanation(ConstantRenderer renderer, String groundingName, String contextAtom,
-                                        RuleAtomGraph rag, boolean whyExplanation) {
-        return getDefaultExplanation(renderer, groundingName, contextAtom, rag, true, whyExplanation);
-    }
-
-    public String getDefaultExplanation(String groundingName, String contextAtom, RuleAtomGraph rag,
-                                        boolean whyExplanation) {
-        return getDefaultExplanation(null, groundingName, contextAtom, rag, true, whyExplanation);
-    }
-
     public String generateExplanation(String groundingName, String contextAtom, RuleAtomGraph rag,
                                       boolean whyExplanation) {
         return generateExplanation(null, groundingName, contextAtom, rag, whyExplanation);
     }
 
+    @Override
     public String generateExplanation(ConstantRenderer renderer, String groundingName, String contextAtom,
                                       RuleAtomGraph rag, boolean whyExplanation) {
-        return getDefaultExplanation(renderer, groundingName, contextAtom, rag, true, whyExplanation);
+        return getDefaultExplanation(renderer, groundingName, contextAtom, rag, whyExplanation);
     }
 
+    @Override
     public String getDefaultExplanation(ConstantRenderer renderer, String groundingName, String contextAtom,
-                                        RuleAtomGraph rag, boolean directFormulation, boolean whyExplanation) {
+                                        RuleAtomGraph rag, boolean whyExplanation) {
         String[] args = getArgs();
         // Get arguments of ground rule
         List<Tuple> atomToStatus = rag.getLinkedAtomsForGroundingWithLinkStatusAsList(groundingName);
@@ -117,7 +108,7 @@ public abstract class TalkingLogicalRuleOrConstraint extends TalkingRuleOrConstr
         // Get the head of the rule, if it is *not* a disjunction but just a singular atom.
         String consequent = null;
         boolean negatedConsequent = false;
-        PrintableTalkingAtom talkingConsequent = null;
+        PrintableAtom printableConsequent = null;
         String rule = getRuleString();
         if (rule.contains("->")) {
             consequent = rule.split("->")[1];
@@ -128,71 +119,78 @@ public abstract class TalkingLogicalRuleOrConstraint extends TalkingRuleOrConstr
         } else if (rule.contains("<<")) {
             consequent = rule.split("<<")[0];
         }
-        if (consequent.contains("|")) {
+        if (consequent == null || consequent.contains("|")) {
+            // Default explanations for consequents with disjunctions
             consequent = null;
-            // Default explanations for
         } else {
             consequent = consequent.strip();
             negatedConsequent = consequent.startsWith("~") || consequent.startsWith("!");
             if (negatedConsequent) {
                 consequent = consequent.substring(1).strip();
             }
-            talkingConsequent = new PrintableTalkingAtom();
-            talkingConsequent.setBelief(rag.getValue(consequent));
+            printableConsequent = new PrintableAtom(consequent);
             String[] predDetails = StringUtils.split(consequent, '(');
-            talkingConsequent.setArgs(
-                    StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1), ", "));
-            talkingConsequent.setPred(nameToTalkingPredicate.get(predDetails[0]));
+            printableConsequent.setPred(nameToTalkingPredicate.get(predDetails[0]));
+            // Placeholder args:
+            printableConsequent.setArgs(predDetails[1].substring(0, predDetails[1].length() - 1).split(",\\s?"));
         }
 
         // All arguments of the ground rule that are eligible for printing (unequal to the context atom and unequal to the consequent atom)
-        List<String> printableArgs = new ArrayList<>();
-        List<PrintableTalkingAtom> printableTalkingAtoms = new ArrayList<>();
-        // Index of context atom in super.args
-        int contextIndex = -1;
-        // Amount of atoms in super.args that do not occur in atomToStatus
-        // because they are on the renderer's ignore list
-        int skip = 0;
-        // Number of positive literals in printableArgs
-        int positiveGroundArgs = -1;
+        List<PrintableAtom> printableAtoms = new ArrayList<>();
+        List<String> statuses = new ArrayList<>();
+        // Extract the printableAtoms and update the context atom.
+        PrintableAtom printableContextAtom = extractAtoms(atomToStatus, rag, nameToTalkingPredicate, contextAtom,
+                printableAtoms, statuses);
+        boolean contextFound = printableContextAtom != null;
+        if (!contextFound) {
+            printableContextAtom = new PrintableAtom(contextAtom);
+            printableContextAtom.setBelief(rag.getValue(contextAtom));
+        }
 
-        for (int i = 0; i < args.length; i++) {
-            if (i == positiveArgs) positiveGroundArgs = printableArgs.size();
-
-            if (rag.getIgnoredPredicates().contains(args[i].substring(0, args[i].indexOf('('))) ||
-                    args[i].charAt(0) == '(')
-                // Skip (X == 'x')
-                // TODO: Improve [pre-github todo]
-                skip++;
-            else {
-                String groundAtom = atomToStatus.get(i - skip).get(0);
-                if (groundAtom.equals(contextAtom)) {
-                    contextIndex = i;
-                    continue;
-                }
-                if (groundAtom.equals(consequent)) {
-                    continue;
-                }
-                printableArgs.add(groundAtom);
-                String[] predDetails = StringUtils.split(groundAtom, '(');
-                String predName = predDetails[0];
-                if (predName.equals("#notequal")) {
-                    continue;
-                }
-                String[] predArgs = StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1), ", ");
-
-                printableTalkingAtoms.add(new PrintableTalkingAtom(nameToTalkingPredicate.get(predName), predArgs,
-                        rag.getValue(groundAtom)));
+        // Find the consequent (the version taken from the rule at the beginning of the method doesn't have the actual arguments yet):
+        List<PrintableAtom> possibleMatches = new ArrayList<>();
+        for (int i = 0; i < printableAtoms.size(); i++) {
+            if (samePredicateArityPolarity(printableConsequent, printableAtoms.get(i), negatedConsequent,
+                    statuses.get(i))) {
+                possibleMatches.add(printableAtoms.get(i));
             }
         }
-        if (positiveGroundArgs < 0) positiveGroundArgs = printableArgs.size();
+        if (possibleMatches.isEmpty()) {
+            // Something went wrong!
+            System.err.println("Couldn't find any ground instance of the consequent " + printableConsequent.getAtom() +
+                    " in the rule grounding for " + getName() + ".");
+            printableConsequent = null;
+        } else if (possibleMatches.size() == 1) {
+            printableConsequent.setAtom(possibleMatches.get(0).getAtom());
+            printableConsequent.setArgs(possibleMatches.get(0).getArgs());
+            printableConsequent.setBelief(possibleMatches.get(0).getBelief());
+        } else {
+            // TODO more elaborate parsing necessary
+            printableConsequent = null;
+        }
 
-        boolean contextFound = contextIndex >= 0;
-        boolean contextPositive = contextIndex < positiveArgs;
+        return getUnequativeExplanation(printableContextAtom, contextFound, printableAtoms, whyExplanation, renderer,
+                negatedConsequent, printableConsequent);
+    }
 
-        return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
-                printableArgs, printableTalkingAtoms, positiveGroundArgs, directFormulation, whyExplanation, renderer,
-                consequent, negatedConsequent, talkingConsequent);
+    private boolean samePredicateArityPolarity(PrintableAtom consequent, PrintableAtom atom, boolean negatedConsequent,
+                                               String atomStatus) {
+        if (consequent == null) {
+            return false;
+        }
+        if (negatedConsequent ? "+".equals(atomStatus) : "-".equals(atomStatus)) {
+            return false;
+        }
+        if (consequent.getArgs().length != atom.getArgs().length) {
+            return false;
+        }
+        if (consequent.getPred() == null) {
+            if (atom.getPred() != null) {
+                return false;
+            }
+            return StringUtils.split(consequent.getAtom(), '(')[0].equals(StringUtils.split(atom.getAtom(), '(')[0]);
+        }
+        return consequent.getPred().equals(atom.getPred());
     }
 
 }

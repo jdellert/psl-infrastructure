@@ -18,9 +18,7 @@ package de.tuebingen.sfs.psl.talk.rule;
 import de.tuebingen.sfs.psl.engine.PslProblem;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
 import de.tuebingen.sfs.psl.talk.ConstantRenderer;
-import de.tuebingen.sfs.psl.talk.PrintableTalkingAtom;
-import de.tuebingen.sfs.psl.talk.pred.NotEqualPred;
-import de.tuebingen.sfs.psl.util.data.StringUtils;
+import de.tuebingen.sfs.psl.talk.PrintableAtom;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import org.linqs.psl.model.rule.Rule;
 import org.linqs.psl.model.rule.arithmetic.AbstractArithmeticRule;
@@ -31,8 +29,6 @@ import org.linqs.psl.reasoner.function.FunctionComparator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static de.tuebingen.sfs.psl.talk.rule.SentenceHelper.appendAnd;
 
 public abstract class TalkingArithmeticRuleOrConstraint extends TalkingRuleOrConstraint {
 
@@ -104,54 +100,34 @@ public abstract class TalkingArithmeticRuleOrConstraint extends TalkingRuleOrCon
     public String getDefaultExplanation(ConstantRenderer renderer, String groundingName, String contextAtom,
                                         RuleAtomGraph rag, boolean whyNotLower) {
         List<Tuple> atomToStatus = rag.getLinkedAtomsForGroundingWithLinkStatusAsList(groundingName);
-        if (equative) {
-            StringBuilder sb = new StringBuilder();
-            List<String> printableArgs = new ArrayList<>();
-            for (Tuple tuple : atomToStatus) {
-                String atom = tuple.get(0);
-                if (!atom.equals(contextAtom)) printableArgs.add(atom);
-            }
-            if (printableArgs.size() == 0) sb.append(contextAtom).append(" has no competitors");
-            else {
-                sb.append(contextAtom).append(" competes with ");
-                appendAnd(printableArgs, sb);
-            }
-            return sb.append(" in rule '").append(getName()).append("'.").toString();
-        }
+//        if (equative) {
+//            StringBuilder sb = new StringBuilder();
+//            List<String> printableArgs = new ArrayList<>();
+//            for (Tuple tuple : atomToStatus) {
+//                String atom = tuple.get(0);
+//                if (!atom.equals(contextAtom)) printableArgs.add(atom);
+//            }
+//            if (printableArgs.size() == 0) sb.append(contextAtom).append(" has no competitors");
+//            else {
+//                sb.append(contextAtom).append(" competes with ");
+//                appendAnd(printableArgs, sb);
+//            }
+//            return sb.append(" in rule '").append(getName()).append("'.").toString();
+//        }
 
-        int positiveArgs = 0;
-        List<String> printableArgs = new ArrayList<>();
-        List<PrintableTalkingAtom> printableTalkingAtoms = new ArrayList<>();
+        List<PrintableAtom> printableAtoms = new ArrayList<>();
         Map<String, TalkingPredicate> nameToTalkingPredicate = getTalkingPredicates();
-        boolean contextFound = false;
-        boolean contextPositive = false;
-        for (Tuple tuple : atomToStatus) {
-            String atom = tuple.get(0);
-            if (atom.equals(contextAtom)) {
-                contextFound = true;
-                contextPositive = tuple.get(1).equals("+");
-                continue;
-            }
-            if (atom.startsWith(NotEqualPred.SYMBOL)) {
-                continue;
-            }
-
-            String[] predDetails = StringUtils.split(atom, '(');
-            PrintableTalkingAtom talkingAtom = new PrintableTalkingAtom(nameToTalkingPredicate.get(predDetails[0]),
-                    StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1), ","),
-                    rag.getValue(atom));
-            if (tuple.get(1).equals("+")) {
-                printableArgs.add(positiveArgs, atom);
-                printableTalkingAtoms.add(positiveArgs, talkingAtom);
-                positiveArgs++;
-            } else {
-                printableArgs.add(atom);
-                printableTalkingAtoms.add(talkingAtom);
-            }
+        // Extract the printableAtoms and update the context atom.
+        PrintableAtom printableContextAtom = extractAtoms(atomToStatus, rag, nameToTalkingPredicate, contextAtom,
+                printableAtoms, new ArrayList<>());
+        boolean contextFound = printableContextAtom != null;
+        if (!contextFound) {
+            printableContextAtom = new PrintableAtom(contextAtom);
+            printableContextAtom.setBelief(rag.getValue(contextAtom));
         }
 
-        return getUnequativeExplanation(contextAtom, rag.getValue(contextAtom), contextFound, contextPositive,
-                printableArgs, printableTalkingAtoms, positiveArgs, true, whyNotLower, renderer, null, false, null);
+        return getUnequativeExplanation(printableContextAtom, contextFound, printableAtoms, whyNotLower, renderer,
+                false, null);
     }
 
 }
