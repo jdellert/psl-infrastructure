@@ -35,7 +35,7 @@ import de.tuebingen.sfs.psl.util.data.StringUtils;
 public class TalkingPredicate {
 	String predSymbol;
 	int arity;
-	boolean verbalizeOnHighLowScale;
+	public boolean verbalizeOnHighLowScale;
 
 	public TalkingPredicate(String predSymbol, int arity) {
 		this(predSymbol, arity, false);

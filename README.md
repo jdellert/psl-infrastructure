@@ -12,3 +12,13 @@ Each PSL problem's [`RuleAtomGraph`](https://github.com/jdellert/psl-infrastruct
 ## Talking rules/constraints and predicates
 The subpackages `talk`, `talk.pred`, and `talk.rule` allow the definition of PSL problems with human-understandable inference explanations.
 
+## Parallel inferences / inference queuing
+
+## Model evaluations
+
+## Project structure
+PslProblem, IdeaGenerator etc.
+
+
+Reference to psl-ragviewer
+
