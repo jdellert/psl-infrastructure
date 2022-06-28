@@ -355,7 +355,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
         if (closed)
             closedPredicates.add(pred.getSymbol());
 
-        // TODO circular. how can declareUserPrior be applied to an entire PslProblem instead of just a set of predicates anyway? (vbl)
+        // TODO circular. how can declareUserPrior be applied to an entire PslProblem instead of just a set of predicates anyway?
 //		if (declareUserPrior) {
 //			declareUserPrior(name, arity);
 //		}
@@ -623,7 +623,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
         printResult(System.out);
     }
 
-    // TODO how does this differ from InferenceResult.printInferenceValues(); ? (vbl)
+    // TODO how does this differ from InferenceResult.printInferenceValues(); ?
     public void printResult(PrintStream printStream) {
         Set<String> predicates = new HashSet<>();
         predicates.addAll(talkingPredicates.keySet());

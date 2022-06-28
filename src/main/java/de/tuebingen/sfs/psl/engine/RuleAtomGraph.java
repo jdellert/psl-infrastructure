@@ -128,7 +128,7 @@ public class RuleAtomGraph {
 		Reasoner reasoner = new ADMMReasoner();
 		GroundRuleStore grs = new MemoryGroundRuleStore();
 		// TODO check whether this works. The DB still needs to be opened/closed by
-		// calling dbManager.openDatabase(problemId, write, read) (vbl)
+		// calling dbManager.openDatabase(problemId, write, read)
 		PersistedAtomManager atomManager = new PersistedAtomManager(
 				problem.getDbManager().getDatabase(problem.getName()));
 //		PersistedAtomManager atomManager = new PersistedAtomManager(((AtomStorePSL) problem.atoms).db);

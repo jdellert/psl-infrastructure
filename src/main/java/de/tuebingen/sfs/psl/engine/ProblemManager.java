@@ -37,7 +37,7 @@ public class ProblemManager {
     private int nextId = 1;
 
     // map from problemId to problem
-    // TODO make sure the problem IDs are used the same way everywhere -- getNewId() vs problem.getName() (vbl)
+    // TODO make sure the problem IDs are used the same way everywhere -- getNewId() vs problem.getName()
     private Map<String, PslProblem> problems;
 
     public ProblemManager(PartitionManager partitionManager) {

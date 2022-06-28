@@ -102,10 +102,20 @@ public abstract class TalkingRuleOrConstraint {
     public static TalkingRuleOrConstraint createTalkingRuleOrConstraint(String name, String ruleString, Rule rule,
                                                                         PslProblem pslProblem, String verbalization) {
         if (TalkingRule.isWeightedRule(ruleString)) {
+            double weight = 1.0;
+            if (ruleString.contains(":")) {
+                try {
+                    String[] fields = StringUtils.split(ruleString, ':');
+                    weight = Double.parseDouble(fields[0].strip());
+                    ruleString = fields[1].strip();
+                } catch (Exception e) {
+                    weight = 1.0;
+                }
+            }
             if (rule instanceof AbstractLogicalRule)
-                return new TalkingLogicalRule(name, ruleString, rule, pslProblem, verbalization);
+                return new TalkingLogicalRule(name, weight, ruleString, rule, pslProblem, verbalization);
             if (rule instanceof AbstractArithmeticRule)
-                return new TalkingArithmeticRule(name, ruleString, rule, pslProblem, verbalization);
+                return new TalkingArithmeticRule(name, weight, ruleString, rule, pslProblem, verbalization);
         }
         if (rule instanceof AbstractLogicalRule)
             return new TalkingLogicalConstraint(name, ruleString, rule, pslProblem, verbalization);
@@ -237,8 +247,8 @@ public abstract class TalkingRuleOrConstraint {
      * @param contextAtom    Atom displayed in the fact window
      * @param printableAtoms All arguments of the ground rule that are eligible for
      *                       printing (i.e. unequal to the context atom and not on the ignore list)
-     * @param renderer
-     * @return the verbalization
+     * @param renderer       Renderer for the atom arguments. Can be null.
+     * @return the explanation
      */
     public String getContextlessExplanation(PrintableAtom contextAtom, List<PrintableAtom> printableAtoms,
                                             ConstantRenderer renderer) {
@@ -261,9 +271,10 @@ public abstract class TalkingRuleOrConstraint {
      * Returns the explanation for a rule with a context atom that cannot be pushed further in the direction the rule
      * exerts pressure.
      *
-     * @param printableAtoms All arguments of the ground rule that are eligible for printing (i.e. open and unequal to the context atom)
+     * @param printableAtoms All arguments of the ground rule that are eligible for
+     *                       printing (i.e. unequal to the context atom and not on the ignore list)
      * @param renderer       Renderer for the atom arguments. Can be null.
-     * @return
+     * @return the explanation
      */
     public String getExplanationForPolarAtom(List<PrintableAtom> printableAtoms, ConstantRenderer renderer) {
         // If the context atom is 1.0/0.0 and can't be higher/lower:
@@ -275,9 +286,10 @@ public abstract class TalkingRuleOrConstraint {
      * Returns a very minimal explanation consisting of an introductory sentence followed by a list of links to
      * connected atoms (when possible, verbalized) and their belief values.
      *
-     * @param printableAtoms All arguments of the ground rule that are eligible for printing (i.e. open and unequal to the context atom)
+     * @param printableAtoms All arguments of the ground rule that are eligible for
+     *                       printing (i.e. unequal to the context atom and not on the ignore list)
      * @param renderer       Renderer for the atom arguments. Can be null.
-     * @return
+     * @return explanation
      */
     public String getMinimalExplanation(List<PrintableAtom> printableAtoms, ConstantRenderer renderer) {
         // Intro, then, in parentheses, list the atom links/values.
@@ -301,10 +313,11 @@ public abstract class TalkingRuleOrConstraint {
      * Returns an explanation for the consequent of a logical rule (A & B -> *C*) or
      * for the (single) atom that opposes the other atoms in an arithmetic rule expressing an inequality (A + B <= *C*).
      *
-     * @param printableAtoms
-     * @param renderer
-     * @param negatedConsequent
-     * @param consequent
+     * @param printableAtoms    All arguments of the ground rule that are eligible for
+     *                          printing (i.e. unequal to the context atom and not on the ignore list)
+     * @param renderer          Renderer for the atom arguments. Can be null.
+     * @param negatedConsequent Whether the consequent of the rule is negated in the ruleString
+     * @param consequent        The atom in the consequent of the rule.
      * @return the verbalization
      */
     public String getExplanationForConsequent(List<PrintableAtom> printableAtoms, ConstantRenderer renderer,
@@ -343,11 +356,11 @@ public abstract class TalkingRuleOrConstraint {
      *List, ConstantRenderer, boolean, PrintableAtom)} instead.
      *
      * @param contextAtom       Atom displayed in the fact window.
-     * @param printableAtoms
-     * @param renderer
-     * @param negatedConsequent
+     * @param printableAtoms    All arguments of the ground rule that are eligible for
+     *                          printing (i.e. unequal to the context atom and the consequent, and not on the ignore list)
+     * @param renderer          Renderer for the atom arguments. Can be null.
+     * @param negatedConsequent Whether the consequent of the rule is negated in the ruleString
      * @param consequent        The atom in the consequent of the rule. NOT identical to the context atom!
-     * @param consequent
      * @return the verbalization
      */
     public String getExplanationForTriviallySatisfiedRule(PrintableAtom contextAtom, List<PrintableAtom> printableAtoms,
@@ -395,12 +408,15 @@ public abstract class TalkingRuleOrConstraint {
     }
 
     /**
-     * Only lists the atoms and their values. Used when we don't have enough information to generate a more useful explanation (i.e. information on the consequent).
+     * Only lists the atoms and their values.
+     * Used when we don't have enough information to generate a more useful explanation (i.e. information on the consequent).
      *
-     * @param printableAtoms
-     * @param whyNotLower
-     * @param renderer
-     * @return
+     * @param printableAtoms All arguments of the ground rule that are eligible for
+     *                       printing (i.e. unequal to the context atom and not on the ignore list)
+     * @param whyNotLower    If true: explanation appears in the WHY block, otherwise: in
+     *                       the WHY NOT block.
+     * @param renderer       Renderer for the atom arguments. Can be null.
+     * @return the explanation
      */
     public String getBarebonesExplanation(List<PrintableAtom> printableAtoms, boolean whyNotLower,
                                           ConstantRenderer renderer) {
@@ -436,12 +452,15 @@ public abstract class TalkingRuleOrConstraint {
     }
 
     /**
-     * @param contextAtom
-     * @param printableAtoms
-     * @param renderer
-     * @param negatedConsequent
-     * @param consequent
-     * @return
+     * Generates the explanation for an antecedent (body argument) in a logical rule.
+     *
+     * @param contextAtom       Atom displayed in the fact window
+     * @param printableAtoms    All arguments of the ground rule that are eligible for
+     *                          printing (i.e. unequal to the context atom and the consequent, and not on the ignore list)
+     * @param renderer          Renderer for the atom arguments. Can be null.
+     * @param negatedConsequent Whether the consequent of the rule is negated in the ruleString
+     * @param consequent        The consequent of the rule
+     * @return the explanation
      */
     public String getExplanationForAntecedent(PrintableAtom contextAtom, List<PrintableAtom> printableAtoms,
                                               ConstantRenderer renderer, boolean negatedConsequent,
@@ -508,8 +527,7 @@ public abstract class TalkingRuleOrConstraint {
     }
 
     /**
-     * Generate explanation for logical rules and for non-equative arithmetic
-     * rules.
+     * Generates an explanation for logical rules and for non-equative arithmetic rules.
      *
      * @param contextAtom       Atom displayed in the fact window
      * @param contextFound      Was the context found amongst the arguments of the ground
@@ -519,7 +537,6 @@ public abstract class TalkingRuleOrConstraint {
      * @param whyNotLower       If true: explanation appears in the WHY block, otherwise: in
      *                          the WHY NOT block.
      * @param renderer          Renderer for the atom arguments. Can be null.
-     * @param consequent        The atom in the consequent of the rule. Can be null.
      * @param negatedConsequent True if consequent is negated. Only matters if consequent != null.
      * @param consequent        The (singular) consequent/head of a logical rule. Can be null. Can be identical to the contextAtom.
      * @return Unequative explanation
@@ -615,15 +632,15 @@ public abstract class TalkingRuleOrConstraint {
     }
 
     /**
-     * Fills the provided list of printable atoms, updates the context atom, and counts the number of positive atoms.
+     * Fills the provided list of printable atoms and updates the context atom.
      *
-     * @param atomToStatus
-     * @param rag
-     * @param nameToTalkingPredicate
-     * @param contextAtom
-     * @param printableAtoms         The to-be-filled list of atoms.
-     * @param statuses
-     * @return
+     * @param atomToStatus           The ground atoms and their statuses in the RAG
+     * @param rag                    The rule-atom graph
+     * @param nameToTalkingPredicate The map of predicates to their TalkingPredicate classes
+     * @param contextAtom            The ground atom in the focus of the FactWindow
+     * @param printableAtoms         The to-be-filled list of ground atoms.
+     * @param statuses               The to-be-filled list of atom statuses.
+     * @return the PrintableAtom instance of the contextAtom
      */
     PrintableAtom extractAtoms(List<Tuple> atomToStatus, RuleAtomGraph rag,
                                Map<String, TalkingPredicate> nameToTalkingPredicate, String contextAtom,

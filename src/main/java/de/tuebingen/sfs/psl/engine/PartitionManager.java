@@ -109,7 +109,7 @@ public class PartitionManager {
             }
         }
         if (overlap) {
-            // TODO queue (vbl)
+            // TODO queue
             throw new PartitionException("Overlapping partitions");
         }
 
@@ -223,7 +223,7 @@ public class PartitionManager {
         // After the inference, move the atoms back to the standard partitions,
         // when possible.
         // TODO for the write partition (which isn't shared!), this could be more efficient
-        // atom args) (vbl)
+        // atom args)
         System.err.println("Moving atoms reserved for " + problem.getName() + " back to standard partition");
         logger.display("Returning reserved atoms to shared database...");
         changeWritePartition(problem, stdPartition);
@@ -246,7 +246,7 @@ public class PartitionManager {
     private int moveToPartition(PslProblem problem, int sourceID, int targetID, AtomTemplate atomTemplate) {
 //		System.err.println("Trying to move " + atomTemplate + " from " + sourceID + " to " + targetID);
         int rowsMoved = dbManager.moveToPartition(Collections.singleton(sourceID), targetID, atomTemplate);
-        // TODO (vbl)
+        // TODO
         // ONLY uncomment this if the relevant predicate contains very few atoms
         // else you will spend a lot of time printing entries and pollute the output considerably
         // dbManager.printTable(predInfo);

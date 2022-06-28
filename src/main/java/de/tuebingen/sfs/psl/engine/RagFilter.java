@@ -202,7 +202,6 @@ public class RagFilter {
 
     public String atomToSimplifiedString(GroundAtom atom) {
         String predName = atom.getPredicate().getName();
-        // TODO: find out why this wasn't previously necessary
         predName = (groundPred2ActualNames == null || !groundPred2ActualNames.containsKey(predName)) ?
                 TalkingPredicate.getPredNameFromAllCaps(predName) : groundPred2ActualNames.get(predName);
         Tuple argTuple = new Tuple();
