@@ -380,10 +380,11 @@ public abstract class TalkingRuleOrConstraint {
         for (int i = 0; i < numArgs; i++) {
             addNpWithUrl(printableAtoms, i, sb, renderer);
             if (i == numArgs - 2) {
-                sb.append("and ");
+                sb.append(" and");
             } else if (i < numArgs - 1) {
-                sb.append(", ");
+                sb.append(",");
             }
+            sb.append(" ");
         }
 
         sb.append("determine");
@@ -479,11 +480,12 @@ public abstract class TalkingRuleOrConstraint {
         }
         for (int i = 0; i < numArgs; i++) {
             addNpWithUrl(printableAtoms, i, sb, renderer);
-            if (i == numArgs - 1) {
-                sb.append("and ");
-            } else {
-                sb.append(", ");
+            if (i == numArgs - 2) {
+                sb.append(" and");
+            } else if (i < numArgs - 1) {
+                sb.append(",");
             }
+            sb.append(" ");
         }
         sb.append("determine");
         if (numArgs == 0) {
