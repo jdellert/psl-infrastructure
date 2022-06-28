@@ -547,6 +547,9 @@ public abstract class TalkingRuleOrConstraint {
                                     PrintableAtom consequent) {
         if (!contextFound) {
             // Context atom is not among given ground atoms (e.g. because it's on the problem's ignore list)
+            if (consequent != null) {
+                printableAtoms.add(consequent);
+            }
             return getContextlessExplanation(contextAtom, printableAtoms, renderer);
         }
 
@@ -554,6 +557,9 @@ public abstract class TalkingRuleOrConstraint {
                 (contextAtom.getBelief() < RuleAtomGraph.DISSATISFACTION_PRECISION && whyNotLower)) {
             // "Why is this atom with value 1.0 not higher?" or
             // "Why is this atom with value 0.0 not lower?"
+            if (consequent != null) {
+                printableAtoms.add(consequent);
+            }
             return getExplanationForPolarAtom(printableAtoms, renderer);
         }
 

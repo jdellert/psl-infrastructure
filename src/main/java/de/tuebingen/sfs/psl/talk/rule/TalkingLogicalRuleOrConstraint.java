@@ -122,7 +122,7 @@ public abstract class TalkingLogicalRuleOrConstraint extends TalkingRuleOrConstr
         }
         if (consequent == null || consequent.contains("|")) {
             // Default explanations for consequents with disjunctions
-            consequent = null;
+            printableConsequent = null;
         } else {
             consequent = consequent.strip();
             negatedConsequent = consequent.startsWith("~") || consequent.startsWith("!");
@@ -165,6 +165,7 @@ public abstract class TalkingLogicalRuleOrConstraint extends TalkingRuleOrConstr
             printableConsequent.setAtom(possibleMatches.get(0).getAtom());
             printableConsequent.setArgs(possibleMatches.get(0).getArgs());
             printableConsequent.setBelief(possibleMatches.get(0).getBelief());
+            printableAtoms.remove(possibleMatches.get(0));
         } else {
             // TODO more elaborate parsing necessary
             printableConsequent = null;
