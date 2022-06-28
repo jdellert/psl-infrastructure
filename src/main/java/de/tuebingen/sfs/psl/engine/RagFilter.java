@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.term.Constant;
 
-import de.tuebingen.sfs.psl.talk.rule.TalkingPredicate;
+import de.tuebingen.sfs.psl.talk.pred.TalkingPredicate;
 import de.tuebingen.sfs.psl.util.color.HslColor;
 import de.tuebingen.sfs.psl.util.data.Multimap;
 import de.tuebingen.sfs.psl.util.data.StringUtils;

@@ -15,7 +15,7 @@
  */
 package de.tuebingen.sfs.psl.engine;
 
-import de.tuebingen.sfs.psl.talk.rule.TalkingPredicate;
+import de.tuebingen.sfs.psl.talk.pred.TalkingPredicate;
 import de.tuebingen.sfs.psl.talk.rule.TalkingRuleOrConstraint;
 import de.tuebingen.sfs.psl.util.data.Multimap;
 import de.tuebingen.sfs.psl.util.data.Multimap.CollectionType;

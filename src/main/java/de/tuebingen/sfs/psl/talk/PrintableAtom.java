@@ -1,6 +1,6 @@
 package de.tuebingen.sfs.psl.talk;
 
-import de.tuebingen.sfs.psl.talk.rule.TalkingPredicate;
+import de.tuebingen.sfs.psl.talk.pred.TalkingPredicate;
 
 import java.util.Objects;
 

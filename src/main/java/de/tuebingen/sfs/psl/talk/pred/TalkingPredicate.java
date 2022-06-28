@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.tuebingen.sfs.psl.talk.rule;
+package de.tuebingen.sfs.psl.talk.pred;
 
 import java.util.Arrays;
 import java.util.List;

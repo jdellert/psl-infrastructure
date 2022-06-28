@@ -21,6 +21,7 @@ import de.tuebingen.sfs.psl.talk.BeliefScale;
 import de.tuebingen.sfs.psl.talk.ConstantRenderer;
 import de.tuebingen.sfs.psl.talk.PrintableAtom;
 import de.tuebingen.sfs.psl.talk.pred.NotEqualPred;
+import de.tuebingen.sfs.psl.talk.pred.TalkingPredicate;
 import de.tuebingen.sfs.psl.util.data.StringUtils;
 import de.tuebingen.sfs.psl.util.data.Tuple;
 import org.linqs.psl.database.DataStore;
