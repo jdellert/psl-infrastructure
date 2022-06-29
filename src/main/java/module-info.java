@@ -16,4 +16,5 @@ module de.tuebingen.sfs.psl {
     exports de.tuebingen.sfs.psl.util.color;
     exports de.tuebingen.sfs.psl.util.data;
     exports de.tuebingen.sfs.psl.util.log;
+    exports de.tuebingen.sfs.psl.examples.livesknows;
 }
