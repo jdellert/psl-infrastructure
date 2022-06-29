@@ -670,8 +670,7 @@ public abstract class TalkingRuleOrConstraint {
                 continue;
             }
             PrintableAtom talkingAtom = new PrintableAtom(atom, nameToTalkingPredicate.get(predDetails[0]),
-                    StringUtils.split(predDetails[1].substring(0, predDetails[1].length() - 1), ","),
-                    rag.getValue(atom));
+                    predDetails[1].substring(0, predDetails[1].length() - 1).split(",\\s?"), rag.getValue(atom));
 
             if (atom.equals(contextAtom)) {
                 printableContextAtom = talkingAtom;
