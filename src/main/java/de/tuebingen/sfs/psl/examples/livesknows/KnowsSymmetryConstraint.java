@@ -50,7 +50,7 @@ public class KnowsSymmetryConstraint extends TalkingArithmeticConstraint {
         StringBuilder sb = new StringBuilder();
         boolean similar = Math.abs(inverseBelief - rag.getValue(contextAtom)) < RuleAtomGraph.DISSATISFACTION_PRECISION;
         sb.append("The 'knows' relationship is symmetric, ").append(similar ? "and" : "but");
-        sb.append(" the \\url[").append(escapeForURL("inverse similarity")).append("]{").append(inverseAtom);
+        sb.append(" the \\url[").append(escapeForURL("inverse case")).append("]{").append(inverseAtom);
         sb.append("} is ");
         if (similar) {
             sb.append("also ");
