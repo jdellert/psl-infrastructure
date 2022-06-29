@@ -19,13 +19,14 @@ import de.tuebingen.sfs.psl.engine.DatabaseManager;
 import de.tuebingen.sfs.psl.engine.InferenceResult;
 import de.tuebingen.sfs.psl.engine.ProblemManager;
 import de.tuebingen.sfs.psl.engine.RuleAtomGraph;
+import de.tuebingen.sfs.psl.util.data.Pair;
 import de.tuebingen.sfs.psl.util.log.InferenceLogger;
 
 import java.util.Collections;
 
 public class EntryClass {
 
-    public static void main(String[] args) {
+    public static Pair<SamplePslProblem, InferenceResult> runInference(){
         // Create the classes in charge of managing the database partitions and saving the inference results:
         ProblemManager problemManager = ProblemManager.defaultProblemManager();
         DatabaseManager dbManager = problemManager.getDbManager();
@@ -37,13 +38,20 @@ public class EntryClass {
         SampleIdeaGenerator ideaGen = new SampleIdeaGenerator(problem);
         ideaGen.generateAtoms("/examples/livesknows/addresses.csv");
 
-        // Run the inference and extract the rule-atom graph:
+        // Run the inference and extract the results:
         problemManager.registerProblem(problemId, problem);
         InferenceLogger logger = new InferenceLogger();
         problemManager.preparePartitionsAndRun(Collections.singletonList(problem), logger);
-
-        // Extract and inspect the results:
         InferenceResult result = problemManager.getLastResult(problemId);
+        return new Pair<>(problem, result);
+    }
+
+    public static void main(String[] args) {
+        Pair<SamplePslProblem, InferenceResult> problemAndResult = runInference();
+        SamplePslProblem problem = problemAndResult.first;
+        InferenceResult result = problemAndResult.second;
+
+        // Inspect the results:
         RuleAtomGraph rag = result.getRag();
         problem.printRules(System.out);
         // Print each ground atom -- ground rule combination
