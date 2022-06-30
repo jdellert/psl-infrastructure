@@ -36,7 +36,7 @@ public class EntryClass {
         SamplePslProblem problem = new SamplePslProblem(dbManager, problemId);
         // Generate ground atoms:
         SampleIdeaGenerator ideaGen = new SampleIdeaGenerator(problem);
-        ideaGen.generateAtoms("/examples/livesknows/addresses.csv");
+        ideaGen.generateAtoms("/examples/livesknows/addresses.tsv");
 
         // Run the inference and extract the results:
         problemManager.registerProblem(problemId, problem);
