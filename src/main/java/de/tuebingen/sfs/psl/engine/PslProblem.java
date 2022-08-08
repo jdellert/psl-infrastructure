@@ -162,6 +162,7 @@ public abstract class PslProblem implements Callable<InferenceResult> {
     private void basicSetup(boolean clearDB) {
         if (dbManager == null) {
             // Should only be the case for stand-alone models!
+            System.err.println("PslProblem.basicSetup(): Stand-alone model, intializing a new PSL database and DatabaseManager!");
             RDBMSDataStore dataStore = new RDBMSDataStore(new H2DatabaseDriver(Type.Disk, dbPath, clearDB));
             dbManager = new DatabaseManager(dataStore);
         }
