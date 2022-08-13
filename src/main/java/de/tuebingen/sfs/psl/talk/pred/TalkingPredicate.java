@@ -80,7 +80,7 @@ public class TalkingPredicate {
 
 	// Override me!
 	public String verbalizeIdeaWithBelief(ConstantRenderer renderer, double belief, String[] array) {
-		return verbalizeIdea(renderer, array) + " %.2f".formatted(belief);
+		return verbalizeIdea(renderer, array) + "is %.2f".formatted(belief);
 	}
 
 	// Override me!
