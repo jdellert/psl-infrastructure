@@ -127,6 +127,8 @@ public abstract class TalkingArithmeticRuleOrConstraint extends TalkingRuleOrCon
             printableContextAtom.setBelief(rag.getValue(contextAtom));
         }
 
+        // TODO better default verbalizations, similar to the verbalizations of antecedents of logical rules
+
         return getUnequativeExplanation(printableContextAtom, contextFound, printableAtoms, whyNotLower, renderer,
                 false, null);
     }
