@@ -24,7 +24,7 @@ If you define a custom rule class, it needs to extend one of the following class
 - `TalkingArithmeticConstraint`: arithmetic constraints
 
 Overriding a rule's `generateExplanation` code allows creating custom templates for explaining the rule's logic in the context of a selected associated ground atom.
-Otherwise, default logic for generating explanations for various rule types exists.
+Otherwise, the rule is verbalized using according to a [default paradigm](https://github.com/jdellert/psl-infrastructure/wiki/Rule-verbalization).
 
 To create predicates that can easily be rendered as noun phrases or sentences, extend the [TalkingPredicate](https://github.com/jdellert/psl-infrastructure/blob/master/src/main/java/de/tuebingen/sfs/psl/talk/pred/TalkingPredicate.java) class.
 
