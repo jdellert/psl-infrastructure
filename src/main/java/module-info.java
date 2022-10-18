@@ -17,4 +17,6 @@ module de.tuebingen.sfs.psl {
     exports de.tuebingen.sfs.psl.util.data;
     exports de.tuebingen.sfs.psl.util.log;
     exports de.tuebingen.sfs.psl.examples.livesknows;
+    requires org.apache.logging.log4j;
+    requires org.apache.logging.log4j.core;
 }
