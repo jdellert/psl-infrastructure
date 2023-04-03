@@ -30,7 +30,7 @@ import java.util.concurrent.FutureTask;
 
 public class ProblemManager {
 
-    public static final int MAX_PROBLEM_ID_LENGTH = 255;
+    public static final int MAX_PROBLEM_ID_LENGTH = 511;
     private PartitionManager partitionManager;
     private InferenceStore inferenceStore;
     private DatabaseManager dbManager;
